@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const ADDRESS_REGEX = /(0x[a-fA-F0-9]{40})/g
 
 const transactionDataSchema = z.object({
-  chainId: z.number().gte(1).lte(1000),
+  chainId: z.number().gte(1).lte(10000),
   address: z.string().regex(ADDRESS_REGEX),
   abi: z.string().array(),
   functionName: z.string(),
