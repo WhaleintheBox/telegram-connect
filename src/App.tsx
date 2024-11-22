@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';  // Retiré useNetwork car non utilisé
+import { useAccount } from 'wagmi';
 import { WriteContract, WriteContractData } from './components/WriteContract';
 import { SignMessage, SignMessageProps } from './components/SignMessage';
 import { Account } from './components/Account';
@@ -9,172 +9,100 @@ import { getSchemaError, sendEvent } from './utils';
 
 export default function App() {
   const { isConnected } = useAccount();
-  const [transactionData, setTransactionData] = useState<WriteContractData>();
-  const [signMessageData, setSignMessageData] = useState<SignMessageProps>();
-  const [callbackEndpoint, setCallbackEndpoint] = useState('');
-  const [schemaError, setSchemaError] = useState<any>(false);
-  const [callbackError, setCallbackError] = useState<any>();
-  const [uid, setUid] = useState<string | undefined>();
-  const [operationType, setOperationType] = useState<string>("");
-  const [botName, setBotName] = useState<string>("");
-  const [loading, setLoading] = useState(true);
+  const [ transactionData, setTransactionData ] = useState<WriteContractData>()
+  const [ signMessageData, setSignMessageData ] = useState<SignMessageProps>();
+  const [ callbackEndpoint, setCallbackEndpoint ] = useState('');
+  const [ schemaError, setSchemaError ] = useState<any>(false);
+  const [ callbackError, setCallbackError ] = useState<any>();
+  const [ uid, setUid ] = useState<string | undefined>();
+  const [ operationType, setOperationType ] = useState<string>("");
+  const [ botName, setBotName ] = useState<string>("");
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const queryParameters = new URLSearchParams(window.location.search);
-        const source = queryParameters.get("source");
-        
-        if (!source) {
-          throw new Error("Source parameter is missing");
-        }
+    const queryParameters = new URLSearchParams(window.location.search);
+    const source = queryParameters.get("source") as string;
+    setBotName(queryParameters.get("botName") as string);
+    setUid(queryParameters.get("uid") as string);
+    setCallbackEndpoint(queryParameters.get("callback") as string);
 
-        setBotName(queryParameters.get("botName") || "");
-        setUid(queryParameters.get("uid") || "");
-        setCallbackEndpoint(queryParameters.get("callback") || "");
+    const actionType = queryParameters.get("type") === "signature" ? "signature" : "transaction";
+    setOperationType(actionType);
 
-        const actionType = queryParameters.get("type") === "signature" ? "signature" : "transaction";
-        setOperationType(actionType);
 
-        console.log("Fetching from source:", source);
-        const response = await fetch(source);
-        const data = await response.json();
-        console.log("Received data:", data);
-
-        const error = getSchemaError(actionType, data);
-        if (error) {
-          console.error("Schema error:", error);
-          setSchemaError(error);
-        } else {
-          if (actionType === "signature") {
-            setSignMessageData(data);
+    fetch(source)
+      .then(response => response.json())
+      .then(data => {
+          const error = getSchemaError(actionType, data)
+          if (error) {
+            setSchemaError(error)
           } else {
-            setTransactionData(data);
+            actionType === "signature" ? setSignMessageData(data) : setTransactionData(data)
           }
-        }
-      } catch (error) {
-        console.error("Error in data fetch:", error);
-        setSchemaError(error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      })
+      .catch(error => {
+        setSchemaError(error)
+      })
 
-    fetchData();
-  }, []);
+  }, [])
 
   const onCallbackError = (error: any) => {
-    console.error("Callback error:", error);
-    setCallbackError(error);
-  };
-
-  // Styles adaptés pour mobile
-  const containerStyle = {
-    padding: '15px',
-    maxWidth: '100%',
-    margin: '0 auto'
-  };
-
-  const loadingStyle = {
-    textAlign: 'center' as const,
-    padding: '20px',
-    color: '#666'
-  };
-
-  const errorStyle = {
-    padding: '15px',
-    margin: '10px 0',
-    borderRadius: '8px',
-    backgroundColor: '#fee',
-    color: '#c00'
-  };
-
-  if (loading) {
-    return (
-      <div style={loadingStyle}>
-        Loading transaction data...
-      </div>
-    );
+    setCallbackError(error)
   }
 
   return (
-    <div style={containerStyle}>
+    <>
       {isConnected && !schemaError && <Account botName={botName}/>}
       {!isConnected && !schemaError && <Connect />}
       {isConnected && !schemaError && (transactionData || signMessageData) && 
         <>
-          {(operationType === "transaction") && transactionData && uid && (
-            <>
-              <div className="container">
-                <ReactJson 
-                  src={transactionData} 
-                  collapsed={true} 
-                  theme="monokai"
-                  style={{ fontSize: '14px', marginBottom: '15px' }}
-                />
-              </div>
-              <WriteContract
-                uid={uid}
-                chainId={transactionData.chainId}
-                address={transactionData.address}
-                abi={transactionData.abi}
-                functionName={transactionData.functionName}
-                args={transactionData.args}
-                sendEvent={(data: any) => {
-                  console.log("Sending event:", data);
-                  sendEvent(uid, callbackEndpoint, onCallbackError, {
-                    ...data,
-                    transaction: true
-                  });
-                }}
-              />
-            </>
-          )}
-          {(operationType === "signature") && signMessageData && uid && (
-            <>
-              <div className="container">
-                <ReactJson 
-                  src={signMessageData} 
-                  collapsed={true} 
-                  theme="monokai"
-                  style={{ fontSize: '14px', marginBottom: '15px' }}
-                />
-              </div>
-              <SignMessage
-                uid={uid}
-                domain={signMessageData.domain}
-                primaryType={signMessageData.primaryType}
-                types={signMessageData.types}
-                message={signMessageData.message}
-                sendEvent={(data: any) => {
-                  console.log("Sending signature event:", data);
-                  sendEvent(uid, callbackEndpoint, onCallbackError, {
-                    ...data,
-                    signature: true
-                  });
-                }}
-              />
-            </>
-          )}
+          {(operationType === "transaction") && transactionData && uid &&
+          <>
+            <div className="container">
+              <ReactJson src={transactionData} collapsed theme="monokai" />
+            </div>
+            <WriteContract
+              uid={uid}
+              chainId={transactionData.chainId}
+              address={transactionData.address}
+              abi={transactionData.abi}
+              functionName={transactionData.functionName}
+              args={transactionData.args}
+              sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, {...data , transaction: true })}
+            />
+          </>
+          }
+          {(operationType === "signature") && signMessageData && uid &&
+          <>
+            <div className="container">
+              <ReactJson src={signMessageData} collapsed theme="monokai" />
+            </div>
+            <SignMessage
+              uid={uid}
+              domain={signMessageData.domain}
+              primaryType={signMessageData.primaryType}
+              types={signMessageData.types}
+              message={signMessageData.message}
+              sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, {...data, signature: true })}
+            />
+          </>
+          }
+
         </>
       }
-      {schemaError && (
-        <div style={errorStyle}>
-          <div>Invalid transaction data</div>
-          <pre style={{ fontSize: '12px', overflow: 'auto' }}>
-            {JSON.stringify(schemaError, null, 2)}
-          </pre>
+      {
+        schemaError &&
+        <div className="container parsingError">
+          <div>Source doesnt match schema</div>
+          <ReactJson src={JSON.parse(JSON.stringify(schemaError))} collapsed theme="monokai" />
         </div>
-      )}
-      {callbackError && (
-        <div style={errorStyle}>
-          <div>Error during callback to {callbackEndpoint}</div>
-          <pre style={{ fontSize: '12px', overflow: 'auto' }}>
-            {JSON.stringify(callbackError, null, 2)}
-          </pre>
+      }
+      {
+        callbackError &&
+        <div className="container callbackError">
+          <div>There was an error during callback request to {callbackEndpoint}</div>
+          <ReactJson src={callbackError} collapsed theme="monokai" />
         </div>
-      )}
-    </div>
+      }
+    </>
   );
 }
