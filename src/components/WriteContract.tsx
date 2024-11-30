@@ -62,13 +62,17 @@ export function WriteContract(data: WriteContractProps) {
 
   const chainName = CHAIN_NAMES[data.chainId] || `Chain ID: ${data.chainId}`;
 
+  const isProcessing = isPending || isConfirming;
+
   return (
     <>
       <div className="container">
+        {/* En-tête avec logo */}
         <div className="header">
-          <img src="/logo.png" alt="Whale in the Box" className="header-logo" />
+          <img src="/images/logo.png" alt="Whale in the Box" className="header-logo" />
         </div>
         
+        {/* Détails de la transaction */}
         <div className="transaction-info">
           <div className="detail-row">
             <span className="detail-label">Network:</span>
@@ -109,17 +113,26 @@ export function WriteContract(data: WriteContractProps) {
           )}
         </div>
 
+        {/* Bouton de transaction */}
         <div className="buttonContainer">
           <button
             className="transactionButton"
-            disabled={isPending || isConfirming}
+            disabled={isProcessing}
             onClick={submit}
           >
-            {isPending || isConfirming ? 'Processing...' : 'Sign Transaction'}
+            {isProcessing ? (
+              <div className="button-content">
+                <span className="loading-spinner"></span>
+                Processing...
+              </div>
+            ) : (
+              'Sign Transaction'
+            )}
           </button>
         </div>
       </div>
 
+      {/* Statut de la transaction */}
       {(hash || isConfirming || isConfirmed || error) && (
         <div className="container transaction-status">
           {hash && (
