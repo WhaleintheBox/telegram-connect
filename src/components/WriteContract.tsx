@@ -25,7 +25,6 @@ const CHAIN_NAMES: Record<number, string> = {
   5: 'Goerli Testnet',
   137: 'Polygon',
   8453: 'Base',
-  // Ajoutez d'autres chaînes selon vos besoins
 };
 
 function formatAddress(address: string): string {
@@ -62,63 +61,81 @@ export function WriteContract(data: WriteContractProps) {
   }, [hash, error, isConfirmed, sendEvent]);
 
   const chainName = CHAIN_NAMES[data.chainId] || `Chain ID: ${data.chainId}`;
-  const ethValue = data.value ? formatEther(BigInt(data.value)) : '0';
 
   return (
     <>
-      <div className="container">
-        <div className="stack">
-          <div className="text">Network: {chainName}</div>
-          <div className="text">
-            Contract: <a 
-              href={`https://basescan.org/address/${data.address}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: '#3b82f6', textDecoration: 'none' }}
-            >
-              {formatAddress(data.address)}
-            </a>
+      <div className="container transaction-info">
+        <div className="detail-row">
+          <span className="detail-label">Network:</span>
+          <span className="detail-value">{chainName}</span>
+        </div>
+        <div className="detail-row">
+          <span className="detail-label">Contract:</span>
+          <a 
+            href={`https://basescan.org/address/${data.address}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="detail-value contract-address"
+          >
+            {formatAddress(data.address)}
+          </a>
+        </div>
+        <div className="detail-row">
+          <span className="detail-label">Function:</span>
+          <span className="detail-value">{data.functionName}</span>
+        </div>
+        {data.args && data.args.length > 0 && (
+          <div className="detail-row">
+            <span className="detail-label">Arguments:</span>
+            <span className="detail-value">{data.args.join(', ')}</span>
           </div>
-          <div className="text">Function: {data.functionName}</div>
-          {data.args && data.args.length > 0 && (
-            <div className="text">Arguments: {data.args.join(', ')}</div>
-          )}
-          {data.value && (
-            <div className="text" style={{ color: '#3b82f6' }}>
-              Value: {ethValue} ETH
-            </div>
-          )}
-          <div className="buttonContainer">
-            <button
-              className="transactionButton"
-              disabled={isPending || isConfirming}
-              onClick={submit}
-            >
-              {isPending || isConfirming ? 'Processing...' : 'Sign Transaction'}
-            </button>
+        )}
+        {data.value && Number(data.value) > 0 && (
+          <div className="detail-row">
+            <span className="detail-label">Bet Amount:</span>
+            <span className="detail-value amount">
+              {formatEther(BigInt(data.value))} ETH
+            </span>
           </div>
+        )}
+        <div className="button-row">
+          <button
+            className="transactionButton"
+            disabled={isPending || isConfirming}
+            onClick={submit}
+          >
+            {isPending || isConfirming ? 'Processing...' : 'Sign Transaction'}
+          </button>
         </div>
       </div>
 
       {(hash || isConfirming || isConfirmed || error) && (
-        <div className="container transactionStatus">
+        <div className="container transaction-status">
           {hash && (
-            <div>
-              <span>Transaction Hash: </span>
+            <div className="status-row">
+              <span className="status-label">Transaction:</span>
               <a 
                 href={`https://basescan.org/tx/${hash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: '#3b82f6', textDecoration: 'none' }}
+                className="hash-link"
               >
                 {formatAddress(hash)}
               </a>
             </div>
           )}
-          {isConfirming && <div>Waiting for confirmation...</div>}
-          {isConfirmed && <div>Transaction confirmed</div>}
+          {isConfirming && (
+            <div className="status-message pending">
+              Waiting for confirmation...
+            </div>
+          )}
+          {isConfirmed && (
+            <div className="status-message success">
+              Transaction confirmed
+            </div>
+          )}
           {error && (
-            <div className="error">
+            <div className="status-message error">
               Error: {(error as BaseError).shortMessage || error.message}
             </div>
           )}
