@@ -64,48 +64,53 @@ export function WriteContract(data: WriteContractProps) {
 
   return (
     <>
-      <div className="container transaction-info">
-        <div className="detail-row">
-          <span className="detail-label">Network:</span>
-          <span className="detail-value">{chainName}</span>
+      <div className="container">
+        <div className="logo-container">
+          <img src="/logo.png" alt="Whale in the Box" className="logo" />
         </div>
-        <div className="detail-row">
-          <span className="detail-label">Contract:</span>
-          <a 
-            href={`https://basescan.org/address/${data.address}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="detail-value contract-address"
-          >
-            {formatAddress(data.address)}
-          </a>
-        </div>
-        <div className="detail-row">
-          <span className="detail-label">Function:</span>
-          <span className="detail-value">{data.functionName}</span>
-        </div>
-        {data.args && data.args.length > 0 && (
+        <div className="transaction-info">
           <div className="detail-row">
-            <span className="detail-label">Arguments:</span>
-            <span className="detail-value">{data.args.join(', ')}</span>
+            <span className="detail-label">Network:</span>
+            <span className="detail-value">{chainName}</span>
           </div>
-        )}
-        {data.value && Number(data.value) > 0 && (
           <div className="detail-row">
-            <span className="detail-label">Bet Amount:</span>
-            <span className="detail-value amount">
-              {formatEther(BigInt(data.value))} ETH
-            </span>
+            <span className="detail-label">Contract:</span>
+            <a 
+              href={`https://basescan.org/address/${data.address}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="detail-value contract-address"
+            >
+              {formatAddress(data.address)}
+            </a>
           </div>
-        )}
-        <div className="button-row">
-          <button
-            className="transactionButton"
-            disabled={isPending || isConfirming}
-            onClick={submit}
-          >
-            {isPending || isConfirming ? 'Processing...' : 'Sign Transaction'}
-          </button>
+          <div className="detail-row">
+            <span className="detail-label">Function:</span>
+            <span className="detail-value">{data.functionName}</span>
+          </div>
+          {data.args && data.args.length > 0 && (
+            <div className="detail-row">
+              <span className="detail-label">Arguments:</span>
+              <span className="detail-value">{data.args.join(', ')}</span>
+            </div>
+          )}
+          {data.value && Number(data.value) > 0 && (
+            <div className="detail-row">
+              <span className="detail-label">Bet Amount:</span>
+              <span className="detail-value amount">
+                {formatEther(BigInt(data.value))} ETH
+              </span>
+            </div>
+          )}
+          <div className="button-row">
+            <button
+              className="transactionButton"
+              disabled={isPending || isConfirming}
+              onClick={submit}
+            >
+              {isPending || isConfirming ? 'Processing...' : 'Sign Transaction'}
+            </button>
+          </div>
         </div>
       </div>
 
