@@ -1,4 +1,3 @@
-/* Base styles */
 html,
 body {
   background-color: #ffffff;
@@ -11,7 +10,52 @@ body {
   min-height: 100vh;
 }
 
-/* Container */
+.avatar {
+  background-color: #f4f4f5;
+  border-radius: 100%;
+  height: 38px;
+  width: 38px;
+}
+
+.backButton {
+  margin-right: 10px;
+  background: #f4f4f5;
+  border: 1px solid #e4e4e7;
+  color: #333333;
+}
+
+.backButton:hover {
+  background: #e4e4e7;
+}
+
+button {
+  background-color: #3b82f6;
+  border: 1px solid #3b82f6;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  height: 40px;
+  line-height: 40px;
+  padding: 0 20px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+button:hover {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #e4e4e7;
+  border-color: #e4e4e7;
+}
+
+/* Account info et header */
 .container {
   background-color: #ffffff;
   border-radius: 12px;
@@ -25,7 +69,6 @@ body {
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 }
 
-/* Header avec logo */
 .header {
   display: flex;
   justify-content: center;
@@ -37,9 +80,46 @@ body {
 .header-logo {
   height: 60px;
   width: auto;
+  object-fit: contain;
 }
 
-/* Infos de transaction */
+.row {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.inline {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.accountButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.text {
+  font-weight: 500;
+  color: #333333;
+  white-space: nowrap;
+}
+
+.subtext {
+  color: #71717a;
+  font-weight: 400;
+  font-size: 12px;
+}
+
+/* Transaction details */
 .transaction-info {
   margin-bottom: 24px;
 }
@@ -80,34 +160,7 @@ body {
   font-weight: 600;
 }
 
-/* Boutons */
-button {
-  background-color: #3b82f6;
-  border: 1px solid #3b82f6;
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 500;
-  height: 40px;
-  line-height: 40px;
-  padding: 0 20px;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-button:hover {
-  background-color: #2563eb;
-  border-color: #2563eb;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background-color: #e4e4e7;
-  border-color: #e4e4e7;
-}
-
+/* Buttons */
 .buttonContainer {
   display: flex;
   justify-content: center;
@@ -118,21 +171,10 @@ button:disabled {
   min-width: 200px;
 }
 
-/* Back button */
-.backButton {
-  margin-right: 10px;
-  background: #f4f4f5;
-  border: 1px solid #e4e4e7;
-  color: #333333;
-}
-
-.backButton:hover {
-  background: #e4e4e7;
-}
-
-/* Statut de transaction */
+/* Transaction status */
 .transaction-status {
   margin-top: 16px;
+  font-family: monospace;
 }
 
 .status-row {
@@ -179,6 +221,14 @@ button:disabled {
   color: #dc2626;
 }
 
+/* Connect wallet */
+.set {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
 /* Responsive */
 @media screen and (max-width: 600px) {
   .container {
@@ -199,16 +249,29 @@ button:disabled {
     font-size: 13px;
   }
   
-  .transactionButton {
-    width: 100%;
+  .row {
+    flex-direction: column;
+    gap: 16px;
   }
   
-  .buttonContainer {
+  .inline {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+  
+  .buttonContainer,
+  .accountButtons {
     flex-direction: column;
     width: 100%;
   }
   
+  .transactionButton,
   button {
     width: 100%;
+  }
+  
+  .text {
+    text-align: center;
   }
 }
