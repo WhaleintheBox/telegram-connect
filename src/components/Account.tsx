@@ -1,4 +1,3 @@
-// Account.tsx
 import { useAccount, useDisconnect, useEnsAvatar, useEnsName } from 'wagmi';
 
 export function Account(props: { botName: string }) {
@@ -10,57 +9,44 @@ export function Account(props: { botName: string }) {
   const formattedAddress = formatAddress(address);
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white p-6 rounded-lg shadow-lg">
-        <div className="space-y-6">
-          {/* Profile Section */}
-          <div className="flex items-center space-x-4">
-            {ensAvatar ? (
-              <img 
-                alt="ENS Avatar" 
-                src={ensAvatar} 
-                className="w-12 h-12 rounded-full bg-gray-100"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-gray-100" />
-            )}
-            <div>
-              {address && (
-                <div className="font-medium text-gray-900">
-                  {ensName ? `${ensName} (${formattedAddress})` : formattedAddress}
-                </div>
-              )}
-              <div className="text-sm text-gray-500">
-                Connected to {connector?.name}
+    <div className="container">
+      <div className="row">
+        <div className="inline">
+          {ensAvatar ? (
+            <img alt="ENS Avatar" className="avatar" src={ensAvatar} />
+          ) : (
+            <div className="avatar" />
+          )}
+          <div className="stack">
+            {address && (
+              <div className="text">
+                {ensName ? `${ensName} (${formattedAddress})` : formattedAddress}
               </div>
+            )}
+            <div className="subtext">
+              Connected to {connector?.name}
             </div>
           </div>
-
-          {/* Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <a 
-              href={`https://t.me/${props.botName}`} 
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1"
-            >
-              <button className="w-full px-6 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors">
-                Back to Chat
-              </button>
-            </a>
-            <button 
-              onClick={() => disconnect()} 
-              type="button"
-              className="flex-1 px-6 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
-            >
-              Disconnect
+        </div>
+        <div className="accountButtons">
+          <a
+            href={`https://t.me/${props.botName}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <button className="backButton">
+              Back to chat
             </button>
-          </div>
+          </a>
+          <button onClick={() => disconnect()} type="button">
+            Disconnect
+          </button>
         </div>
       </div>
     </div>
   );
 }
+
 
 function formatAddress(address?: string) {
   if (!address) return null;
