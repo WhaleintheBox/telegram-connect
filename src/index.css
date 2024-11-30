@@ -1,16 +1,17 @@
 html,
 body {
-  background-color: #1b1b1f;
-  color: white;
+  background-color: #ffffff;
+  color: #333333;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
     Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   margin: 0;
   padding: 0;
   border: 0;
+  min-height: 100vh;
 }
 
 .avatar {
-  background-color: #1b1b1f;
+  background-color: #f4f4f5;
   border-radius: 100%;
   height: 38px;
   width: 38px;
@@ -18,92 +19,118 @@ body {
 
 .backButton {
   margin-right: 10px;
-  background: #ffffff;
-  border-color: #ffffff;
-  color: #1b1b1f;
+  background: #f4f4f5;
+  border: 1px solid #e4e4e7;
+  color: #333333;
 }
 
 .backButton:hover {
-  background: #ffffff;
+  background: #e4e4e7;
 }
 
-
 button {
-  background-color: #646cff;
-  border-color: #747bff;
-  border-radius: 20px;
-  border: 1px solid #747bff;
+  background-color: #3b82f6;
+  border: 1px solid #3b82f6;
+  border-radius: 8px;
   color: #ffffff;
   font-size: 14px;
   font-weight: 500;
-  height: 38px;
-  line-height: 38px;
+  height: 40px;
+  line-height: 40px;
   padding: 0 20px;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
   cursor: pointer;
+  white-space: nowrap;
 }
+
 button:hover {
-  background-color: #747bff;
+  background-color: #2563eb;
+  border-color: #2563eb;
 }
+
 button:disabled {
   opacity: 0.5;
-  pointer-events: none;
+  cursor: not-allowed;
+  background-color: #e4e4e7;
+  border-color: #e4e4e7;
 }
 
 .buttonContainer {
   display: flex;
   flex-direction: row;
-  justify-content: space-evenly;
+  justify-content: center;
+  gap: 12px;
 }
 
-.transcationButton {
-  width: 35%;
+.transactionButton {
+  width: auto;
+  min-width: 150px;
 }
 
 .transactionStatus {
   font-family: monospace;
+  color: #333333;
 }
 
 .container {
-  background-color: #202127;
-  border-radius: 8px;
-  border: 1px solid #2e2e32;
-  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e4e4e7;
+  padding: 24px;
   margin: 16px;
   width: auto;
-  overflow: scroll;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 }
 
 .inline {
   align-items: center;
   display: flex;
-  gap: 8px;
+  gap: 12px;
 }
 
 @media screen and (max-width: 600px) {
   .inline {
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
     text-align: center;
+  }
+  
+  .buttonContainer {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .transactionButton {
+    width: 100%;
   }
 }
 
 input {
-  background-color: rgba(255, 255, 255, 0.075);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.075);
-  color: #ffffff;
+  background-color: #f4f4f5;
+  border-radius: 8px;
+  border: 1px solid #e4e4e7;
+  color: #333333;
   flex: 1;
   font-size: 14px;
   font-weight: 500;
-  height: 38px;
-  line-height: 38px;
-  padding: 0 20px;
-  transition: background-color 0.2s;
+  height: 40px;
+  line-height: 40px;
+  padding: 0 16px;
+  transition: all 0.2s ease;
+}
+
+input:focus {
+  border-color: #3b82f6;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 .text {
-  font-weight: 400;
+  font-weight: 500;
+  color: #333333;
   white-space: nowrap;
 }
 
@@ -111,29 +138,29 @@ input {
   align-items: center;
   display: flex;
   justify-content: space-between;
+  gap: 16px;
 }
 
 @media screen and (max-width: 600px) {
   .row {
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
+  }
+  
+  .row > * {
+    width: 100%;
   }
 }
 
 .set {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-@media screen and (max-width: 600px) {
-  .set {
-    flex-direction: column;
-  }
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
 }
 
 .subtext {
-  opacity: 0.7;
+  color: #71717a;
   font-weight: 400;
   font-size: 12px;
 }
@@ -141,5 +168,28 @@ input {
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
+}
+
+/* Ajouts pour améliorer l'apparence mobile */
+@media screen and (max-width: 600px) {
+  .container {
+    margin: 8px;
+    padding: 16px;
+  }
+  
+  button {
+    width: 100%;
+  }
+  
+  .accountButtons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .accountButtons button {
+    width: 100%;
+  }
 }
