@@ -2,7 +2,7 @@ import { http, createConfig } from 'wagmi';
 import { mainnet, zkSync, polygon, arbitrum, avalanche, optimism, base } from 'wagmi/chains';
 import { injected, walletConnect } from 'wagmi/connectors';
 
-const projectId = '1558da14b9f93fe89954b32c5e17e840';
+const projectId = '3fbb6bba6f1de962d911bb5b5c9dba88';
 
 export const config = createConfig({
   chains: [mainnet, zkSync, polygon, arbitrum, avalanche, optimism, base],
