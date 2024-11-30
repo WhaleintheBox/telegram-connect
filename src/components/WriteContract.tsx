@@ -77,8 +77,8 @@ export function WriteContract(data: WriteContractProps) {
 
   // Formatage sécurisé de la valeur pour l'affichage
   const displayValue = data.value ? 
-    formatEther(BigInt(data.value)).toString() : 
-    '0';
+    formatEther(BigInt(data.value)) : 
+    '0 ETH';
 
   return (
     <>
