@@ -65,14 +65,16 @@ export function WriteContract(data: WriteContractProps) {
   return (
     <>
       <div className="container">
-        <div className="logo-container">
-          <img src="/logo.png" alt="Whale in the Box" className="logo" />
+        <div className="header">
+          <img src="/logo.png" alt="Whale in the Box" className="header-logo" />
         </div>
+        
         <div className="transaction-info">
           <div className="detail-row">
             <span className="detail-label">Network:</span>
             <span className="detail-value">{chainName}</span>
           </div>
+          
           <div className="detail-row">
             <span className="detail-label">Contract:</span>
             <a 
@@ -84,16 +86,19 @@ export function WriteContract(data: WriteContractProps) {
               {formatAddress(data.address)}
             </a>
           </div>
+          
           <div className="detail-row">
             <span className="detail-label">Function:</span>
             <span className="detail-value">{data.functionName}</span>
           </div>
+          
           {data.args && data.args.length > 0 && (
             <div className="detail-row">
               <span className="detail-label">Arguments:</span>
               <span className="detail-value">{data.args.join(', ')}</span>
             </div>
           )}
+          
           {data.value && Number(data.value) > 0 && (
             <div className="detail-row">
               <span className="detail-label">Bet Amount:</span>
@@ -102,15 +107,16 @@ export function WriteContract(data: WriteContractProps) {
               </span>
             </div>
           )}
-          <div className="button-row">
-            <button
-              className="transactionButton"
-              disabled={isPending || isConfirming}
-              onClick={submit}
-            >
-              {isPending || isConfirming ? 'Processing...' : 'Sign Transaction'}
-            </button>
-          </div>
+        </div>
+
+        <div className="buttonContainer">
+          <button
+            className="transactionButton"
+            disabled={isPending || isConfirming}
+            onClick={submit}
+          >
+            {isPending || isConfirming ? 'Processing...' : 'Sign Transaction'}
+          </button>
         </div>
       </div>
 
