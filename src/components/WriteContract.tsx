@@ -42,12 +42,24 @@ export function WriteContract(data: WriteContractProps) {
 
   async function submit() {
     try {
+      // Convertir et vérifier la valeur avant l'envoi
+      let transactionValue;
+      if (data.value) {
+        try {
+          transactionValue = BigInt(data.value);
+        } catch (err) {
+          console.error('Invalid value format:', err);
+          return;
+        }
+      }
+
+      // Envoyer la transaction avec la valeur convertie
       await writeContractAsync({
         address: data.address,
         abi: parseAbi(data.abi),
         functionName: data.functionName,
         args: data.args,
-        value: data.value ? BigInt(data.value) : undefined,
+        value: transactionValue,
       });
     } catch (err) {
       console.error('Contract write error:', err);
@@ -61,18 +73,20 @@ export function WriteContract(data: WriteContractProps) {
   }, [hash, error, isConfirmed, sendEvent]);
 
   const chainName = CHAIN_NAMES[data.chainId] || `Chain ID: ${data.chainId}`;
-
   const isProcessing = isPending || isConfirming;
+
+  // Formatage sécurisé de la valeur pour l'affichage
+  const displayValue = data.value ? 
+    formatEther(BigInt(data.value)).toString() : 
+    '0';
 
   return (
     <>
       <div className="container">
-        {/* En-tête avec logo */}
         <div className="header">
           <img src="/images/logo.png" alt="Whale in the Box" className="header-logo" />
         </div>
         
-        {/* Détails de la transaction */}
         <div className="transaction-info">
           <div className="detail-row">
             <span className="detail-label">Network:</span>
@@ -107,32 +121,23 @@ export function WriteContract(data: WriteContractProps) {
             <div className="detail-row">
               <span className="detail-label">Bet Amount:</span>
               <span className="detail-value amount">
-                {formatEther(BigInt(data.value))} ETH
+                {displayValue} ETH
               </span>
             </div>
           )}
         </div>
 
-        {/* Bouton de transaction */}
         <div className="buttonContainer">
           <button
             className="transactionButton"
             disabled={isProcessing}
             onClick={submit}
           >
-            {isProcessing ? (
-              <div className="button-content">
-                <span className="loading-spinner"></span>
-                Processing...
-              </div>
-            ) : (
-              'Sign Transaction'
-            )}
+            {isProcessing ? 'Processing...' : 'Sign Transaction'}
           </button>
         </div>
       </div>
 
-      {/* Statut de la transaction */}
       {(hash || isConfirming || isConfirmed || error) && (
         <div className="container transaction-status">
           {hash && (
