@@ -200,8 +200,6 @@ export default function App() {
     }
   }, []);
 
-  // Render
-// ... rest of the imports and code ...
 
 return (
   <>
@@ -213,10 +211,10 @@ return (
       <>
         {/* Stats Panel */}
         <div className="stats-container">
-          <h2 className="stats-title">Platform Statistics</h2>
+          <h2 className="stats-title">🐳 Whale in the Box 📦</h2>
           <div className="stats-grid">
             <div className="stat-item">
-              <span className="stat-label">🐳 Players</span>
+              <span className="stat-label">🐳 Whales</span>
               <span className="stat-value">{stats.totalPlayers}</span>
             </div>
             <div className="stat-item">
@@ -224,15 +222,15 @@ return (
               <span className="stat-value">{stats.activeBoxes}</span>
             </div>
             <div className="stat-item">
-              <span className="stat-label">ETH Volume</span>
+              <span className="stat-label">💎 ETH Volume</span>
               <span className="stat-value">{Number(stats.ethVolume).toFixed(2)} ETH</span>
             </div>
             <div className="stat-item">
-              <span className="stat-label">KRILL Volume</span>
+              <span className="stat-label">🍤 KRILL Volume</span>
               <span className="stat-value">{Number(stats.krillVolume).toFixed(2)} KRILL</span>
             </div>
             <div className="stat-item">
-              <span className="stat-label">Other Tokens</span>
+              <span className="stat-label">🪙 Other Tokens</span>
               <span className="stat-value">${Number(stats.otherTokensVolume).toFixed(2)}</span>
             </div>
           </div>
