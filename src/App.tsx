@@ -313,69 +313,75 @@ export default function App() {
             </div>
           </div>
   
-          {/* Filter Bar */}
-          <div className="filter-bar p-4 bg-white rounded-lg shadow-sm mb-4">
-            <div className="flex flex-wrap gap-4">
-              <div className="flex gap-4">
-                {(Object.entries(SPORT_EMOJIS) as [keyof SportsType, string][]).map(([sport, emoji]) => (
-                  <label key={sport} className="filter-item cursor-pointer">
+          {/* Filter Section */}
+          <div className="filter-container">
+            <div className="filter-bar">
+              <div className="filter-group">
+                <span className="filter-label">Sports</span>
+                <div className="filter-options">
+                  {(Object.entries(SPORT_EMOJIS) as [keyof SportsType, string][]).map(([sport, emoji]) => (
+                    <label key={sport} className="inline-flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={filters.sports[sport]}
+                        onChange={(e) =>
+                          setFilters(prev => ({
+                            ...prev,
+                            sports: { ...prev.sports, [sport]: e.target.checked }
+                          }))
+                        }
+                        className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
+                      />
+                      <span className="ml-2">{emoji} {sport}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="filter-group">
+                <span className="filter-label">Tokens</span>
+                <div className="filter-options">
+                  <label className="inline-flex items-center">
                     <input
                       type="checkbox"
-                      checked={filters.sports[sport]}
+                      checked={filters.tokens.ETH}
                       onChange={(e) =>
                         setFilters(prev => ({
                           ...prev,
-                          sports: { ...prev.sports, [sport]: e.target.checked }
+                          tokens: { ...prev.tokens, ETH: e.target.checked }
                         }))
                       }
-                      className="mr-2"
+                      className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
                     />
-                    <span>{emoji} {sport}</span>
+                    <span className="ml-2">ETH</span>
                   </label>
-                ))}
-              </div>
-
-              <div className="flex gap-4 ml-4 border-l pl-4">
-                <label className="filter-item cursor-pointer">
+                  <label className="inline-flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={filters.tokens.KRILL}
+                      onChange={(e) =>
+                        setFilters(prev => ({
+                          ...prev,
+                          tokens: { ...prev.tokens, KRILL: e.target.checked }
+                        }))
+                      }
+                      className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
+                    />
+                    <span className="ml-2">KRILL</span>
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={filters.tokens.ETH}
-                    onChange={(e) =>
+                    type="text"
+                    placeholder="Custom Token Address"
+                    value={filters.tokens.custom}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFilters(prev => ({
                         ...prev,
-                        tokens: { ...prev.tokens, ETH: e.target.checked }
+                        tokens: { ...prev.tokens, custom: e.target.value }
                       }))
                     }
-                    className="mr-2"
+                    className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
                   />
-                  <span>ETH</span>
-                </label>
-                <label className="filter-item cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={filters.tokens.KRILL}
-                    onChange={(e) =>
-                      setFilters(prev => ({
-                        ...prev,
-                        tokens: { ...prev.tokens, KRILL: e.target.checked }
-                      }))
-                    }
-                    className="mr-2"
-                  />
-                  <span>KRILL</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Custom Token Address"
-                  value={filters.tokens.custom}
-                  onChange={(e) =>
-                    setFilters(prev => ({
-                      ...prev,
-                      tokens: { ...prev.tokens, custom: e.target.value }
-                    }))
-                  }
-                  className="border rounded px-2 py-1 w-64"
-                />
+                </div>
               </div>
             </div>
           </div>
@@ -445,9 +451,12 @@ export default function App() {
                         <div className="box-footer">
                           <span className="box-bets">🐳 {box.bets.length}</span>
                           <div className="status-container">
-                            <span className="box-status">{boxStatus.status}</span>
-                            <span className="box-ai-status">{boxStatus.aiStatus}</span>
-                            <span className="box-settlement-status">{boxStatus.settlementStatus}</span>
+                            <span className={`status-badge ${boxStatus.status.toLowerCase().includes('active') ? 'active' : 
+                                                          boxStatus.status.toLowerCase().includes('live') ? 'live' : 'settled'}`}>
+                              {boxStatus.status}
+                            </span>
+                            <span className="status-badge">{boxStatus.aiStatus}</span>
+                            <span className="status-badge">{boxStatus.settlementStatus}</span>
                           </div>
                         </div>
                       </div>
