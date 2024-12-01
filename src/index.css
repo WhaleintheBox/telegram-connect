@@ -338,3 +338,117 @@ button:disabled {
 .text-blue-800 {
   color: #1e40af;
 }
+
+/* Stats Panel */
+.stats-container {
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e4e4e7;
+  padding: 24px;
+  margin: 16px;
+  width: auto;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.stats-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: #0f172a;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+}
+
+.stat-item {
+  background-color: #f8fafc;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stat-label {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.stat-value {
+  color: #0f172a;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+/* Boxes Grid */
+.boxes-container {
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e4e4e7;
+  padding: 24px;
+  margin: 16px;
+  width: auto;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.boxes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+
+.box-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border: 1px solid #e4e4e7;
+}
+
+.box-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.box-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.box-sport {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 1.125rem;
+}
+
+.box-time {
+  color: #3b82f6;
+  font-size: 0.875rem;
+}
+
+.box-teams {
+  font-size: 1rem;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.box-tournament {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom
