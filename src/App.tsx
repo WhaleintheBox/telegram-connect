@@ -8,7 +8,31 @@ import ReactJson from 'react-json-view';
 import { getSchemaError, sendEvent } from './utils';
 import { formatEther } from 'viem';
 
-// Types definitions
+// Types for sports and tokens
+type SportsType = {
+  [key in 'SOCCER' | 'F1' | 'MMA' | 'NFL' | 'BASKETBALL']: boolean;
+};
+
+type TokensType = {
+  ETH: boolean;
+  KRILL: boolean;
+  custom: string;
+};
+
+interface Filters {
+  sports: SportsType;
+  tokens: TokensType;
+}
+
+// Sport emojis
+const SPORT_EMOJIS: Record<keyof SportsType, string> = {
+  SOCCER: '⚽',
+  F1: '🏎️',
+  MMA: '🥊',
+  NFL: '🏈',
+  BASKETBALL: '🏀'
+};
+
 interface SportData {
   home_team?: string;
   away_team?: string;
@@ -39,7 +63,7 @@ interface Box {
   totalAmount: string;
   tokenData: TokenData;
   lastUpdated: string;
-  imageData?: string; // Image en base64
+  imageData?: string;
 }
 
 interface Stats {
@@ -76,6 +100,20 @@ export default function App() {
   const [uid, setUid] = useState<string | undefined>();
   const [operationType, setOperationType] = useState<string>("");
   const [botName, setBotName] = useState<string>("");
+  const [filters, setFilters] = useState<Filters>({
+    sports: {
+      SOCCER: false,
+      F1: false,
+      MMA: false,
+      NFL: false,
+      BASKETBALL: false
+    },
+    tokens: {
+      ETH: false,
+      KRILL: false,
+      custom: ''
+    }
+  });
 
   // Functions
   const calculateStats = (boxes: Box[]): Stats => {
@@ -166,6 +204,45 @@ export default function App() {
     setCallbackError(error);
   };
 
+  const getFilteredBoxes = (boxes: Box[]) => {
+    return boxes.filter(box => {
+      const sportId = box.sportId as keyof SportsType;
+      const sportFilter = !Object.values(filters.sports).some(v => v) || 
+                         filters.sports[sportId];
+
+      const isEth = !box.tokenData.address;
+      const isKrill = box.tokenData.symbol === 'KRILL';
+      const isCustomToken = box.tokenData.address?.toLowerCase() === filters.tokens.custom.toLowerCase();
+      
+      const tokenFilter = !Object.values({ ...filters.tokens, custom: false }).some(v => v) || 
+                         (filters.tokens.ETH && isEth) ||
+                         (filters.tokens.KRILL && isKrill) ||
+                         (filters.tokens.custom && isCustomToken);
+
+      return sportFilter && tokenFilter;
+    });
+  };
+
+  const calculateHunterPercentage = (bets: Bet[]): number => {
+    if (bets.length === 0) return 0;
+    const hunters = bets.filter(bet => bet.prediction).length;
+    return (hunters / bets.length) * 100;
+  };
+
+  const getBoxStatus = (box: Box) => {
+    const status = box.sportData?.status === 'live' ? 'live' : box.isSettled ? 'settled' : 'active';
+    const emoji = status === 'active' ? '🟢' : status === 'live' ? '🟡' : '🔴';
+    const aiStatus = box.isSettled ? '🤖 ✅' : '🤖 ⏳';
+    const settlementStatus = box.isSettled ? '⚡ ✅' : '⚡ ⏳';
+    
+    return {
+      status: `${emoji} ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+      aiStatus,
+      settlementStatus
+    };
+  };
+
+
   // Effects
   useEffect(() => {
     fetchBoxes();
@@ -201,153 +278,238 @@ export default function App() {
   }, []);
 
 
-return (
-  <>
-    {isConnected && !schemaError && <Account botName={botName} />}
-    {!isConnected && !schemaError && <Connect />}
-
-    {/* Main Content */}
-    {isConnected && !transactionData && !signMessageData && (
-      <>
-        {/* Stats Panel */}
-        <div className="stats-container">
-          <h2 className="stats-title">🐳 Whale in the Box 📦</h2>
-          <div className="stats-grid">
-            <div className="stat-item">
-              <span className="stat-label">🐳 Whales</span>
-              <span className="stat-value">{stats.totalPlayers}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">📦 Active Boxes</span>
-              <span className="stat-value">{stats.activeBoxes}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">💎 ETH Volume</span>
-              <span className="stat-value">{Number(stats.ethVolume).toFixed(2)} ETH</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">🍤 KRILL Volume</span>
-              <span className="stat-value">{Number(stats.krillVolume).toFixed(2)} KRILL</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">🪙 Other Tokens</span>
-              <span className="stat-value">${Number(stats.otherTokensVolume).toFixed(2)}</span>
+  return (
+    <>
+      {isConnected && !schemaError && <Account botName={botName} />}
+      {!isConnected && !schemaError && <Connect />}
+  
+      {/* Main Content */}
+      {isConnected && !transactionData && !signMessageData && (
+        <>
+          {/* Stats Panel */}
+          <div className="stats-container">
+            <h2 className="stats-title">🐳 Whale in the Box 📦</h2>
+            <div className="stats-grid">
+              <div className="stat-item">
+                <span className="stat-label">🐳 Whales</span>
+                <span className="stat-value">{stats.totalPlayers}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">📦 Active Boxes</span>
+                <span className="stat-value">{stats.activeBoxes}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">💎 ETH Volume</span>
+                <span className="stat-value">{Number(stats.ethVolume).toFixed(2)} ETH</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">🍤 KRILL Volume</span>
+                <span className="stat-value">{Number(stats.krillVolume).toFixed(2)} KRILL</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">🪙 Other Tokens</span>
+                <span className="stat-value">${Number(stats.otherTokensVolume).toFixed(2)}</span>
+              </div>
             </div>
           </div>
-        </div>
+  
+          {/* Filter Bar */}
+          <div className="filter-bar p-4 bg-white rounded-lg shadow-sm mb-4">
+            <div className="flex flex-wrap gap-4">
+              <div className="flex gap-4">
+                {(Object.entries(SPORT_EMOJIS) as [keyof SportsType, string][]).map(([sport, emoji]) => (
+                  <label key={sport} className="filter-item cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={filters.sports[sport]}
+                      onChange={(e) =>
+                        setFilters(prev => ({
+                          ...prev,
+                          sports: { ...prev.sports, [sport]: e.target.checked }
+                        }))
+                      }
+                      className="mr-2"
+                    />
+                    <span>{emoji} {sport}</span>
+                  </label>
+                ))}
+              </div>
 
-        {/* Boxes Grid */}
-        <div className="boxes-container">
-          {isLoading ? (
-            <div className="loading">Loading boxes...</div>
-          ) : (
-            <div className="boxes-grid">
-              {boxes.map((box: Box) => (
-                <div 
-                  key={box.address} 
-                  className={`box-card ${lastUpdate[box.address] > box.lastUpdated ? 'box-updated' : ''}`}
-                >
-                  {box.imageData && (
-                    <div className="box-image-container">
-                      <img 
-                        src={`data:image/png;base64,${box.imageData}`}
-                        alt={`${box.sportId} box preview`}
-                        className="box-image"
-                      />
-                    </div>
-                  )}
+              <div className="flex gap-4 ml-4 border-l pl-4">
+                <label className="filter-item cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.tokens.ETH}
+                    onChange={(e) =>
+                      setFilters(prev => ({
+                        ...prev,
+                        tokens: { ...prev.tokens, ETH: e.target.checked }
+                      }))
+                    }
+                    className="mr-2"
+                  />
+                  <span>ETH</span>
+                </label>
+                <label className="filter-item cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.tokens.KRILL}
+                    onChange={(e) =>
+                      setFilters(prev => ({
+                        ...prev,
+                        tokens: { ...prev.tokens, KRILL: e.target.checked }
+                      }))
+                    }
+                    className="mr-2"
+                  />
+                  <span>KRILL</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Custom Token Address"
+                  value={filters.tokens.custom}
+                  onChange={(e) =>
+                    setFilters(prev => ({
+                      ...prev,
+                      tokens: { ...prev.tokens, custom: e.target.value }
+                    }))
+                  }
+                  className="border rounded px-2 py-1 w-64"
+                />
+              </div>
+            </div>
+          </div>
+  
+          {/* Boxes Grid */}
+          <div className="boxes-container">
+            {isLoading ? (
+              <div className="loading">Loading boxes...</div>
+            ) : (
+              <div className="boxes-grid">
+                {getFilteredBoxes(boxes).map((box: Box) => {
+                  const boxStatus = getBoxStatus(box);
+                  const hunterPercentage = calculateHunterPercentage(box.bets);
                   
-                  <div className="box-content">
-                    <div className="box-header">
-                      <span className="box-sport">{box.sportId}</span>
-                      <span className="box-time">
-                        {box.sportData?.scheduled && formatTimeFromNow(box.sportData.scheduled)}
-                      </span>
+                  return (
+                    <div 
+                      key={box.address} 
+                      className={`box-card ${lastUpdate[box.address] > box.lastUpdated ? 'box-updated' : ''}`}
+                    >
+                      {box.imageData && (
+                        <div className="box-image-container">
+                          <img 
+                            src={`data:image/png;base64,${box.imageData}`}
+                            alt={`${box.sportId} box preview`}
+                            className="box-image"
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="box-content">
+                        <div className="box-header">
+                          <span className="box-sport">{box.sportId}</span>
+                          <span className="box-time">
+                            {box.sportData?.scheduled && formatTimeFromNow(box.sportData.scheduled)}
+                          </span>
+                        </div>
+                        
+                        <div className="box-teams">
+                          {box.sportData?.home_team} vs {box.sportData?.away_team}
+                        </div>
+                        
+                        <div className="box-tournament">
+                          {box.sportData?.tournament}
+                        </div>
+  
+                        {/* Hunter vs Fisher Progress Bar */}
+                        <div className="prediction-bar">
+                          <div className="bar-container">
+                            <div 
+                              className="hunters-bar"
+                              style={{ width: `${hunterPercentage}%` }}
+                            />
+                          </div>
+                          <div className="bar-labels">
+                            <span>🎯 {hunterPercentage.toFixed(1)}%</span>
+                            <span>{(100 - hunterPercentage).toFixed(1)}% 🎣</span>
+                          </div>
+                        </div>
+                        
+                        <div className="box-info">
+                          <span className="box-address">{formatAddress(box.address)}</span>
+                          <span className="box-amount">
+                            {formatEther(BigInt(box.totalAmount || '0'))} {box.tokenData.symbol || 'ETH'}
+                          </span>
+                        </div>
+                        
+                        <div className="box-footer">
+                          <span className="box-bets">🐳 {box.bets.length}</span>
+                          <div className="status-container">
+                            <span className="box-status">{boxStatus.status}</span>
+                            <span className="box-ai-status">{boxStatus.aiStatus}</span>
+                            <span className="box-settlement-status">{boxStatus.settlementStatus}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    
-                    <div className="box-teams">
-                      {box.sportData?.home_team} vs {box.sportData?.away_team}
-                    </div>
-                    
-                    <div className="box-tournament">
-                      {box.sportData?.tournament}
-                    </div>
-                    
-                    <div className="box-info">
-                      <span className="box-address">{formatAddress(box.address)}</span>
-                      <span className="box-amount">
-                        {formatEther(BigInt(box.totalAmount || '0'))} {box.tokenData.symbol || 'ETH'}
-                      </span>
-                    </div>
-                    
-                    <div className="box-footer">
-                      <span className="box-bets">🐳 {box.bets.length}</span>
-                      <span className={`box-status ${
-                        box.sportData?.status === 'live' ? 'live' :
-                        box.isSettled ? 'settled' : 'active'
-                      }`}>
-                        {box.sportData?.status || (box.isSettled ? 'Settled' : 'Active')}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+  
+      {/* Transaction/Signature Components */}
+      {isConnected && !schemaError && (transactionData || signMessageData) && (
+        <>
+          {operationType === "transaction" && transactionData && uid && (
+            <>
+              <div className="container">
+                <ReactJson src={transactionData} collapsed theme="monokai" />
+              </div>
+              <WriteContract
+                uid={uid}
+                chainId={transactionData.chainId}
+                address={transactionData.address}
+                abi={transactionData.abi}
+                functionName={transactionData.functionName}
+                args={transactionData.args}
+                value={transactionData.value}
+                sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, transaction: true })}
+              />
+            </>
           )}
+  
+          {operationType === "signature" && signMessageData && uid && (
+            <>
+              <div className="container">
+                <ReactJson src={signMessageData} collapsed theme="monokai" />
+              </div>
+              <SignMessage
+                {...signMessageData}
+                uid={uid}
+                sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, signature: true })}
+              />
+            </>
+          )}
+        </>
+      )}
+  
+      {/* Error States */}
+      {schemaError && (
+        <div className="container parsingError">
+          <div>Source doesnt match schema</div>
+          <ReactJson src={JSON.parse(JSON.stringify(schemaError))} collapsed theme="monokai" />
         </div>
-      </>
-    )}
-
-    {/* Transaction/Signature Components */}
-    {isConnected && !schemaError && (transactionData || signMessageData) && (
-      <>
-        {operationType === "transaction" && transactionData && uid && (
-          <>
-            <div className="container">
-              <ReactJson src={transactionData} collapsed theme="monokai" />
-            </div>
-            <WriteContract
-              uid={uid}
-              chainId={transactionData.chainId}
-              address={transactionData.address}
-              abi={transactionData.abi}
-              functionName={transactionData.functionName}
-              args={transactionData.args}
-              value={transactionData.value}
-              sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, transaction: true })}
-            />
-          </>
-        )}
-
-        {operationType === "signature" && signMessageData && uid && (
-          <>
-            <div className="container">
-              <ReactJson src={signMessageData} collapsed theme="monokai" />
-            </div>
-            <SignMessage
-              {...signMessageData}
-              uid={uid}
-              sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, signature: true })}
-            />
-          </>
-        )}
-      </>
-    )}
-
-    {/* Error States */}
-    {schemaError && (
-      <div className="container parsingError">
-        <div>Source doesnt match schema</div>
-        <ReactJson src={JSON.parse(JSON.stringify(schemaError))} collapsed theme="monokai" />
-      </div>
-    )}
-
-    {callbackError && (
-      <div className="container callbackError">
-        <div>There was an error during callback request to {callbackEndpoint}</div>
-        <ReactJson src={callbackError} collapsed theme="monokai" />
-      </div>
-    )}
-  </>
-);
+      )}
+  
+      {callbackError && (
+        <div className="container callbackError">
+          <div>There was an error during callback request to {callbackEndpoint}</div>
+          <ReactJson src={callbackError} collapsed theme="monokai" />
+        </div>
+      )}
+    </>
+  );
 }
