@@ -39,6 +39,7 @@ interface Box {
   totalAmount: string;
   tokenData: TokenData;
   lastUpdated: string;
+  imageData?: string; // Image en base64
 }
 
 interface Stats {
@@ -200,52 +201,65 @@ export default function App() {
   }, []);
 
   // Render
-  return (
-    <>
-      {isConnected && !schemaError && <Account botName={botName} />}
-      {!isConnected && !schemaError && <Connect />}
+// ... rest of the imports and code ...
 
-      {/* Main Content */}
-      {isConnected && !transactionData && !signMessageData && (
-        <>
-          {/* Stats Panel */}
-          <div className="stats-container">
-            <h2 className="stats-title">Platform Statistics</h2>
-            <div className="stats-grid">
-              <div className="stat-item">
-                <span className="stat-label">🐳 Players</span>
-                <span className="stat-value">{stats.totalPlayers}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">📦 Active Boxes</span>
-                <span className="stat-value">{stats.activeBoxes}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">ETH Volume</span>
-                <span className="stat-value">{Number(stats.ethVolume).toFixed(2)} ETH</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">KRILL Volume</span>
-                <span className="stat-value">{Number(stats.krillVolume).toFixed(2)} KRILL</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Other Tokens</span>
-                <span className="stat-value">${Number(stats.otherTokensVolume).toFixed(2)}</span>
-              </div>
+return (
+  <>
+    {isConnected && !schemaError && <Account botName={botName} />}
+    {!isConnected && !schemaError && <Connect />}
+
+    {/* Main Content */}
+    {isConnected && !transactionData && !signMessageData && (
+      <>
+        {/* Stats Panel */}
+        <div className="stats-container">
+          <h2 className="stats-title">Platform Statistics</h2>
+          <div className="stats-grid">
+            <div className="stat-item">
+              <span className="stat-label">🐳 Players</span>
+              <span className="stat-value">{stats.totalPlayers}</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">📦 Active Boxes</span>
+              <span className="stat-value">{stats.activeBoxes}</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">ETH Volume</span>
+              <span className="stat-value">{Number(stats.ethVolume).toFixed(2)} ETH</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">KRILL Volume</span>
+              <span className="stat-value">{Number(stats.krillVolume).toFixed(2)} KRILL</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Other Tokens</span>
+              <span className="stat-value">${Number(stats.otherTokensVolume).toFixed(2)}</span>
             </div>
           </div>
+        </div>
 
-          {/* Boxes Grid */}
-          <div className="boxes-container">
-            {isLoading ? (
-              <div className="loading">Loading boxes...</div>
-            ) : (
-              <div className="boxes-grid">
-                {boxes.map((box: Box) => (
-                  <div 
-                    key={box.address} 
-                    className={`box-card ${lastUpdate[box.address] > box.lastUpdated ? 'box-updated' : ''}`}
-                  >
+        {/* Boxes Grid */}
+        <div className="boxes-container">
+          {isLoading ? (
+            <div className="loading">Loading boxes...</div>
+          ) : (
+            <div className="boxes-grid">
+              {boxes.map((box: Box) => (
+                <div 
+                  key={box.address} 
+                  className={`box-card ${lastUpdate[box.address] > box.lastUpdated ? 'box-updated' : ''}`}
+                >
+                  {box.imageData && (
+                    <div className="box-image-container">
+                      <img 
+                        src={`data:image/png;base64,${box.imageData}`}
+                        alt={`${box.sportId} box preview`}
+                        className="box-image"
+                      />
+                    </div>
+                  )}
+                  
+                  <div className="box-content">
                     <div className="box-header">
                       <span className="box-sport">{box.sportId}</span>
                       <span className="box-time">
@@ -278,63 +292,64 @@ export default function App() {
                       </span>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Transaction/Signature Components */}
-      {isConnected && !schemaError && (transactionData || signMessageData) && (
-        <>
-          {operationType === "transaction" && transactionData && uid && (
-            <>
-              <div className="container">
-                <ReactJson src={transactionData} collapsed theme="monokai" />
-              </div>
-              <WriteContract
-                uid={uid}
-                chainId={transactionData.chainId}
-                address={transactionData.address}
-                abi={transactionData.abi}
-                functionName={transactionData.functionName}
-                args={transactionData.args}
-                value={transactionData.value}
-                sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, transaction: true })}
-              />
-            </>
+                </div>
+              ))}
+            </div>
           )}
-
-          {operationType === "signature" && signMessageData && uid && (
-            <>
-              <div className="container">
-                <ReactJson src={signMessageData} collapsed theme="monokai" />
-              </div>
-              <SignMessage
-                {...signMessageData}
-                uid={uid}
-                sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, signature: true })}
-              />
-            </>
-          )}
-        </>
-      )}
-
-      {/* Error States */}
-      {schemaError && (
-        <div className="container parsingError">
-          <div>Source doesnt match schema</div>
-          <ReactJson src={JSON.parse(JSON.stringify(schemaError))} collapsed theme="monokai" />
         </div>
-      )}
+      </>
+    )}
 
-      {callbackError && (
-        <div className="container callbackError">
-          <div>There was an error during callback request to {callbackEndpoint}</div>
-          <ReactJson src={callbackError} collapsed theme="monokai" />
-        </div>
-      )}
-    </>
-  );
+    {/* Transaction/Signature Components */}
+    {isConnected && !schemaError && (transactionData || signMessageData) && (
+      <>
+        {operationType === "transaction" && transactionData && uid && (
+          <>
+            <div className="container">
+              <ReactJson src={transactionData} collapsed theme="monokai" />
+            </div>
+            <WriteContract
+              uid={uid}
+              chainId={transactionData.chainId}
+              address={transactionData.address}
+              abi={transactionData.abi}
+              functionName={transactionData.functionName}
+              args={transactionData.args}
+              value={transactionData.value}
+              sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, transaction: true })}
+            />
+          </>
+        )}
+
+        {operationType === "signature" && signMessageData && uid && (
+          <>
+            <div className="container">
+              <ReactJson src={signMessageData} collapsed theme="monokai" />
+            </div>
+            <SignMessage
+              {...signMessageData}
+              uid={uid}
+              sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, signature: true })}
+            />
+          </>
+        )}
+      </>
+    )}
+
+    {/* Error States */}
+    {schemaError && (
+      <div className="container parsingError">
+        <div>Source doesnt match schema</div>
+        <ReactJson src={JSON.parse(JSON.stringify(schemaError))} collapsed theme="monokai" />
+      </div>
+    )}
+
+    {callbackError && (
+      <div className="container callbackError">
+        <div>There was an error during callback request to {callbackEndpoint}</div>
+        <ReactJson src={callbackError} collapsed theme="monokai" />
+      </div>
+    )}
+  </>
+);
 }
