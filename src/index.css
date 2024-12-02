@@ -822,15 +822,18 @@ button:disabled {
 }
 
 @media (max-width: 768px) {
-  .boxes-grid {
-    grid-template-columns: 1fr;
+  .prediction-bar {
+    padding: 12px;
   }
-  
-  .box-image-container {
-    height: 180px;
+
+  .amount-value {
+    font-size: 20px;
+  }
+
+  .predictions-section {
+    margin: 12px 0;
   }
 }
-
 /* Container Styles */
 .filter-container {
   background-color: #ffffff;
@@ -906,8 +909,16 @@ button:disabled {
 }
 
 .box-time {
-  font-size: 14px;
-  color: #3b82f6;
+  padding: 4px 8px;
+  background-color: #F1F5F9;
+  border-radius: 6px;
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.box-time.closed {
+  background-color: #FEE2E2;
+  color: #991B1B;
 }
 
 .box-teams {
@@ -927,23 +938,33 @@ button:disabled {
 /* Progress Bar */
 .prediction-bar {
   margin: 16px 0;
-  background: #f1f5f9;
-  padding: 12px;
+  background: #F8FAFC;
+  padding: 16px;
   border-radius: 8px;
 }
 
 .bar-container {
-  height: 8px;
-  background: #e2e8f0;
-  border-radius: 4px;
+  position: relative;
+  height: 12px;
+  background: #E2E8F0;
+  border-radius: 6px;
   overflow: hidden;
   margin: 8px 0;
 }
 
 .hunters-bar {
+  position: absolute;
   height: 100%;
-  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  left: 0;
+  background: linear-gradient(90deg, #22C55E 0%, #16A34A 100%);
   transition: width 0.3s ease;
+}
+
+.fishers-bar {
+  position: absolute;
+  height: 100%;
+  background: linear-gradient(90deg, #EC4899 0%, #DB2777 100%);
+  transition: all 0.3s ease;
 }
 
 .bar-labels {
@@ -995,4 +1016,61 @@ button:disabled {
   font-weight: 600;
   color: #0f172a;
   font-size: 14px;
+}
+
+
+/* Total Amount Highlight */
+.total-amount-highlight {
+  background-color: #EEF2FF;
+  border: 2px solid #818CF8;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  text-align: center;
+  animation: pulse 2s infinite;
+}
+
+.amount-label {
+  font-size: 14px;
+  color: #4F46E5;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.amount-value {
+  font-size: 24px;
+  color: #4F46E5;
+  font-weight: 700;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(129, 140, 248, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(129, 140, 248, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(129, 140, 248, 0); }
+}
+
+/* Predictions Section */
+.predictions-section {
+  background-color: #F8FAFC;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 16px 0;
+}
+
+.predictions-section h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.prediction-item {
+  font-size: 13px;
+  color: #64748B;
+  padding: 6px 0;
+  border-bottom: 1px dashed #E2E8F0;
+}
+
+.prediction-item:last-child {
+  border-bottom: none;
 }
