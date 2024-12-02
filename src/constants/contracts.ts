@@ -1,356 +1,197 @@
 // Export des ABI des contrats
   export const BOX_ABI = [
     {
-      "inputs": [
-        {
-          "internalType": "string",
-          "name": "_details",
-          "type": "string"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_endTime",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_maxAmount",
-          "type": "uint256"
-        },
-        {
-          "internalType": "bool",
-          "name": "_isPublic",
-          "type": "bool"
-        },
-        {
-          "internalType": "address",
-          "name": "_oracle",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "_betToken",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "constructor"
-    },
-    {
       "inputs": [],
-      "name": "AlreadySettled",
-      "type": "error"
-    },
-    {
+      "name": "ADMIN_ROLE",
+      "outputs": [{"internalType": "bytes32", "name": "", "type": "bytes32"}],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
       "inputs": [],
-      "name": "BoxClosed",
-      "type": "error"
-    },
-    {
+      "name": "DEFAULT_ADMIN_ROLE",
+      "outputs": [{"internalType": "bytes32", "name": "", "type": "bytes32"}],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
       "inputs": [],
-      "name": "BoxNotSettled",
-      "type": "error"
-    },
-    {
+      "name": "ORACLE_ROLE",
+      "outputs": [{"internalType": "bytes32", "name": "", "type": "bytes32"}],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
       "inputs": [],
-      "name": "InvalidAmount",
-      "type": "error"
-    },
-    {
+      "name": "betToken",
+      "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
       "inputs": [],
-      "name": "NotOracle",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "OnlyEOA",
-      "type": "error"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "bool",
-          "name": "prediction",
-          "type": "bool"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "amount",
-          "type": "uint256"
-        }
-      ],
-      "name": "BetCreated",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "amount",
-          "type": "uint256"
-        }
-      ],
-      "name": "PrizeClaimed",
-      "type": "event"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "name": "bets",
+      "name": "box",
       "outputs": [
-        {
-          "internalType": "bool",
-          "name": "prediction",
-          "type": "bool"
-        },
-        {
-          "internalType": "uint256",
-          "name": "amount",
-          "type": "uint256"
-        },
-        {
-          "internalType": "bool",
-          "name": "claimed",
-          "type": "bool"
-        }
+          {"internalType": "string", "name": "details", "type": "string"},
+          {"internalType": "uint256", "name": "endTime", "type": "uint256"},
+          {"internalType": "uint256", "name": "maxAmount", "type": "uint256"},
+          {"internalType": "bool", "name": "isPublic", "type": "bool"},
+          {"internalType": "bool", "name": "isSettled", "type": "bool"},
+          {"internalType": "bool", "name": "isCancelled", "type": "bool"},
+          {"internalType": "bool", "name": "outcome", "type": "bool"},
+          {"internalType": "uint256", "name": "totalAmount", "type": "uint256"},
+          {"internalType": "uint256", "name": "availableAmount", "type": "uint256"},
+          {"internalType": "string", "name": "gameId", "type": "string"},
+          {"internalType": "string", "name": "leagueId", "type": "string"},
+          {"internalType": "string", "name": "sportId", "type": "string"}
       ],
       "stateMutability": "view",
       "type": "function"
-    },
-    {
+  },
+  {
       "inputs": [],
-      "name": "claimPrize",
+      "name": "cancelBox",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "bool",
-          "name": "_prediction",
-          "type": "bool"
-        }
-      ],
+  },
+  {
+      "inputs": [],
+      "name": "claimWinnings",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [{"internalType": "string", "name": "prediction", "type": "string"}],
       "name": "createBet",
       "outputs": [],
       "stateMutability": "payable",
       "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "bool",
-          "name": "_prediction",
-          "type": "bool"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_amount",
-          "type": "uint256"
-        }
-      ],
-      "name": "createBetWithToken",
+  },
+  {
+      "inputs": [{"internalType": "string", "name": "prediction", "type": "string"}, {"internalType": "uint256", "name": "betAmount", "type": "uint256"}],
+      "name": "createBetWithAmount",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "details",
-      "outputs": [
-        {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "endTime",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "getBoxInfo",
-      "outputs": [
-        {
-          "internalType": "string",
-          "name": "_details",
-          "type": "string"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_endTime",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_maxAmount",
-          "type": "uint256"
-        },
-        {
-          "internalType": "bool",
-          "name": "_isPublic",
-          "type": "bool"
-        },
-        {
-          "internalType": "bool",
-          "name": "_isSettled",
-          "type": "bool"
-        },
-        {
-          "internalType": "bool",
-          "name": "_outcome",
-          "type": "bool"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_totalAmount",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "isPublic",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "isSettled",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "maxAmount",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "oracle",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "outcome",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "bool",
-          "name": "_outcome",
-          "type": "bool"
-        }
-      ],
-      "name": "setResult",
+  },
+  {
+      "inputs": [{"internalType": "string", "name": "_details", "type": "string"}, {"internalType": "uint256", "name": "_endTime", "type": "uint256"}, {"internalType": "uint256", "name": "_maxAmount", "type": "uint256"}, {"internalType": "bool", "name": "_isPublic", "type": "bool"}, {"components": [{"internalType": "string", "name": "who", "type": "string"}, {"internalType": "string", "name": "what", "type": "string"}, {"internalType": "string", "name": "when", "type": "string"}], "internalType": "struct BoxStorage.BoxEvent[]", "name": "_initialEvents", "type": "tuple[]"}, {"internalType": "string", "name": "_gameId", "type": "string"}, {"internalType": "string", "name": "_leagueId", "type": "string"}, {"internalType": "string", "name": "_sportId", "type": "string"}],
+      "name": "createBox",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
-    },
-    {
+  },
+  {
       "inputs": [],
-      "name": "token",
+      "name": "getBoxCreator",
+      "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [],
+      "name": "getBoxDetails",
       "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
+          {"internalType": "string", "name": "", "type": "string"},
+          {"internalType": "uint256", "name": "", "type": "uint256"},
+          {"internalType": "bool", "name": "", "type": "bool"},
+          {"internalType": "bool", "name": "", "type": "bool"},
+          {"internalType": "uint256", "name": "", "type": "uint256"},
+          {"internalType": "uint256", "name": "", "type": "uint256"},
+          {"internalType": "bool", "name": "", "type": "bool"},
+          {
+              "components": [
+                  {"internalType": "address", "name": "participant", "type": "address"},
+                  {"internalType": "bool", "name": "prediction", "type": "bool"},
+                  {"internalType": "uint256", "name": "amount", "type": "uint256"}
+              ],
+              "internalType": "struct BoxStorage.Bet[]",
+              "name": "",
+              "type": "tuple[]"
+          },
+          {
+              "components": [
+                  {"internalType": "string", "name": "who", "type": "string"},
+                  {"internalType": "string", "name": "what", "type": "string"},
+                  {"internalType": "string", "name": "when", "type": "string"}
+              ],
+              "internalType": "struct BoxStorage.BoxEvent[]",
+              "name": "",
+              "type": "tuple[]"
+          },
+          {"internalType": "string", "name": "", "type": "string"},
+          {"internalType": "string", "name": "", "type": "string"},
+          {"internalType": "string", "name": "", "type": "string"}
       ],
       "stateMutability": "view",
       "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "totalAmount",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
+  },
+  {
+      "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
+      "name": "getClaimedPayout",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
       "stateMutability": "view",
       "type": "function"
-    }
-  ] as const;
+  },
+  {
+      "inputs": [{"internalType": "address", "name": "participant", "type": "address"}, {"internalType": "bool", "name": "prediction", "type": "bool"}],
+      "name": "getParticipantShare",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [{"internalType": "address", "name": "participant", "type": "address"}],
+      "name": "getTotalWinningsClaimed",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [{"internalType": "address", "name": "participant", "type": "address"}],
+      "name": "getWinningsToClaim",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [{"internalType": "bytes32", "name": "role", "type": "bytes32"}, {"internalType": "address", "name": "account", "type": "address"}],
+      "name": "grantRole",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [],
+      "name": "isBoxCreated",
+      "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [],
+      "name": "settleBetFromOracle",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [],
+      "name": "stakingAddress",
+      "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [],
+      "name": "useNativeToken",
+      "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+      "stateMutability": "view",
+      "type": "function"
+  }
+] as const;
     
   export const FACTORY_ABI = [
         {"inputs":[{"internalType":"address","name":"_initialOracleAddress","type":"address"},{"internalType":"address","name":"_initialStakingAddress","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
@@ -841,8 +682,97 @@
   
   // Type ERC20 basique pour les tokens
   export const ERC20_ABI = [
-    'function approve(address spender, uint256 value) returns (bool)',
-    'function balanceOf(address owner) view returns (uint256)',
-    'function decimals() view returns (uint8)',
-    'function symbol() view returns (string)'
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "spender",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "approve",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "name": "balanceOf",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "decimals",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "symbol",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "spender",
+          "type": "address"
+        }
+      ],
+      "name": "allowance",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
   ] as const;
