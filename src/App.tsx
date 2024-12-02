@@ -319,42 +319,53 @@ export default function App() {
   
     if (!isActive) {
       return (
-        <div className="flex justify-center items-center gap-4 my-6 px-4">
+        <div className="flex justify-center items-center gap-6 my-6">
           <button
             onClick={() => {
               setSelectedBetType('hunt');
               setActiveBetBox(box);
             }}
-            className="w-32 bg-gradient-to-r from-emerald-400 to-emerald-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all disabled:opacity-50"
+            className="w-36 h-14 bg-gradient-to-r from-emerald-400 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:shadow-emerald-200/50 hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
             disabled={isProcessing}
           >
-            🎯 Hunt
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-xl">🎯</span>
+              <span>Hunt</span>
+            </div>
           </button>
           <button
             onClick={() => {
               setSelectedBetType('fish');
               setActiveBetBox(box);
             }}
-            className="w-32 bg-gradient-to-r from-rose-400 to-rose-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all disabled:opacity-50"
+            className="w-36 h-14 bg-gradient-to-r from-rose-400 to-rose-600 text-white font-bold rounded-xl shadow-lg hover:shadow-rose-200/50 hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
             disabled={isProcessing}
           >
-            🎣 Fish
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-xl">🎣</span>
+              <span>Fish</span>
+            </div>
           </button>
         </div>
       );
     }
   
+    // Betting interface
     return (
       <div className="bg-gray-50 rounded-xl p-6 space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">{selectedBetType === 'hunt' ? '🎯' : '🎣'}</span>
-            <span className="text-2xl font-bold">{selectedBetType === 'hunt' ? 'Hunt' : 'Fish'}</span>
+            <span className="text-3xl">
+              {selectedBetType === 'hunt' ? '🎯' : '🎣'}
+            </span>
+            <span className="text-2xl font-bold">
+              {selectedBetType === 'hunt' ? 'Hunt' : 'Fish'}
+            </span>
           </div>
           <button
             onClick={resetBettingState}
-            className="text-gray-500 hover:text-gray-700 font-medium"
+            className="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors"
           >
             Change
           </button>
@@ -385,10 +396,15 @@ export default function App() {
               key={amount}
               onClick={() => setCustomAmount(amount)}
               className={`
-                py-3 px-4 rounded-lg font-semibold transition-all
-                ${customAmount === amount 
-                  ? 'bg-gray-200 text-gray-800 shadow-inner' 
-                  : 'bg-white text-gray-600 shadow-sm hover:bg-gray-50 border border-gray-200'}
+                py-3 rounded-lg font-semibold transition-all
+                ${selectedBetType === 'hunt' 
+                  ? customAmount === amount 
+                    ? 'bg-emerald-100 text-emerald-800 shadow-inner' 
+                    : 'bg-white text-emerald-600 hover:bg-emerald-50 border border-emerald-200'
+                  : customAmount === amount 
+                    ? 'bg-rose-100 text-rose-800 shadow-inner' 
+                    : 'bg-white text-rose-600 hover:bg-rose-50 border border-rose-200'
+                }
               `}
             >
               {amount}
@@ -408,7 +424,13 @@ export default function App() {
                 setCustomAmount(value);
               }
             }}
-            className="w-full px-4 py-3 border rounded-lg pr-24 text-lg font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className={`
+              w-full px-4 py-3 border rounded-lg pr-24 text-lg font-medium 
+              focus:ring-2 focus:border-transparent
+              ${selectedBetType === 'hunt' 
+                ? 'focus:ring-emerald-500' 
+                : 'focus:ring-rose-500'}
+            `}
             placeholder={`Amount in ${box.tokenData.symbol || 'ETH'}`}
           />
           <span className="absolute right-4 top-1/2 -translate-y-1/2 font-medium text-gray-500">
@@ -423,7 +445,14 @@ export default function App() {
               <button
                 onClick={handleApproval}
                 disabled={!customAmount || isProcessing}
-                className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50"
+                className={`
+                  w-full py-3 rounded-lg font-semibold text-white transition-all
+                  ${selectedBetType === 'hunt'
+                    ? 'bg-emerald-500 hover:bg-emerald-600'
+                    : 'bg-rose-500 hover:bg-rose-600'
+                  }
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                `}
               >
                 Approve {box.tokenData.symbol}
               </button>
@@ -433,7 +462,7 @@ export default function App() {
               onClick={handleBet}
               disabled={!customAmount || (isApprovalRequired && !isEthBet) || isProcessing}
               className={`
-                w-full py-3 rounded-lg font-semibold text-white transition-all
+                w-full py-3 rounded-xl font-semibold text-white transition-all
                 ${selectedBetType === 'hunt'
                   ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700'
                   : 'bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700'
@@ -449,6 +478,7 @@ export default function App() {
             status={transactionStatus}
             tokenSymbol={box.tokenData.symbol}
             txHash={currentTxHash}
+            type={selectedBetType}
           />
         )}
       </div>
@@ -458,24 +488,52 @@ export default function App() {
   const TransactionStatus = ({ 
     status, 
     tokenSymbol, 
-    txHash 
+    txHash,
+    type 
   }: { 
     status: string;
     tokenSymbol?: string;
     txHash: string | null;
+    type: 'hunt' | 'fish' | null;
   }) => (
     <div className="bg-white rounded-lg p-4 space-y-3 border">
       <div className="flex items-center gap-3">
-        <div className="animate-spin h-5 w-5 border-2 border-t-transparent border-blue-500 rounded-full" />
+        <div 
+          className={`
+            animate-spin h-5 w-5 border-2 border-t-transparent rounded-full
+            ${type === 'hunt' 
+              ? 'border-emerald-500' 
+              : type === 'fish'
+                ? 'border-rose-500'
+                : 'border-blue-500'
+            }
+          `} 
+        />
         <span className="font-medium">
           {status === 'approving' && (
-            <span className="text-blue-600">Approving {tokenSymbol}...</span>
+            <span className={
+              type === 'hunt' 
+                ? 'text-emerald-600' 
+                : type === 'fish'
+                  ? 'text-rose-600'
+                  : 'text-blue-600'
+            }>
+              Approving {tokenSymbol}...
+            </span>
           )}
           {status === 'approved' && (
             <span className="text-green-600">Approval confirmed!</span>
           )}
           {status === 'betting' && (
-            <span className="text-blue-600">Placing bet...</span>
+            <span className={
+              type === 'hunt' 
+                ? 'text-emerald-600' 
+                : type === 'fish'
+                  ? 'text-rose-600'
+                  : 'text-blue-600'
+            }>
+              Placing bet...
+            </span>
           )}
           {status === 'complete' && (
             <span className="text-green-600">Transaction complete!</span>
@@ -488,7 +546,15 @@ export default function App() {
           href={`https://basescan.org/tx/${txHash}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-500 hover:underline text-sm block truncate"
+          className={`
+            text-sm block truncate hover:underline
+            ${type === 'hunt' 
+              ? 'text-emerald-500 hover:text-emerald-600' 
+              : type === 'fish'
+                ? 'text-rose-500 hover:text-rose-600'
+                : 'text-blue-500 hover:text-blue-600'
+            }
+          `}
         >
           View on BaseScan →
         </a>
