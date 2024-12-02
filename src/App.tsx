@@ -158,7 +158,7 @@ export default function App() {
     }, [box.tokenData.address, address, isEthBet]);
   
     const handleBet = async () => {
-      if (!window.ethereum || !betAmount) return;
+      if (!window.ethereum || !betAmount || !address) return;
       setIsProcessing(true);
       
       try {
@@ -166,49 +166,62 @@ export default function App() {
         const signer = await provider.getSigner();
         const amountInWei = ethers.parseEther(betAmount);
   
-        // Handle ERC20 token approval if needed
-        if (!isEthBet) {
+        // Handling ETH bets
+        if (isEthBet) {
+          const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
+          setTransactionStatus('betting');
+          
+          // Important: Include value in the transaction for ETH bets
+          const tx = await boxContract.createBet(selectedBetType === 'hunt', {
+            value: amountInWei,
+            gasLimit: 500000 // Explicit gas limit for ETH transactions
+          });
+          
+          setCurrentTxHash(tx.hash);
+          await tx.wait();
+          setTransactionStatus('complete');
+        } 
+        // Handling ERC20 token bets
+        else {
           const tokenContract = new ethers.Contract(
             box.tokenData.address!,
             ERC20_ABI,
             signer
           );
           
-          // Check if we need to approve
-          if (ethers.parseEther(tokenAllowance) < amountInWei) {
+          // Check & handle approval if needed
+          const currentAllowance = ethers.parseEther(tokenAllowance);
+          if (currentAllowance < amountInWei) {
             setTransactionStatus('approving');
-            const approveTx = await tokenContract.approve(box.address, amountInWei);
+            const approveTx = await tokenContract.approve(box.address, amountInWei, {
+              gasLimit: 100000
+            });
             setCurrentTxHash(approveTx.hash);
             await approveTx.wait();
             setTokenAllowance(ethers.formatEther(amountInWei));
+            setTransactionStatus('approved');
           }
-        }
-        
-        setTransactionStatus('betting');
-        const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
-        
-        // Create bet transaction
-        const tx = isEthBet
-          ? await boxContract.createBet(selectedBetType === 'hunt', { value: amountInWei })
-          : await boxContract.createBetWithToken(selectedBetType === 'hunt', amountInWei);
-        
-        setCurrentTxHash(tx.hash);
-        await tx.wait();
-        setTransactionStatus('complete');
-        
-        // Refresh data
-        await fetchBoxes();
-        if (!isEthBet) {
-          const tokenContract = new ethers.Contract(
-            box.tokenData.address!,
-            ERC20_ABI,
-            provider
-          );
+  
+          // Create bet after approval
+          setTransactionStatus('betting');
+          const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
+          const tx = await boxContract.createBetWithToken(selectedBetType === 'hunt', amountInWei, {
+            gasLimit: 500000
+          });
+          
+          setCurrentTxHash(tx.hash);
+          await tx.wait();
+          setTransactionStatus('complete');
+  
+          // Update token balance
           const newBalance = await tokenContract.balanceOf(address);
           setTokenBalance(ethers.formatEther(newBalance));
         }
         
-        // Reset state
+        // Refresh box data
+        await fetchBoxes();
+        
+        // Reset states after completion
         setTimeout(() => {
           setSelectedBetType(null);
           setActiveBetBox(null);
