@@ -64,6 +64,7 @@ interface Box {
   tokenData: TokenData;
   lastUpdated: string;
   imageData?: string;
+  initialEvents: Array<{who: string; prediction: string}>;
 }
 
 interface Stats {
@@ -79,8 +80,9 @@ interface ApiResponse {
   boxes: Box[];
 }
 
+
+
 export default function App() {
-  // States
   const { isConnected } = useAccount();
   const [transactionData, setTransactionData] = useState<WriteContractData>();
   const [signMessageData, setSignMessageData] = useState<SignMessageProps>();
@@ -115,7 +117,18 @@ export default function App() {
     }
   });
 
-  // Functions
+  const calculateTimeLeft = (scheduledTime: string) => {
+    const difference = new Date(scheduledTime).getTime() - new Date().getTime();
+    
+    if (difference <= 0) return 'Box Closed';
+    
+    const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return `${days > 0 ? `${days}d ` : ''}${hours}h ${minutes}m`;
+  };
+
   const calculateStats = (boxes: Box[]): Stats => {
     try {
       const activeBoxes = boxes.filter(box => !box.isSettled);
@@ -185,24 +198,8 @@ export default function App() {
     }
   };
 
-  const formatTimeFromNow = (dateString: string): string => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = Math.floor((date.getTime() - now.getTime()) / 1000);
-    
-    if (diff < 0) return 'Ended';
-    if (diff < 60) return `${diff}s`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-    return `${Math.floor(diff / 86400)}d`;
-  };
-
   const formatAddress = (address: string): string => 
     `${address.slice(0, 6)}...${address.slice(-4)}`;
-
-  const onCallbackError = (error: any): void => {
-    setCallbackError(error);
-  };
 
   const getFilteredBoxes = (boxes: Box[]) => {
     return boxes.filter(box => {
@@ -242,7 +239,6 @@ export default function App() {
     };
   };
 
-
   // Effects
   useEffect(() => {
     fetchBoxes();
@@ -252,14 +248,13 @@ export default function App() {
 
   useEffect(() => {
     const queryParameters = new URLSearchParams(window.location.search);
-    const source = queryParameters.get("source") as string;
     setBotName(queryParameters.get("botName") as string);
     setUid(queryParameters.get("uid") as string);
     setCallbackEndpoint(queryParameters.get("callback") as string);
-
     const actionType = queryParameters.get("type") === "signature" ? "signature" : "transaction";
     setOperationType(actionType);
 
+    const source = queryParameters.get("source");
     if (source) {
       fetch(source)
         .then(response => response.json())
@@ -277,14 +272,18 @@ export default function App() {
     }
   }, []);
 
+  // Ajout de la fonction manquante
+  const onCallbackError = (error: any) => {
+    setCallbackError(error);
+  };
 
   return (
     <>
       {isConnected && !schemaError && <Account botName={botName} />}
       {!isConnected && !schemaError && <Connect />}
-  
-      {/* Main Content */}
-      {isConnected && !transactionData && !signMessageData && (
+
+      {/* Main Content - visible même sans connexion */}
+      {(!transactionData && !signMessageData) && (
         <>
           {/* Stats Panel */}
           <div className="stats-container">
@@ -312,7 +311,7 @@ export default function App() {
               </div>
             </div>
           </div>
-  
+
           {/* Filter Section */}
           <div className="filter-container">
             <div className="filter-bar">
@@ -373,7 +372,7 @@ export default function App() {
                     type="text"
                     placeholder="Custom Token Address"
                     value={filters.tokens.custom}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e) =>
                       setFilters(prev => ({
                         ...prev,
                         tokens: { ...prev.tokens, custom: e.target.value }
@@ -413,9 +412,11 @@ export default function App() {
                       
                       <div className="box-content">
                         <div className="box-header">
-                          <span className="box-sport">{box.sportId}</span>
+                          <span className="box-sport">
+                            {SPORT_EMOJIS[box.sportId as keyof SportsType]} {box.sportId}
+                          </span>
                           <span className="box-time">
-                            {box.sportData?.scheduled && formatTimeFromNow(box.sportData.scheduled)}
+                            {box.sportData?.scheduled && calculateTimeLeft(box.sportData.scheduled)}
                           </span>
                         </div>
                         
@@ -426,7 +427,27 @@ export default function App() {
                         <div className="box-tournament">
                           {box.sportData?.tournament}
                         </div>
-  
+
+                        {/* Total Amount Highlight */}
+                        <div className="total-amount-highlight">
+                          <div className="amount-label">Total Pool</div>
+                          <div className="amount-value">
+                            {formatEther(BigInt(box.totalAmount || '0'))} {box.tokenData.symbol || 'ETH'}
+                          </div>
+                        </div>
+
+                        {/* Predictions Section */}
+                        {box.initialEvents && box.initialEvents.length > 0 && (
+                          <div className="predictions-section">
+                            <h4>Predictions</h4>
+                            {box.initialEvents.map((event, index) => (
+                              <div key={index} className="prediction-item">
+                                {event.who}: {event.prediction}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
                         {/* Hunter vs Fisher Progress Bar */}
                         <div className="prediction-bar">
                           <div className="bar-container">
@@ -434,25 +455,26 @@ export default function App() {
                               className="hunters-bar"
                               style={{ width: `${hunterPercentage}%` }}
                             />
+                            <div 
+                              className="fishers-bar"
+                              style={{ width: `${100 - hunterPercentage}%`, left: `${hunterPercentage}%` }}
+                            />
                           </div>
                           <div className="bar-labels">
-                            <span>🎯 {hunterPercentage.toFixed(1)}%</span>
-                            <span>{(100 - hunterPercentage).toFixed(1)}% 🎣</span>
+                            <span className="hunters-label">🎯 {hunterPercentage.toFixed(1)}%</span>
+                            <span className="fishers-label">🎣 {(100 - hunterPercentage).toFixed(1)}%</span>
                           </div>
                         </div>
                         
                         <div className="box-info">
                           <span className="box-address">{formatAddress(box.address)}</span>
-                          <span className="box-amount">
-                            {formatEther(BigInt(box.totalAmount || '0'))} {box.tokenData.symbol || 'ETH'}
-                          </span>
+                          <span className="box-participants">🐳 {box.bets.length}</span>
                         </div>
                         
                         <div className="box-footer">
-                          <span className="box-bets">🐳 {box.bets.length}</span>
                           <div className="status-container">
                             <span className={`status-badge ${boxStatus.status.toLowerCase().includes('active') ? 'active' : 
-                                                          boxStatus.status.toLowerCase().includes('live') ? 'live' : 'settled'}`}>
+                                          boxStatus.status.toLowerCase().includes('live') ? 'live' : 'settled'}`}>
                               {boxStatus.status}
                             </span>
                             <span className="status-badge">{boxStatus.aiStatus}</span>
@@ -468,7 +490,7 @@ export default function App() {
           </div>
         </>
       )}
-  
+
       {/* Transaction/Signature Components */}
       {isConnected && !schemaError && (transactionData || signMessageData) && (
         <>
@@ -489,22 +511,30 @@ export default function App() {
               />
             </>
           )}
-  
+
           {operationType === "signature" && signMessageData && uid && (
-            <>
-              <div className="container">
-                <ReactJson src={signMessageData} collapsed theme="monokai" />
-              </div>
-              <SignMessage
-                {...signMessageData}
-                uid={uid}
-                sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, signature: true })}
-              />
-            </>
-          )}
+              <>
+                <div className="container">
+                  <ReactJson src={signMessageData} collapsed theme="monokai" />
+                </div>
+                <SignMessage
+                  uid={uid}
+                  domain={{
+                    name: signMessageData.domain?.name || '',
+                    version: signMessageData.domain?.version || '',
+                    chainId: signMessageData.domain?.chainId || 1,
+                    verifyingContract: signMessageData.domain?.verifyingContract || ''
+                  }}
+                  primaryType={signMessageData.primaryType}
+                  types={signMessageData.types}
+                  message={signMessageData.message}
+                  sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, signature: true })}
+                />
+              </>
+            )}
         </>
       )}
-  
+
       {/* Error States */}
       {schemaError && (
         <div className="container parsingError">
@@ -512,7 +542,7 @@ export default function App() {
           <ReactJson src={JSON.parse(JSON.stringify(schemaError))} collapsed theme="monokai" />
         </div>
       )}
-  
+
       {callbackError && (
         <div className="container callbackError">
           <div>There was an error during callback request to {callbackEndpoint}</div>
