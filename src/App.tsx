@@ -113,16 +113,192 @@ export default function App() {
     myGames: false
   });
 
-  const onCallbackError = (error: any) => {
-    setCallbackError(error);
-  };
-
   // Betting states
   const [selectedBetType, setSelectedBetType] = useState<'hunt' | 'fish' | null>(null);
   const [betAmount, setBetAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeBetBox, setActiveBetBox] = useState<Box | null>(null);
+  const [transactionStatus, setTransactionStatus] = useState<'initial' | 'approving' | 'approved' | 'betting' | 'complete'>('initial');
+  const [currentTxHash, setCurrentTxHash] = useState<string | null>(null);
 
+  const onCallbackError = (error: any) => {
+    setCallbackError(error);
+  };
+
+  const BettingSection = ({ box }: { box: Box }) => {
+      const isEthBet = !box.tokenData.address;
+      const quickAmounts = ['0.01', '0.05', '0.1', '0.5'];
+      const isActive = box === activeBetBox;
+    
+      const handleBet = async () => {
+        if (!window.ethereum || !betAmount) return;
+        setIsProcessing(true);
+        setTransactionStatus('approving');
+        
+        try {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const signer = await provider.getSigner();
+          const amountInWei = ethers.parseEther(betAmount);
+    
+          if (!isEthBet) {
+            const tokenContract = new ethers.Contract(
+              box.tokenData.address!,
+              ['function approve(address spender, uint256 value) returns (bool)'],
+              signer
+            );
+            
+            const approveTx = await tokenContract.approve(box.address, amountInWei);
+            setCurrentTxHash(approveTx.hash);
+            await approveTx.wait();
+            setTransactionStatus('approved');
+          }
+          
+          setTransactionStatus('betting');
+          const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
+          const tx = isEthBet
+            ? await boxContract.createBet(selectedBetType === 'hunt', { value: amountInWei })
+            : await boxContract.createBetWithAmount(selectedBetType === 'hunt', amountInWei);
+            
+          setCurrentTxHash(tx.hash);
+          await tx.wait();
+          setTransactionStatus('complete');
+          
+          await fetchBoxes();
+          setTimeout(() => {
+            setSelectedBetType(null);
+            setActiveBetBox(null);
+            setBetAmount('');
+            setTransactionStatus('initial');
+            setCurrentTxHash(null);
+            setIsProcessing(false);
+          }, 2000);
+          
+        } catch (error) {
+          console.error(error);
+          setTransactionStatus('initial');
+          setCurrentTxHash(null);
+          setIsProcessing(false);
+        }
+      };
+      
+      return (
+        <div className="betting-actions">
+          {!isActive ? (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  setSelectedBetType('hunt');
+                  setActiveBetBox(box);
+                }}
+                className="hunt-button h-12 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg"
+                disabled={isProcessing}
+              >
+                🎯 Hunt
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedBetType('fish');
+                  setActiveBetBox(box);
+                }}
+                className="fish-button h-12 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg"
+                disabled={isProcessing}
+              >
+                🎣 Fish
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {transactionStatus === 'initial' ? (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-semibold">
+                      {selectedBetType === 'hunt' ? '🎯 Hunt' : '🎣 Fish'}
+                    </span>
+                    <button
+                      onClick={() => {
+                        setSelectedBetType(null);
+                        setActiveBetBox(null);
+                        setBetAmount('');
+                      }}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      Change
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-4 gap-2">
+                    {quickAmounts.map(amount => (
+                      <button
+                        key={amount}
+                        onClick={() => setBetAmount(amount)}
+                        className="py-2 px-4 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium"
+                      >
+                        {amount}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={betAmount}
+                      onChange={(e) => setBetAmount(e.target.value)}
+                      className="w-full px-4 py-3 border rounded-lg"
+                      placeholder={`Amount in ${box.tokenData.symbol || 'ETH'}`}
+                      min="0"
+                      step="0.000000000000000001"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+                      {box.tokenData.symbol || 'ETH'}
+                    </span>
+                  </div>
+                  
+                  <button
+                    onClick={handleBet}
+                    disabled={!betAmount}
+                    className={`
+                      w-full py-3 rounded-lg font-semibold text-white transition-colors
+                      ${selectedBetType === 'hunt'
+                        ? 'bg-green-500 hover:bg-green-600'
+                        : 'bg-pink-500 hover:bg-pink-600'
+                      }
+                      disabled:opacity-50
+                    `}
+                  >
+                    Place Bet
+                  </button>
+                </>
+              ) : (
+                <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="animate-spin h-5 w-5 border-2 border-t-transparent border-blue-500 rounded-full" />
+                    <span className="font-medium">
+                      {transactionStatus === 'approving' && `Approving ${box.tokenData.symbol}...`}
+                      {transactionStatus === 'approved' && 'Approval confirmed!'}
+                      {transactionStatus === 'betting' && 'Placing bet...'}
+                      {transactionStatus === 'complete' && 'Transaction complete!'}
+                    </span>
+                  </div>
+                  {currentTxHash && (
+                    <a
+                      href={`https://basescan.org/tx/${currentTxHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline text-sm block truncate"
+                    >
+                      View on BaseScan
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // Continuer avec la partie 3...
+  // Core utility functions
   const calculateTimeLeft = (scheduledTime: string) => {
     const difference = new Date(scheduledTime).getTime() - new Date().getTime();
     if (difference <= 0) return 'Box Closed';
@@ -180,10 +356,8 @@ export default function App() {
       if (data.success && Array.isArray(data.boxes)) {
         const cutoffDate = new Date('2023-11-20');
         const filteredBoxes = data.boxes
-          .filter((box: Box) => new Date(box.lastUpdated) >= cutoffDate)
-          .sort((a: Box, b: Box) => 
-            new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
-          );
+          .filter(box => new Date(box.lastUpdated) >= cutoffDate)
+          .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
         
         setBoxes(filteredBoxes);
         setStats(calculateStats(filteredBoxes));
@@ -195,516 +369,366 @@ export default function App() {
     }
   };
 
+  const formatAddress = (address: string): string => 
+    `${address.slice(0, 6)}...${address.slice(-4)}`;
 
-  const handleBet = async (box: Box): Promise<void> => {
-    if (!window.ethereum || !betAmount) return;
-    
-    setIsProcessing(true);
-    
-    try {
-      const amountInWei = ethers.parseEther(betAmount);
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      
-      if (box.tokenData.address) {
-        const tokenContract = new ethers.Contract(
-          box.tokenData.address,
-          ['function approve(address spender, uint256 value) returns (bool)'],
-          signer
-        );
-        
-        const approveTx = await tokenContract.approve(box.address, amountInWei);
-        await approveTx.wait();
-        
-        const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
-        const betTx = await boxContract.createBetWithAmount(selectedBetType === 'hunt', amountInWei);
-        await betTx.wait();
-      } else {
-        const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
-        const tx = await boxContract.createBet(
-          selectedBetType === 'hunt',
-          { value: amountInWei }
-        );
-        await tx.wait();
-      }
-      
-      await fetchBoxes();
-      setSelectedBetType(null);
-      setBetAmount('');
-      setActiveBetBox(null);
-      
-    } catch (error) {
-      console.error('Error placing bet:', error);
-      throw error;
-    } finally {
-      setIsProcessing(false);
-    }
+  const calculateHunterPercentage = (bets: Bet[]): number => {
+    if (bets.length === 0) return 0;
+    const hunters = bets.filter(bet => bet.prediction).length;
+    return (hunters / bets.length) * 100;
   };
 
-// Inside App component, after functions...
-
-useEffect(() => {
-  fetchBoxes();
-  const interval = setInterval(fetchBoxes, 30000);
-  return () => clearInterval(interval);
-}, []);
-
-useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
-  setBotName(params.get("botName") || "");
-  setUid(params.get("uid") || "");
-  setCallbackEndpoint(params.get("callback") || "");
-  const actionType = params.get("type") === "signature" ? "signature" : "transaction";
-  setOperationType(actionType);
-
-  const source = params.get("source");
-  if (source) {
-    fetch(source)
-      .then(response => response.json())
-      .then(data => {
-        const error = getSchemaError(actionType, data);
-        if (error) {
-          setSchemaError(error);
-        } else {
-          actionType === "signature" ? setSignMessageData(data) : setTransactionData(data);
-        }
-      })
-      .catch(setSchemaError);
-  }
-}, []);
-
-const formatAddress = (address: string): string => 
-  `${address.slice(0, 6)}...${address.slice(-4)}`;
-
-const calculateHunterPercentage = (bets: Bet[]): number => {
-  if (bets.length === 0) return 0;
-  const hunters = bets.filter(bet => bet.prediction).length;
-  return (hunters / bets.length) * 100;
-};
-
-const getFilteredBoxes = (boxes: Box[]) => {
-  return boxes.filter(box => {
-    const sportId = box.sportId as keyof SportsType;
-    const hasSportFilter = Object.values(filters.sports).some(v => v);
-    
-    // Sport filter
-    const sportMatch = !hasSportFilter || filters.sports[sportId];
-    
-    // Token filter
-    const isEth = !box.tokenData.address;
-    const isKrill = box.tokenData.symbol === 'KRILL';
-    const isCustomToken = box.tokenData.address?.toLowerCase() === filters.tokens.custom.toLowerCase();
-    
-    const hasTokenFilter = filters.tokens.ETH || filters.tokens.KRILL || filters.tokens.custom;
-    const tokenMatch = !hasTokenFilter || 
+  const getFilteredBoxes = (boxes: Box[]) => {
+    return boxes.filter(box => {
+      const sportId = box.sportId as keyof SportsType;
+      const hasSportFilter = Object.values(filters.sports).some(v => v);
+      const sportMatch = !hasSportFilter || filters.sports[sportId];
+      
+      const isEth = !box.tokenData.address;
+      const isKrill = box.tokenData.symbol === 'KRILL';
+      const isCustomToken = box.tokenData.address?.toLowerCase() === filters.tokens.custom.toLowerCase();
+      const hasTokenFilter = filters.tokens.ETH || filters.tokens.KRILL || filters.tokens.custom;
+      const tokenMatch = !hasTokenFilter || 
                       (filters.tokens.ETH && isEth) ||
                       (filters.tokens.KRILL && isKrill) ||
                       (filters.tokens.custom && isCustomToken);
-    
-    // My Games filter
-    const myGamesMatch = !filters.myGames || 
+      
+      const myGamesMatch = !filters.myGames || 
                         (address && box.bets.some(bet => 
                           bet.participant.toLowerCase() === address.toLowerCase()
                         ));
-    
-    return sportMatch && tokenMatch && myGamesMatch;
-  });
-};
+      
+      return sportMatch && tokenMatch && myGamesMatch;
+    });
+  };
 
-return (
-  <>
-    {isConnected && !schemaError && <Account botName={botName} />}
-    {!isConnected && !schemaError && <Connect />}
+  useEffect(() => {
+    fetchBoxes();
+    const interval = setInterval(fetchBoxes, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
-    {(!transactionData && !signMessageData) && (
-      <>
-        {/* Stats Section */}
-        <div className="stats-container">
-          <h2 className="stats-title">🐳 Whale in the Box 📦</h2>
-          <div className="stats-grid">
-            <div className="stat-item">
-              <span className="stat-label">🐳 Whales</span>
-              <span className="stat-value">{stats.totalPlayers}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">📦 Active Boxes</span>
-              <span className="stat-value">{stats.activeBoxes}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">💎 ETH Volume</span>
-              <span className="stat-value">{Number(stats.ethVolume).toFixed(2)} ETH</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">🍤 KRILL Volume</span>
-              <span className="stat-value">{Number(stats.krillVolume).toFixed(2)} KRILL</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">🪙 Other Tokens</span>
-              <span className="stat-value">${Number(stats.otherTokensVolume).toFixed(2)}</span>
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setBotName(params.get("botName") || "");
+    setUid(params.get("uid") || "");
+    setCallbackEndpoint(params.get("callback") || "");
+    const actionType = params.get("type") === "signature" ? "signature" : "transaction";
+    setOperationType(actionType);
+
+    const source = params.get("source");
+    if (source) {
+      fetch(source)
+        .then(response => response.json())
+        .then(data => {
+          const error = getSchemaError(actionType, data);
+          if (error) setSchemaError(error);
+          else actionType === "signature" ? setSignMessageData(data) : setTransactionData(data);
+        })
+        .catch(setSchemaError);
+    }
+  }, []);
+
+  return (
+    <>
+      {isConnected && !schemaError && <Account botName={botName} />}
+      {!isConnected && !schemaError && <Connect />}
+
+      {(!transactionData && !signMessageData) && (
+        <>
+          {/* Stats Panel */}
+          <div className="stats-container">
+            <h2 className="stats-title">🐳 Whale in the Box 📦</h2>
+            <div className="stats-grid">
+              <div className="stat-item">
+                <span className="stat-label">🐳 Whales</span>
+                <span className="stat-value">{stats.totalPlayers}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">📦 Active Boxes</span>
+                <span className="stat-value">{stats.activeBoxes}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">💎 ETH Volume</span>
+                <span className="stat-value">{Number(stats.ethVolume).toFixed(2)} ETH</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">🍤 KRILL Volume</span>
+                <span className="stat-value">{Number(stats.krillVolume).toFixed(2)} KRILL</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">🪙 Other Tokens</span>
+                <span className="stat-value">${Number(stats.otherTokensVolume).toFixed(2)}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Filters */}
-        <div className="filter-container">
-          <div className="filter-bar">
-            {/* Sports Filter */}
-            <div className="filter-group">
-              <span className="filter-label">Sports</span>
-              <div className="filter-options">
-                {(Object.entries(SPORT_EMOJIS) as [keyof SportsType, string][]).map(([sport, emoji]) => (
-                  <label key={sport} className="inline-flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.sports[sport]}
-                      onChange={(e) => setFilters(prev => ({
-                        ...prev,
-                        sports: {
-                          ...prev.sports,
-                          [sport]: e.target.checked
-                        }
-                      }))}
-                      className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
-                    />
-                    <span className="ml-2">{emoji} {sport}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Token Filter */}
-            <div className="filter-group">
-              <span className="filter-label">Tokens</span>
-              <div className="filter-options">
-                <label className="inline-flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={filters.tokens.ETH}
-                    onChange={(e) => setFilters(prev => ({
-                      ...prev,
-                      tokens: {
-                        ETH: e.target.checked,
-                        KRILL: false,
-                        custom: ''
-                      }
-                    }))}
-                    className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
-                  />
-                  <span className="ml-2">ETH</span>
-                </label>
-                <label className="inline-flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={filters.tokens.KRILL}
-                    onChange={(e) => setFilters(prev => ({
-                      ...prev,
-                      tokens: {
-                        ETH: false,
-                        KRILL: e.target.checked,
-                        custom: ''
-                      }
-                    }))}
-                    className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
-                  />
-                  <span className="ml-2">KRILL</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Custom Token Address"
-                  value={filters.tokens.custom}
-                  onChange={(e) => setFilters(prev => ({
-                    ...prev,
-                    tokens: {
-                      ETH: false,
-                      KRILL: false,
-                      custom: e.target.value
-                    }
-                  }))}
-                  className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
-                />
-              </div>
-            </div>
-
-            {/* My Games Filter */}
-            {isConnected && (
+          {/* Filter Section */}
+          <div className="filter-container">
+            <div className="filter-bar">
               <div className="filter-group">
-                <span className="filter-label">View</span>
+                <span className="filter-label">Sports</span>
+                <div className="filter-options">
+                  {(Object.entries(SPORT_EMOJIS) as [keyof SportsType, string][]).map(([sport, emoji]) => (
+                    <label key={sport} className="inline-flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={filters.sports[sport]}
+                        onChange={(e) => setFilters(prev => ({
+                          ...prev,
+                          sports: {
+                            ...prev.sports,
+                            [sport]: e.target.checked
+                          }
+                        }))}
+                        className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
+                      />
+                      <span className="ml-2">{emoji} {sport}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="filter-group">
+                <span className="filter-label">Tokens</span>
                 <div className="filter-options">
                   <label className="inline-flex items-center">
                     <input
                       type="checkbox"
-                      checked={filters.myGames}
+                      checked={filters.tokens.ETH}
                       onChange={(e) => setFilters(prev => ({
                         ...prev,
-                        myGames: e.target.checked
+                        tokens: {
+                          ETH: e.target.checked,
+                          KRILL: false,
+                          custom: ''
+                        }
                       }))}
                       className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
                     />
-                    <span className="ml-2">🎮 My Games</span>
+                    <span className="ml-2">ETH</span>
                   </label>
+                  <label className="inline-flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={filters.tokens.KRILL}
+                      onChange={(e) => setFilters(prev => ({
+                        ...prev,
+                        tokens: {
+                          ETH: false,
+                          KRILL: e.target.checked,
+                          custom: ''
+                        }
+                      }))}
+                      className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
+                    />
+                    <span className="ml-2">KRILL</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Custom Token Address"
+                    value={filters.tokens.custom}
+                    onChange={(e) => setFilters(prev => ({
+                      ...prev,
+                      tokens: {
+                        ETH: false,
+                        KRILL: false,
+                        custom: e.target.value
+                      }
+                    }))}
+                    className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
+                  />
                 </div>
               </div>
-            )}
+
+              {isConnected && (
+                <div className="filter-group">
+                  <span className="filter-label">View</span>
+                  <div className="filter-options">
+                    <label className="inline-flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={filters.myGames}
+                        onChange={(e) => setFilters(prev => ({
+                          ...prev,
+                          myGames: e.target.checked
+                        }))}
+                        className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
+                      />
+                      <span className="ml-2">🎮 My Games</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Boxes Grid */}
-        <div className="boxes-container">
-          {isLoading ? (
-            <div className="loading">Loading boxes...</div>
-          ) : (
-            <div className="boxes-grid">
-              {getFilteredBoxes(boxes).map((box) => {
-                const hunterPercentage = calculateHunterPercentage(box.bets);
-                const isActive = box === activeBetBox;
-
-                return (
-                  <div key={box.address} className="box-card">
-                    {box.imageData && (
-                      <div className="box-image-container">
-                        <img 
-                          src={`data:image/png;base64,${box.imageData}`}
-                          alt={`${box.sportId} preview`}
-                          className="box-image"
-                        />
-                      </div>
-                    )}
+          <div className="boxes-container">
+              {isLoading ? (
+                <div className="loading">Loading boxes...</div>
+              ) : (
+                <div className="boxes-grid">
+                  {getFilteredBoxes(boxes).map((box) => {
+                    const hunterPercentage = calculateHunterPercentage(box.bets);
                     
-                    <div className="box-content">
-                      <div className="box-header">
-                        <span className="box-sport">
-                          {SPORT_EMOJIS[box.sportId as keyof SportsType]} {box.sportId}
-                        </span>
-                        <span className="box-time">
-                          {box.sportData?.scheduled && calculateTimeLeft(box.sportData.scheduled)}
-                        </span>
-                      </div>
+                    return (
+                      <div key={box.address} className="box-card">
+                        {box.imageData && (
+                          <div className="box-image-container">
+                            <img 
+                              src={`data:image/png;base64,${box.imageData}`}
+                              alt={`${box.sportId} preview`}
+                              className="box-image"
+                            />
+                          </div>
+                        )}
+                        
+                        <div className="box-content">
+                          <div className="box-header">
+                            <span className="box-sport">
+                              {SPORT_EMOJIS[box.sportId as keyof SportsType]} {box.sportId}
+                            </span>
+                            <span className="box-time">
+                              {box.sportData?.scheduled && calculateTimeLeft(box.sportData.scheduled)}
+                            </span>
+                          </div>
 
-                      <div className="box-teams">
-                        {box.sportData?.home_team} vs {box.sportData?.away_team}
-                      </div>
-                      
-                      <div className="box-tournament">
-                        {box.sportData?.tournament}
-                      </div>
+                          <div className="box-teams">
+                            {box.sportData?.home_team} vs {box.sportData?.away_team}
+                          </div>
+                          
+                          <div className="box-tournament">
+                            {box.sportData?.tournament}
+                          </div>
 
-                      <div className="total-amount-highlight">
-                        <div className="amount-label">Total Pool</div>
-                        <div className="amount-value">
-                          {formatEther(BigInt(box.totalAmount || '0'))} {box.tokenData.symbol || 'ETH'}
-                        </div>
-                      </div>
-
-                      {!box.isSettled && 
-                       !box.sportData?.status?.toLowerCase().includes('live') && 
-                       new Date(box.sportData?.scheduled || '').getTime() > Date.now() && (
-                        <div className="betting-actions">
-                          {!isActive ? (
-                            <div className="flex gap-2">
-                              {isConnected ? (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      setSelectedBetType('hunt');
-                                      setActiveBetBox(box);
-                                    }}
-                                    className="hunt-button"
-                                    disabled={isProcessing}
-                                  >
-                                    🎯 Hunt
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setSelectedBetType('fish');
-                                      setActiveBetBox(box);
-                                    }}
-                                    className="fish-button"
-                                    disabled={isProcessing}
-                                  >
-                                    🎣 Fish
-                                  </button>
-                                </>
-                              ) : (
-                                <div className="connect-notice">
-                                  Connect wallet to place bets
-                                </div>
-                              )}
+                          <div className="total-amount-highlight">
+                            <div className="amount-label">Total Pool</div>
+                            <div className="amount-value">
+                              {formatEther(BigInt(box.totalAmount || '0'))} {box.tokenData.symbol || 'ETH'}
                             </div>
-                          ) : (
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <span className="text-lg font-semibold">
-                                  {selectedBetType === 'hunt' ? '🎯 Hunt' : '🎣 Fish'}
-                                </span>
-                                <button
-                                  onClick={() => {
-                                    setSelectedBetType(null);
-                                    setActiveBetBox(null);
-                                    setBetAmount('');
-                                  }}
-                                  className="text-gray-500 hover:text-gray-700 text-sm"
-                                  disabled={isProcessing}
-                                >
-                                  Change
-                                </button>
-                              </div>
+                          </div>
 
-                              <div className="space-y-2">
-                                <div className="grid grid-cols-4 gap-2">
-                                  {['0.01', '0.05', '0.1', '0.5'].map((value) => (
-                                    <button
-                                      key={value}
-                                      onClick={() => setBetAmount(value)}
-                                      className="py-2 px-3 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg"
-                                      disabled={isProcessing}
-                                    >
-                                      {value}
-                                    </button>
-                                  ))}
+                          {!box.isSettled && 
+                          !box.sportData?.status?.toLowerCase().includes('live') && 
+                          new Date(box.sportData?.scheduled || '').getTime() > Date.now() && (
+                            isConnected ? <BettingSection box={box} /> : (
+                              <div className="connect-notice p-4 text-center bg-gray-50 rounded-lg">
+                                Connect wallet to place bets
+                              </div>
+                            )
+                          )}
+
+                          {box.initialEvents && box.initialEvents.length > 0 && (
+                            <div className="predictions-section">
+                              <h4>Predictions</h4>
+                              {box.initialEvents.map((event, index) => (
+                                <div key={index} className="prediction-item">
+                                  {event.who}: {event.prediction}
                                 </div>
-
-                                <input
-                                  type="number"
-                                  value={betAmount}
-                                  onChange={(e) => setBetAmount(e.target.value)}
-                                  placeholder={`Amount in ${box.tokenData.symbol || 'ETH'}`}
-                                  className="w-full px-4 py-2 border rounded-lg"
-                                  disabled={isProcessing}
-                                  min="0"
-                                  step="0.000000000000000001"
-                                />
-
-                                <button
-                                  onClick={() => handleBet(box)}
-                                  disabled={!betAmount || isProcessing}
-                                  className={`
-                                    w-full py-2 px-4 rounded-lg font-semibold text-white
-                                    ${selectedBetType === 'hunt'
-                                      ? 'bg-green-500 hover:bg-green-600'
-                                      : 'bg-pink-500 hover:bg-pink-600'
-                                    }
-                                    disabled:opacity-50
-                                  `}
-                                >
-                                  {isProcessing ? 'Processing...' : 'Place Bet'}
-                                </button>
-                              </div>
+                              ))}
                             </div>
                           )}
-                        </div>
-                      )}
 
-                      {box.initialEvents && box.initialEvents.length > 0 && (
-                        <div className="predictions-section">
-                          <h4>Predictions</h4>
-                          {box.initialEvents.map((event, index) => (
-                            <div key={index} className="prediction-item">
-                              {event.who}: {event.prediction}
+                          <div className="prediction-bar">
+                            <div className="bar-container">
+                              <div 
+                                className="hunters-bar"
+                                style={{ width: `${hunterPercentage}%` }}
+                              />
+                              <div 
+                                className="fishers-bar"
+                                style={{ width: `${100 - hunterPercentage}%`, left: `${hunterPercentage}%` }}
+                              />
                             </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="prediction-bar">
-                      <div className="bar-container">
-                            <div 
-                              className="hunters-bar"
-                              style={{ width: `${hunterPercentage}%` }}
-                            />
-                            <div 
-                              className="fishers-bar"
-                              style={{ width: `${100 - hunterPercentage}%`, left: `${hunterPercentage}%` }}
-                            />
+                            <div className="bar-labels">
+                              <span className="hunters-label">🎯 {hunterPercentage.toFixed(1)}%</span>
+                              <span className="fishers-label">🎣 {(100 - hunterPercentage).toFixed(1)}%</span>
+                            </div>
                           </div>
-                          <div className="bar-labels">
-                            <span className="hunters-label">🎯 {hunterPercentage.toFixed(1)}%</span>
-                            <span className="fishers-label">🎣 {(100 - hunterPercentage).toFixed(1)}%</span>
+                          
+                          <div className="box-info">
+                            <span className="box-address">{formatAddress(box.address)}</span>
+                            <span className="box-participants">🐳 {box.bets.length}</span>
                           </div>
-                        </div>
-                        
-                        <div className="box-info">
-                          <span className="box-address">{formatAddress(box.address)}</span>
-                          <span className="box-participants">🐳 {box.bets.length}</span>
-                        </div>
 
-                        <div className="box-footer">
-                          <div className="status-container">
-                            <span className={`status-badge ${box.isSettled ? 'settled' : 
-                                                          box.sportData?.status === 'live' ? 'live' : 'active'}`}>
-                              {box.isSettled ? '🔴 Settled' : 
-                               box.sportData?.status === 'live' ? '🟡 Live' : '🟢 Active'}
-                            </span>
-                            <span className="status-badge">
-                              {box.isSettled ? '🤖 ✅' : '🤖 ⏳'}
-                            </span>
-                            <span className="status-badge">
-                              {box.isSettled ? '⚡ ✅' : '⚡ ⏳'}
-                            </span>
+                          <div className="box-footer">
+                            <div className="status-container">
+                              <span className={`status-badge ${box.isSettled ? 'settled' : 
+                                box.sportData?.status === 'live' ? 'live' : 'active'}`}>
+                                {box.isSettled ? '🔴 Settled' : 
+                                box.sportData?.status === 'live' ? '🟡 Live' : '🟢 Active'}
+                              </span>
+                              <span className="status-badge">
+                                {box.isSettled ? '🤖 ✅' : '🤖 ⏳'}
+                              </span>
+                              <span className="status-badge">
+                                {box.isSettled ? '⚡ ✅' : '⚡ ⏳'}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Transaction Components */}
+        {isConnected && !schemaError && (transactionData || signMessageData) && (
+          <>
+            {operationType === "transaction" && transactionData && uid && (
+              <>
+                <div className="container">
+                  <pre>{JSON.stringify(transactionData, null, 2)}</pre>
+                </div>
+                <WriteContract
+                  uid={uid}
+                  chainId={transactionData.chainId}
+                  address={transactionData.address}
+                  abi={transactionData.abi}
+                  functionName={transactionData.functionName}
+                  args={transactionData.args}
+                  value={transactionData.value}
+                  sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, transaction: true })}
+                />
+              </>
             )}
+
+            {operationType === "signature" && signMessageData && uid && (
+              <>
+                <div className="container">
+                  <pre>{JSON.stringify(signMessageData, null, 2)}</pre>
+                </div>
+                <SignMessage
+                  uid={uid}
+                  domain={signMessageData.domain}
+                  primaryType={signMessageData.primaryType}
+                  types={signMessageData.types}
+                  message={signMessageData.message}
+                  sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, signature: true })}
+                />
+              </>
+            )}
+          </>
+        )}
+
+        {/* Error States */}
+        {schemaError && (
+          <div className="container parsingError">
+            <div>Source doesn't match schema</div>
+            <pre>{JSON.stringify(schemaError, null, 2)}</pre>
           </div>
-        </>
-      )}
+        )}
 
-      {/* Transaction Components */}
-      {isConnected && !schemaError && (transactionData || signMessageData) && (
-        <>
-          {operationType === "transaction" && transactionData && uid && (
-            <>
-              <div className="container">
-                <pre>{JSON.stringify(transactionData, null, 2)}</pre>
-              </div>
-              <WriteContract
-                uid={uid}
-                chainId={transactionData.chainId}
-                address={transactionData.address}
-                abi={transactionData.abi}
-                functionName={transactionData.functionName}
-                args={transactionData.args}
-                value={transactionData.value}
-                sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, transaction: true })}
-              />
-            </>
-          )}
-
-          {operationType === "signature" && signMessageData && uid && (
-            <>
-              <div className="container">
-                <pre>{JSON.stringify(signMessageData, null, 2)}</pre>
-              </div>
-              <SignMessage
-                uid={uid}
-                domain={signMessageData.domain}
-                primaryType={signMessageData.primaryType}
-                types={signMessageData.types}
-                message={signMessageData.message}
-                sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, signature: true })}
-              />
-            </>
-          )}
-        </>
-      )}
-
-      {/* Error States */}
-      {schemaError && (
-        <div className="container parsingError">
-          <div>Source doesn't match schema</div>
-          <pre>{JSON.stringify(schemaError, null, 2)}</pre>
-        </div>
-      )}
-
-      {callbackError && (
-        <div className="container callbackError">
-          <div>Error during callback request to {callbackEndpoint}</div>
-          <pre>{JSON.stringify(callbackError, null, 2)}</pre>
-        </div>
-      )}
-    </>
-  );
+        {callbackError && (
+          <div className="container callbackError">
+            <div>Error during callback request to {callbackEndpoint}</div>
+            <pre>{JSON.stringify(callbackError, null, 2)}</pre>
+          </div>
+        )}
+      </>
+    );
 }
