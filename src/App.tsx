@@ -7,7 +7,9 @@ import { Connect } from './components/Connect';
 import ReactJson from 'react-json-view';
 import { getSchemaError, sendEvent } from './utils';
 import { formatEther } from 'viem';
-
+import { ethers } from 'ethers';
+import { parseEther } from 'viem';
+import { BOX_ABI } from './constants/contracts';
 // Types for sports and tokens
 type SportsType = {
   [key in 'SOCCER' | 'F1' | 'MMA' | 'NFL' | 'BASKETBALL']: boolean;
@@ -285,7 +287,60 @@ export default function App() {
     }
   }, []);
 
-  // Ajout de la fonction manquante
+  const handleBet = async (box: Box, prediction: boolean) => {
+    if (!window.ethereum || !box || !box.address) return;
+    
+    try {
+      const amount = window.prompt(`Enter amount in ${box.tokenData.symbol || 'ETH'}:`);
+      if (!amount) return;
+      
+      // Correction de la conversion du montant
+      const amountInWei = parseEther(amount);
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      
+      // Si c'est un token ERC20 (comme KRILL)
+      if (box.tokenData.address) {
+        const tokenContract = new ethers.Contract(
+          box.tokenData.address, 
+          BOX_ABI, 
+          signer
+        );
+        
+        // Première transaction: Approve
+        const approveTx = await tokenContract.approve(box.address, amountInWei);
+        await approveTx.wait();
+        
+        // Deuxième transaction: Bet
+        const boxContract = new ethers.Contract(
+          box.address, 
+          BOX_ABI, 
+          signer
+        );
+        const tx = await boxContract.createBetWithAmount(prediction.toString(), amountInWei);
+        await tx.wait();
+      } else {
+        // Pour les paris en ETH
+        const boxContract = new ethers.Contract(
+          box.address, 
+          BOX_ABI, 
+          signer
+        );
+        const tx = await boxContract.createBet(prediction.toString(), {
+          value: amountInWei
+        });
+        await tx.wait();
+      }
+      
+      // Rafraîchir les données après le pari
+      await fetchBoxes();
+      
+    } catch (error) {
+      console.error('Error placing bet:', error);
+      alert('Error placing bet. Please try again.');
+    }
+  };
+
   const onCallbackError = (error: any) => {
     setCallbackError(error);
   };
@@ -491,6 +546,36 @@ export default function App() {
                             {formatEther(BigInt(box.totalAmount || '0'))} {box.tokenData.symbol || 'ETH'}
                           </div>
                         </div>
+
+                        {!box.isSettled && 
+                          !boxStatus.status.toLowerCase().includes('live') && 
+                          new Date(box.sportData?.scheduled || '').getTime() > Date.now() && (
+                            <div className="betting-actions">
+                              <div className="betting-buttons">
+                                {isConnected ? (
+                                  <>
+                                    <button
+                                      onClick={() => handleBet(box, true)}
+                                      className="hunt-button"
+                                    >
+                                      🎯 Hunt
+                                    </button>
+                                    <button
+                                      onClick={() => handleBet(box, false)}
+                                      className="fish-button"
+                                    >
+                                      🎣 Fish
+                                    </button>
+                                  </>
+                                ) : (
+                                  <div className="connect-notice">
+                                    Connect wallet to place bets
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
 
                         {/* Predictions Section */}
                         {box.initialEvents && box.initialEvents.length > 0 && (
