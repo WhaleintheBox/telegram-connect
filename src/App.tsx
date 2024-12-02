@@ -13,6 +13,7 @@ import { BOX_ABI } from './constants/contracts';
 import BetModal from './components/BetModal';
 
 
+
 // Types for sports and tokens
 type SportsType = {
   [key in 'SOCCER' | 'F1' | 'MMA' | 'NFL' | 'BASKETBALL']: boolean;
