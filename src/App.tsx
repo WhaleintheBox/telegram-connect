@@ -243,7 +243,7 @@ export default function App() {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         const amountInWei = ethers.parseEther(customAmount);
-  
+    
         if (isEthBet) {
           const currentBalance = await provider.getBalance(address);
           const feeData = await provider.getFeeData();
@@ -251,10 +251,11 @@ export default function App() {
           if (!feeData.gasPrice) {
             throw new Error("Could not estimate gas fees");
           }
-  
+    
           const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
+          // Using boolean for prediction instead of string
           const estimatedGas = await boxContract.createBet.estimateGas(
-            selectedBetType === 'hunt' ? "hunt" : "fish",
+            selectedBetType === 'hunt', // true for hunt, false for fish
             { value: amountInWei }
           );
           
@@ -263,10 +264,10 @@ export default function App() {
           if (currentBalance < totalNeeded) {
             throw new Error(`Insufficient ETH balance. Need ${ethers.formatEther(totalNeeded)} ETH (including gas)`);
           }
-  
+    
           setTransactionStatus('betting');
           const tx = await boxContract.createBet(
-            selectedBetType === 'hunt' ? "hunt" : "fish",
+            selectedBetType === 'hunt', // true for hunt, false for fish
             {
               value: amountInWei,
               gasLimit: estimatedGas * BigInt(120) / BigInt(100)
@@ -277,7 +278,6 @@ export default function App() {
           await tx.wait();
           
         } else {
-          // Handle ERC20 betting
           const tokenContract = new ethers.Contract(
             box.tokenData.address!,
             ERC20_ABI,
@@ -290,18 +290,19 @@ export default function App() {
             setCurrentTxHash(approveTx.hash);
             await approveTx.wait();
           }
-  
+    
           setTransactionStatus('betting');
           const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
+          // Using boolean for prediction instead of string
           const betTx = await boxContract.createBetWithAmount(
-            selectedBetType === 'hunt' ? "hunt" : "fish",
+            selectedBetType === 'hunt', // true for hunt, false for fish
             amountInWei
           );
           
           setCurrentTxHash(betTx.hash);
           await betTx.wait();
         }
-  
+    
         setTransactionStatus('complete');
         await fetchBoxes();
         
@@ -319,18 +320,18 @@ export default function App() {
   
     if (!isActive) {
       return (
-        <div className="flex justify-center items-center gap-6 my-6">
+        <div className="w-full flex flex-col sm:flex-row justify-center items-center gap-4 py-6">
           <button
             onClick={() => {
               setSelectedBetType('hunt');
               setActiveBetBox(box);
             }}
-            className="w-36 h-14 bg-gradient-to-r from-emerald-400 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:shadow-emerald-200/50 hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
+            className="w-full sm:w-1/3 h-14 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:from-emerald-600 hover:to-emerald-700 hover:shadow-emerald-200/50 hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
             disabled={isProcessing}
           >
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-xl">🎯</span>
-              <span>Hunt</span>
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-2xl">🎯</span>
+              <span className="text-lg">Hunt</span>
             </div>
           </button>
           <button
@@ -338,12 +339,12 @@ export default function App() {
               setSelectedBetType('fish');
               setActiveBetBox(box);
             }}
-            className="w-36 h-14 bg-gradient-to-r from-rose-400 to-rose-600 text-white font-bold rounded-xl shadow-lg hover:shadow-rose-200/50 hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
+            className="w-full sm:w-1/3 h-14 bg-gradient-to-r from-rose-500 to-rose-600 text-white font-bold rounded-xl shadow-lg hover:from-rose-600 hover:to-rose-700 hover:shadow-rose-200/50 hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
             disabled={isProcessing}
           >
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-xl">🎣</span>
-              <span>Fish</span>
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-2xl">🎣</span>
+              <span className="text-lg">Fish</span>
             </div>
           </button>
         </div>
