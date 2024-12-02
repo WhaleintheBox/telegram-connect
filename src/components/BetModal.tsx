@@ -20,14 +20,14 @@ function MessageModal({ isOpen, onClose, title, message, type = 'info' }: Messag
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-[60]">
+    <div className="fixed inset-0 flex items-center justify-center z-[60] pointer-events-auto">
       <div className="fixed inset-0 bg-black/50 transition-opacity" onClick={onClose} />
       <div className="relative w-full max-w-md mx-4 bg-white rounded-xl shadow-2xl">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
-              <span className="text-2xl">&times;</span>
+              <span className="text-2xl leading-none">&times;</span>
             </button>
           </div>
           <div 
@@ -58,6 +58,7 @@ export default function BetModal({ isOpen, onClose, onConfirm, tokenSymbol, betT
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [step, setStep] = useState<'approval' | 'betting' | 'complete'>('approval');
 
   useEffect(() => {
     if (!isOpen) {
@@ -66,7 +67,19 @@ export default function BetModal({ isOpen, onClose, onConfirm, tokenSymbol, betT
       setIsProcessing(false);
       setShowErrorModal(false);
       setShowSuccessModal(false);
+      setStep('approval');
     }
+
+    // Disable body scroll when modal is open
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, [isOpen]);
 
   const handleConfirm = async () => {
@@ -94,7 +107,9 @@ export default function BetModal({ isOpen, onClose, onConfirm, tokenSymbol, betT
         return;
       }
 
+      setStep('betting');
       await onConfirm(amount);
+      setStep('complete');
       setShowSuccessModal(true);
       
       setTimeout(() => {
@@ -104,8 +119,9 @@ export default function BetModal({ isOpen, onClose, onConfirm, tokenSymbol, betT
 
     } catch (e) {
       console.error('Betting error:', e);
-      setError(e instanceof Error ? e.message : 'Error placing bet. Please try again.');
+      setError(e instanceof Error ? e.message : 'Failed to place bet. Please try again.');
       setShowErrorModal(true);
+      setStep('approval');
     } finally {
       setIsProcessing(false);
     }
@@ -114,87 +130,103 @@ export default function BetModal({ isOpen, onClose, onConfirm, tokenSymbol, betT
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-[50]">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md mx-4 bg-white rounded-xl shadow-2xl z-[51]">
-        <div className="p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
-            <h3 className="text-xl font-bold text-gray-900">
-              {betType === 'hunt' ? '🎯 Hunt' : '🎣 Fish'} Bet
-            </h3>
-            <button 
-              onClick={onClose} 
-              className="text-gray-400 hover:text-gray-500 transition-colors"
-              disabled={isProcessing}
-            >
-              <span className="text-2xl leading-none">&times;</span>
-            </button>
-          </div>
+    <div className="fixed inset-0 flex items-center justify-center z-[9999] overflow-y-auto">
+      <div className="min-h-screen w-full px-4 text-center">
+        {/* Backdrop */}
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity" onClick={!isProcessing ? onClose : undefined} />
+        
+        {/* Modal */}
+        <div className="inline-block w-full max-w-md my-8 text-left align-middle transition-all transform">
+          <div className="relative bg-white rounded-xl shadow-2xl">
+            <div className="p-6 space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b pb-4">
+                <h3 className="text-xl font-bold text-gray-900">
+                  {betType === 'hunt' ? '🎯 Hunt' : '🎣 Fish'} Bet
+                </h3>
+                {!isProcessing && (
+                  <button 
+                    onClick={onClose}
+                    className="text-gray-400 hover:text-gray-500 transition-colors"
+                  >
+                    <span className="text-2xl leading-none">&times;</span>
+                  </button>
+                )}
+              </div>
 
-          {/* Amount Input */}
-          <div className="mb-6">
-            <label htmlFor="amount" className="block text-sm font-semibold text-gray-700 mb-2">
-              Amount in {tokenSymbol}
-            </label>
-            <input
-              id="amount"
-              type="number"
-              value={amount}
-              onChange={(e) => {
-                setAmount(e.target.value);
-                setError('');
-              }}
-              placeholder={`Enter amount in ${tokenSymbol}`}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              step="0.000000000000000001"
-              min="0"
-              disabled={isProcessing}
-            />
-          </div>
+              {/* Amount Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Amount in {tokenSymbol}
+                </label>
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => {
+                    setAmount(e.target.value);
+                    setError('');
+                  }}
+                  placeholder={`Enter amount in ${tokenSymbol}`}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                  step="0.000000000000000001"
+                  min="0"
+                  disabled={isProcessing}
+                />
+              </div>
 
-          {/* Quick Amounts */}
-          <div className="grid grid-cols-4 gap-3 mb-6">
-            {['0.01', '0.05', '0.1', '0.5'].map((value) => (
-              <button
-                key={value}
-                onClick={() => setAmount(value)}
-                disabled={isProcessing}
-                className="py-2 px-3 text-sm bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors disabled:opacity-50"
-              >
-                {value}
-              </button>
-            ))}
-          </div>
+              {/* Quick Amount Buttons */}
+              <div className="grid grid-cols-4 gap-2">
+                {['0.01', '0.05', '0.1', '0.5'].map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => setAmount(value)}
+                    disabled={isProcessing}
+                    className="py-2 px-3 text-sm bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors disabled:opacity-50"
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <button
-              onClick={onClose}
-              disabled={isProcessing}
-              className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleConfirm}
-              disabled={!amount || isProcessing}
-              className={`
-                flex-1 px-4 py-3 text-white rounded-lg transition-colors
-                ${betType === 'hunt'
-                  ? 'bg-green-500 hover:bg-green-600'
-                  : 'bg-pink-500 hover:bg-pink-600'
-                }
-                disabled:opacity-50
-              `}
-            >
-              {isProcessing ? 'Processing...' : `Confirm ${betType === 'hunt' ? '🎯' : '🎣'}`}
-            </button>
+              {/* Status Message */}
+              {isProcessing && (
+                <div className="text-sm text-gray-600 text-center">
+                  {step === 'approval' && tokenSymbol !== 'ETH' && 'Approving token spend...'}
+                  {step === 'betting' && 'Placing bet...'}
+                  {step === 'complete' && 'Transaction complete!'}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                <button
+                  onClick={onClose}
+                  disabled={isProcessing}
+                  className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirm}
+                  disabled={!amount || isProcessing}
+                  className={`
+                    flex-1 px-4 py-3 text-white rounded-lg transition-colors
+                    ${betType === 'hunt'
+                      ? 'bg-green-500 hover:bg-green-600'
+                      : 'bg-pink-500 hover:bg-pink-600'
+                    }
+                    disabled:opacity-50
+                  `}
+                >
+                  {isProcessing ? 'Processing...' : `Confirm ${betType === 'hunt' ? '🎯' : '🎣'}`}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Modals */}
+      {/* Status Modals */}
       <MessageModal
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}

@@ -302,39 +302,60 @@ export default function App() {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       
+      // Cas 1: Pari avec des tokens ERC20 (KRILL ou autre)
       if (selectedBox.tokenData.address) {
+        console.log('Token bet - Starting approval process...');
+        
+        // 1ère transaction: Approve
         const tokenContract = new ethers.Contract(
           selectedBox.tokenData.address,
-          BOX_ABI,
+          [
+            'function approve(address spender, uint256 value) returns (bool)'
+          ],
           signer
         );
         
         const approveTx = await tokenContract.approve(selectedBox.address, amountInWei);
+        console.log('Waiting for approval confirmation...');
         await approveTx.wait();
         
+        // 2ème transaction: Bet
         const boxContract = new ethers.Contract(
           selectedBox.address,
           BOX_ABI,
           signer
         );
-        const tx = await boxContract.createBetWithAmount(selectedBetType === 'hunt', amountInWei);
-        await tx.wait();
+        console.log('Approval confirmed, placing bet...');
+        const betTx = await boxContract.createBetWithAmount(selectedBetType === 'hunt', amountInWei);
+        await betTx.wait();
+        
+      // Cas 2: Pari avec de l'ETH
       } else {
+        console.log('ETH bet - Single transaction...');
         const boxContract = new ethers.Contract(
           selectedBox.address,
           BOX_ABI,
           signer
         );
-        const tx = await boxContract.createBet(selectedBetType === 'hunt', {
-          value: amountInWei
-        });
+        
+        // Une seule transaction avec value en ETH
+        const tx = await boxContract.createBet(
+          selectedBetType === 'hunt',
+          { value: amountInWei }
+        );
         await tx.wait();
       }
       
+      console.log('Bet successful, refreshing data...');
       await fetchBoxes();
+      
     } catch (error) {
       console.error('Error placing bet:', error);
-      throw new Error(error instanceof Error ? error.message : 'Failed to place bet');
+      throw new Error(
+        error instanceof Error 
+          ? error.message 
+          : 'Failed to place bet. Please check your wallet and try again.'
+      );
     }
   };
 
