@@ -211,36 +211,72 @@ export default function App() {
         const signer = await provider.getSigner();
         const amountInWei = ethers.parseEther(betAmount);
     
-        // Vérification du solde pour ETH
         if (isEthBet) {
           const ethBalance = await provider.getBalance(address);
-          if (ethBalance < amountInWei) {
-            throw new Error("Insufficient ETH balance");
+          const feeData = await provider.getFeeData();
+          
+          if (!feeData.gasPrice) {
+            throw new Error("Could not estimate gas price on Base network");
           }
-        }
     
-        const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
-        setTransactionStatus('betting');
+          // Estimation complète pour ETH sur Base
+          const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
+          const estimatedGas = await boxContract.createBet.estimateGas(
+            selectedBetType === 'hunt',
+            { value: amountInWei }
+          );
+          
+          const totalNeeded = amountInWei + (estimatedGas * feeData.gasPrice);
+          
+          if (ethBalance < totalNeeded) {
+            throw new Error(`Insufficient ETH balance on Base network. You need at least ${ethers.formatEther(totalNeeded)} ETH (including gas fees)`);
+          }
     
-        let tx;
-        if (isEthBet) {
-          tx = await boxContract.createBet(selectedBetType === 'hunt', {
+          // Transaction unique pour ETH
+          setTransactionStatus('betting');
+          const tx = await boxContract.createBet(selectedBetType === 'hunt', {
             value: amountInWei,
-            gasLimit: 500000
+            gasLimit: estimatedGas * BigInt(120) / BigInt(100) // +20% de marge
           });
+          
+          setCurrentTxHash(tx.hash);
+          const receipt = await tx.wait();
+          
+          if (receipt && receipt.status === 0) {
+            throw new Error("Transaction failed on Base network");
+          }
         } else {
-          tx = await boxContract.createBetWithAmount(selectedBetType === 'hunt', amountInWei, {
-            gasLimit: 500000
+          // Première transaction: Approbation pour les tokens ERC20
+          const tokenContract = new ethers.Contract(
+            box.tokenData.address!,
+            ERC20_ABI,
+            signer
+          );
+    
+          setTransactionStatus('approving');
+          const approveTx = await tokenContract.approve(box.address, amountInWei, {
+            gasLimit: 100000
           });
-        }
+          setCurrentTxHash(approveTx.hash);
+          await approveTx.wait();
+          setTransactionStatus('approved');
     
-        setCurrentTxHash(tx.hash);
-        await tx.wait();
-    
-        // Attendre confirmation de la transaction
-        const receipt = await provider.getTransactionReceipt(tx.hash);
-        if (receipt && receipt.status === 0) {
-          throw new Error("Transaction failed");
+          // Deuxième transaction: Création du pari
+          const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
+          setTransactionStatus('betting');
+          
+          const betTx = await boxContract.createBetWithAmount(
+            selectedBetType === 'hunt',
+            amountInWei,
+            { gasLimit: 500000 }
+          );
+          
+          setCurrentTxHash(betTx.hash);
+          const receipt = await betTx.wait();
+          
+          if (receipt && receipt.status === 0) {
+            throw new Error("Transaction failed on Base network");
+          }
         }
     
         setTransactionStatus('complete');
@@ -249,11 +285,18 @@ export default function App() {
       } catch (error: any) {
         console.error('Betting error:', error);
         setTransactionStatus('initial');
-        // Afficher l'erreur à l'utilisateur de manière appropriée
-        alert(error.message || "Transaction failed");
+        
+        // Gestion des messages d'erreur appropriés
+        const errorMessage = error.message || "Transaction failed";
+        if (errorMessage.includes("user rejected") || errorMessage.includes("User denied")) {
+          alert("Transaction rejected by user");
+        } else if (errorMessage.includes("insufficient funds")) {
+          alert("Insufficient funds for transaction");
+        } else {
+          alert(errorMessage);
+        }
       } finally {
         setIsProcessing(false);
-        // Ne pas reset immédiatement en cas d'erreur
         if (transactionStatus === 'complete') {
           setTimeout(() => resetBettingState(), 2000);
         }
@@ -278,13 +321,13 @@ export default function App() {
   
     if (!isActive) {
       return (
-        <div className="grid grid-cols-2 gap-2 my-4">
+        <div className="flex justify-center items-center gap-4 my-6 px-4">
           <button
             onClick={() => {
               setSelectedBetType('hunt');
               setActiveBetBox(box);
             }}
-            className="bg-gradient-to-r from-green-500 to-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
+            className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white font-bold py-4 px-8 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all max-w-[180px]"
             disabled={isProcessing}
           >
             🎯 Hunt
@@ -294,7 +337,7 @@ export default function App() {
               setSelectedBetType('fish');
               setActiveBetBox(box);
             }}
-            className="bg-gradient-to-r from-pink-500 to-pink-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
+            className="flex-1 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-bold py-4 px-8 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all max-w-[180px]"
             disabled={isProcessing}
           >
             🎣 Fish
