@@ -1092,3 +1092,190 @@ button:disabled {
   align-items: center;
   gap: 12px;
 }
+
+.betting-actions {
+  margin: 16px 0;
+  padding: 12px;
+  background: #F8FAFC;
+  border-radius: 8px;
+}
+
+.betting-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.hunt-button, .fish-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  flex: 1;
+  max-width: 140px;
+}
+
+.hunt-button {
+  background: linear-gradient(90deg, #22C55E 0%, #16A34A 100%);
+  border: none;
+  color: white;
+}
+
+.fish-button {
+  background: linear-gradient(90deg, #EC4899 0%, #DB2777 100%);
+  border: none;
+  color: white;
+}
+
+.hunt-button:hover, .fish-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.hunt-button:disabled, .fish-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.connect-notice {
+  text-align: center;
+  color: #6B7280;
+  font-size: 14px;
+  padding: 8px;
+  background: #F3F4F6;
+  border-radius: 6px;
+  width: 100%;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modal-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+}
+
+.amount-input-container {
+  margin-bottom: 20px;
+}
+
+.amount-input-container label {
+  display: block;
+  margin-bottom: 8px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.amount-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.amount-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* Updated Betting Buttons */
+.hunt-button, .fish-button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  border: none;
+  color: white;
+  width: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.hunt-button {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.2);
+}
+
+.fish-button {
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+  box-shadow: 0 4px 6px -1px rgba(236, 72, 153, 0.2);
+}
+
+.hunt-confirm-button, .fish-confirm-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  color: white;
+  border: none;
+}
+
+.hunt-confirm-button {
+  background: #22c55e;
+}
+
+.fish-confirm-button {
+  background: #ec4899;
+}
+
+.cancel-button {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: none;
+}
+
+.hunting-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}

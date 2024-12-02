@@ -10,6 +10,9 @@ import { formatEther } from 'viem';
 import { ethers } from 'ethers';
 import { parseEther } from 'viem';
 import { BOX_ABI } from './constants/contracts';
+import BetModal from './components/BetModal';
+
+
 // Types for sports and tokens
 type SportsType = {
   [key in 'SOCCER' | 'F1' | 'MMA' | 'NFL' | 'BASKETBALL']: boolean;
@@ -120,6 +123,10 @@ export default function App() {
     },
     myGames: false
   });
+
+  const [isBetModalOpen, setIsBetModalOpen] = useState(false);
+  const [selectedBetType, setSelectedBetType] = useState<'hunt' | 'fish' | null>(null);
+  const [selectedBox, setSelectedBox] = useState<Box | null>(null);
 
   const calculateTimeLeft = (scheduledTime: string) => {
     const difference = new Date(scheduledTime).getTime() - new Date().getTime();
@@ -287,52 +294,43 @@ export default function App() {
     }
   }, []);
 
-  const handleBet = async (box: Box, prediction: boolean) => {
-    if (!window.ethereum || !box || !box.address) return;
+  const handleBet = async (amount: string) => {
+    if (!window.ethereum || !selectedBox || !selectedBox.address) return;
     
     try {
-      const amount = window.prompt(`Enter amount in ${box.tokenData.symbol || 'ETH'}:`);
-      if (!amount) return;
-      
-      // Correction de la conversion du montant
       const amountInWei = parseEther(amount);
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       
-      // Si c'est un token ERC20 (comme KRILL)
-      if (box.tokenData.address) {
+      if (selectedBox.tokenData.address) {
         const tokenContract = new ethers.Contract(
-          box.tokenData.address, 
-          BOX_ABI, 
+          selectedBox.tokenData.address,
+          BOX_ABI,
           signer
         );
         
-        // Première transaction: Approve
-        const approveTx = await tokenContract.approve(box.address, amountInWei);
+        const approveTx = await tokenContract.approve(selectedBox.address, amountInWei);
         await approveTx.wait();
         
-        // Deuxième transaction: Bet
         const boxContract = new ethers.Contract(
-          box.address, 
-          BOX_ABI, 
+          selectedBox.address,
+          BOX_ABI,
           signer
         );
-        const tx = await boxContract.createBetWithAmount(prediction.toString(), amountInWei);
+        const tx = await boxContract.createBetWithAmount(selectedBetType === 'hunt', amountInWei);
         await tx.wait();
       } else {
-        // Pour les paris en ETH
         const boxContract = new ethers.Contract(
-          box.address, 
-          BOX_ABI, 
+          selectedBox.address,
+          BOX_ABI,
           signer
         );
-        const tx = await boxContract.createBet(prediction.toString(), {
+        const tx = await boxContract.createBet(selectedBetType === 'hunt', {
           value: amountInWei
         });
         await tx.wait();
       }
       
-      // Rafraîchir les données après le pari
       await fetchBoxes();
       
     } catch (error) {
@@ -555,16 +553,26 @@ export default function App() {
                                 {isConnected ? (
                                   <>
                                     <button
-                                      onClick={() => handleBet(box, true)}
+                                      onClick={() => {
+                                        setSelectedBetType('hunt');
+                                        setSelectedBox(box);
+                                        setIsBetModalOpen(true);
+                                      }}
                                       className="hunt-button"
                                     >
-                                      🎯 Hunt
+                                      <span>🎯</span>
+                                      <span>Hunt</span>
                                     </button>
                                     <button
-                                      onClick={() => handleBet(box, false)}
+                                      onClick={() => {
+                                        setSelectedBetType('fish');
+                                        setSelectedBox(box);
+                                        setIsBetModalOpen(true);
+                                      }}
                                       className="fish-button"
                                     >
-                                      🎣 Fish
+                                      <span>🎣</span>
+                                      <span>Fish</span>
                                     </button>
                                   </>
                                 ) : (
@@ -574,7 +582,7 @@ export default function App() {
                                 )}
                               </div>
                             </div>
-                          )}
+                        )}
 
 
                         {/* Predictions Section */}
@@ -629,6 +637,19 @@ export default function App() {
               </div>
             )}
           </div>
+          {selectedBox && (
+            <BetModal
+              isOpen={isBetModalOpen}
+              onClose={() => {
+                setIsBetModalOpen(false);
+                setSelectedBetType(null);
+                setSelectedBox(null);
+              }}
+              onConfirm={handleBet}
+              tokenSymbol={selectedBox.tokenData.symbol || 'ETH'}
+              betType={selectedBetType || 'hunt'}
+            />
+          )}
         </>
       )}
 
