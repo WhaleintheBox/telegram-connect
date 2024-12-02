@@ -8,7 +8,6 @@ import ReactJson from 'react-json-view';
 import { getSchemaError, sendEvent } from './utils';
 import { formatEther } from 'viem';
 import { ethers } from 'ethers';
-import { parseEther } from 'viem';
 import { BOX_ABI } from './constants/contracts';
 import BetModal from './components/BetModal';
 
@@ -295,11 +294,11 @@ export default function App() {
     }
   }, []);
 
-  const handleBet = async (amount: string) => {
+  const handleBet = async (amount: string): Promise<void> => {
     if (!window.ethereum || !selectedBox || !selectedBox.address) return;
     
     try {
-      const amountInWei = parseEther(amount);
+      const amountInWei = ethers.parseEther(amount);
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       
@@ -333,10 +332,9 @@ export default function App() {
       }
       
       await fetchBoxes();
-      
     } catch (error) {
       console.error('Error placing bet:', error);
-      alert('Error placing bet. Please try again.');
+      throw new Error(error instanceof Error ? error.message : 'Failed to place bet');
     }
   };
 
