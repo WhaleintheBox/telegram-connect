@@ -125,6 +125,7 @@ export default function App() {
     setCallbackError(error);
   };
 
+
   const BettingSection = ({ box }: { box: Box }) => {
     const isEthBet = !box.tokenData.address;
     const quickAmounts = ['0.01', '0.05', '0.1', '0.5'];
@@ -138,24 +139,50 @@ export default function App() {
         if (!window.ethereum || !address || isEthBet) return;
         
         try {
-          const provider = new ethers.BrowserProvider(window.ethereum);
-          const tokenContract = new ethers.Contract(
-            box.tokenData.address!,
-            ERC20_ABI,
-            provider
-          );
-          
-          const [balance, allowance] = await Promise.all([
-            tokenContract.balanceOf(address),
-            tokenContract.allowance(address, box.address)
-          ]);
-          
-          setTokenBalance(ethers.formatEther(balance));
-          setTokenAllowance(ethers.formatEther(allowance));
+            // Validate token address
+            if (!box.tokenData.address || !ethers.isAddress(box.tokenData.address)) {
+                console.warn('Invalid token address');
+                return;
+            }
+    
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            
+            // Verify contract exists
+            const code = await provider.getCode(box.tokenData.address);
+            if (code === '0x') {
+                console.warn('No contract found at token address');
+                return;
+            }
+    
+            const tokenContract = new ethers.Contract(
+                box.tokenData.address,
+                ERC20_ABI,
+                provider
+            );
+    
+            // Add try-catch for each call separately
+            try {
+                const balance = await tokenContract.balanceOf(address);
+                setTokenBalance(ethers.formatEther(balance));
+            } catch (error) {
+                console.warn('Error fetching balance:', error);
+                setTokenBalance('0');
+            }
+    
+            try {
+                const allowance = await tokenContract.allowance(address, box.address);
+                setTokenAllowance(ethers.formatEther(allowance));
+            } catch (error) {
+                console.warn('Error fetching allowance:', error);
+                setTokenAllowance('0');
+            }
+    
         } catch (error) {
-          console.error('Error fetching token info:', error);
+            console.error('Error initializing token contract:', error);
+            setTokenBalance('0');
+            setTokenAllowance('0');
         }
-      };
+    };
       
       fetchTokenInfo();
     }, [box.tokenData.address, address, isEthBet]);
