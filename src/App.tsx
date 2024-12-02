@@ -131,6 +131,7 @@ export default function App() {
     const isActive = box === activeBetBox;
     const [tokenBalance, setTokenBalance] = useState<string>('0');
     const [tokenAllowance, setTokenAllowance] = useState<string>('0');
+    const [isApprovalRequired, setIsApprovalRequired] = useState(false);
     
     useEffect(() => {
       const fetchTokenInfo = async () => {
@@ -144,8 +145,10 @@ export default function App() {
             provider
           );
           
-          const balance = await tokenContract.balanceOf(address);
-          const allowance = await tokenContract.allowance(address, box.address);
+          const [balance, allowance] = await Promise.all([
+            tokenContract.balanceOf(address),
+            tokenContract.allowance(address, box.address)
+          ]);
           
           setTokenBalance(ethers.formatEther(balance));
           setTokenAllowance(ethers.formatEther(allowance));
@@ -157,6 +160,48 @@ export default function App() {
       fetchTokenInfo();
     }, [box.tokenData.address, address, isEthBet]);
   
+    // Check if approval is needed when bet amount changes
+    useEffect(() => {
+      if (!isEthBet && betAmount) {
+        const amountInWei = ethers.parseEther(betAmount);
+        const currentAllowance = ethers.parseEther(tokenAllowance);
+        setIsApprovalRequired(currentAllowance < amountInWei);
+      }
+    }, [betAmount, tokenAllowance, isEthBet]);
+  
+    const handleApproval = async () => {
+      if (!window.ethereum || !betAmount || !address) return;
+      setIsProcessing(true);
+      setTransactionStatus('approving');
+  
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const tokenContract = new ethers.Contract(
+          box.tokenData.address!,
+          ERC20_ABI,
+          signer
+        );
+  
+        const amountInWei = ethers.parseEther(betAmount);
+        const approveTx = await tokenContract.approve(box.address, amountInWei, {
+          gasLimit: 100000
+        });
+        
+        setCurrentTxHash(approveTx.hash);
+        await approveTx.wait();
+        setTokenAllowance(ethers.formatEther(amountInWei));
+        setIsApprovalRequired(false);
+        setTransactionStatus('approved');
+      } catch (error) {
+        console.error('Approval error:', error);
+        setTransactionStatus('initial');
+        setCurrentTxHash(null);
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+  
     const handleBet = async () => {
       if (!window.ethereum || !betAmount || !address) return;
       setIsProcessing(true);
@@ -165,208 +210,209 @@ export default function App() {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         const amountInWei = ethers.parseEther(betAmount);
-  
-        // Handling ETH bets
+    
+        // Vérification du solde pour ETH
         if (isEthBet) {
-          const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
-          setTransactionStatus('betting');
-          
-          // Important: Include value in the transaction for ETH bets
-          const tx = await boxContract.createBet(selectedBetType === 'hunt', {
-            value: amountInWei,
-            gasLimit: 500000 // Explicit gas limit for ETH transactions
-          });
-          
-          setCurrentTxHash(tx.hash);
-          await tx.wait();
-          setTransactionStatus('complete');
-        } 
-        // Handling ERC20 token bets
-        else {
-          const tokenContract = new ethers.Contract(
-            box.tokenData.address!,
-            ERC20_ABI,
-            signer
-          );
-          
-          // Check & handle approval if needed
-          const currentAllowance = ethers.parseEther(tokenAllowance);
-          if (currentAllowance < amountInWei) {
-            setTransactionStatus('approving');
-            const approveTx = await tokenContract.approve(box.address, amountInWei, {
-              gasLimit: 100000
-            });
-            setCurrentTxHash(approveTx.hash);
-            await approveTx.wait();
-            setTokenAllowance(ethers.formatEther(amountInWei));
-            setTransactionStatus('approved');
+          const ethBalance = await provider.getBalance(address);
+          if (ethBalance < amountInWei) {
+            throw new Error("Insufficient ETH balance");
           }
-  
-          // Create bet after approval
-          setTransactionStatus('betting');
-          const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
-          const tx = await boxContract.createBetWithToken(selectedBetType === 'hunt', amountInWei, {
+        }
+    
+        const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
+        setTransactionStatus('betting');
+    
+        let tx;
+        if (isEthBet) {
+          tx = await boxContract.createBet(selectedBetType === 'hunt', {
+            value: amountInWei,
             gasLimit: 500000
           });
-          
-          setCurrentTxHash(tx.hash);
-          await tx.wait();
-          setTransactionStatus('complete');
-  
-          // Update token balance
-          const newBalance = await tokenContract.balanceOf(address);
-          setTokenBalance(ethers.formatEther(newBalance));
+        } else {
+          tx = await boxContract.createBetWithAmount(selectedBetType === 'hunt', amountInWei, {
+            gasLimit: 500000
+          });
         }
-        
-        // Refresh box data
+    
+        setCurrentTxHash(tx.hash);
+        await tx.wait();
+    
+        // Attendre confirmation de la transaction
+        const receipt = await provider.getTransactionReceipt(tx.hash);
+        if (receipt && receipt.status === 0) {
+          throw new Error("Transaction failed");
+        }
+    
+        setTransactionStatus('complete');
         await fetchBoxes();
-        
-        // Reset states after completion
-        setTimeout(() => {
-          setSelectedBetType(null);
-          setActiveBetBox(null);
-          setBetAmount('');
-          setTransactionStatus('initial');
-          setCurrentTxHash(null);
-          setIsProcessing(false);
-        }, 2000);
-        
-      } catch (error) {
+    
+      } catch (error: any) {
         console.error('Betting error:', error);
         setTransactionStatus('initial');
-        setCurrentTxHash(null);
+        // Afficher l'erreur à l'utilisateur de manière appropriée
+        alert(error.message || "Transaction failed");
+      } finally {
         setIsProcessing(false);
+        // Ne pas reset immédiatement en cas d'erreur
+        if (transactionStatus === 'complete') {
+          setTimeout(() => resetBettingState(), 2000);
+        }
       }
+    };
+  
+    const resetBettingState = () => {
+      setSelectedBetType(null);
+      setActiveBetBox(null);
+      setBetAmount('');
+      setTransactionStatus('initial');
+      setCurrentTxHash(null);
     };
   
     const validateAmount = (amount: string) => {
       if (!amount) return false;
       const numAmount = parseFloat(amount);
       if (isNaN(numAmount) || numAmount <= 0) return false;
-      
-      if (!isEthBet) {
-        return numAmount <= parseFloat(tokenBalance);
-      }
+      if (!isEthBet) return numAmount <= parseFloat(tokenBalance);
       return true;
     };
   
+    if (!isActive) {
+      return (
+        <div className="grid grid-cols-2 gap-2 my-4">
+          <button
+            onClick={() => {
+              setSelectedBetType('hunt');
+              setActiveBetBox(box);
+            }}
+            className="bg-gradient-to-r from-green-500 to-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
+            disabled={isProcessing}
+          >
+            🎯 Hunt
+          </button>
+          <button
+            onClick={() => {
+              setSelectedBetType('fish');
+              setActiveBetBox(box);
+            }}
+            className="bg-gradient-to-r from-pink-500 to-pink-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
+            disabled={isProcessing}
+          >
+            🎣 Fish
+          </button>
+        </div>
+      );
+    }
+  
     return (
-      <div className="betting-actions">
-        {!isActive ? (
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => {
-                setSelectedBetType('hunt');
-                setActiveBetBox(box);
-              }}
-              className="hunt-button h-12"
-              disabled={isProcessing}
-            >
-              🎯 Hunt
-            </button>
-            <button
-              onClick={() => {
-                setSelectedBetType('fish');
-                setActiveBetBox(box);
-              }}
-              className="fish-button h-12"
-              disabled={isProcessing}
-            >
-              🎣 Fish
-            </button>
+      <div className="betting-panel bg-gray-50 rounded-xl p-6 space-y-4">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">{selectedBetType === 'hunt' ? '🎯' : '🎣'}</span>
+            <span className="text-xl font-bold">{selectedBetType === 'hunt' ? 'Hunt' : 'Fish'}</span>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {transactionStatus === 'initial' && (
-              <>
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold">
-                    {selectedBetType === 'hunt' ? '🎯 Hunt' : '🎣 Fish'}
-                  </span>
-                  <button
-                    onClick={() => {
-                      setSelectedBetType(null);
-                      setActiveBetBox(null);
-                      setBetAmount('');
-                    }}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    Change
-                  </button>
-                </div>
-                
-                {!isEthBet && (
-                  <div className="text-sm text-gray-600">
-                    Balance: {parseFloat(tokenBalance).toFixed(4)} {box.tokenData.symbol}
-                  </div>
-                )}
-                
-                <div className="grid grid-cols-4 gap-2">
-                  {quickAmounts.map(amount => (
-                    <button
-                      key={amount}
-                      onClick={() => setBetAmount(amount)}
-                      className="py-2 px-4 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium"
-                    >
-                      {amount}
-                    </button>
-                  ))}
-                </div>
-                
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={betAmount}
-                    onChange={(e) => setBetAmount(e.target.value)}
-                    className="w-full px-4 py-3 border rounded-lg"
-                    placeholder={`Amount in ${box.tokenData.symbol || 'ETH'}`}
-                    min="0"
-                    step="0.000000000000000001"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
-                    {box.tokenData.symbol || 'ETH'}
-                  </span>
-                </div>
-                
-                <button
-                  onClick={handleBet}
-                  disabled={!validateAmount(betAmount)}
-                  className={`
-                    w-full py-3 rounded-lg font-semibold text-white transition-colors
-                    ${selectedBetType === 'hunt'
-                      ? 'bg-green-500 hover:bg-green-600'
-                      : 'bg-pink-500 hover:bg-pink-600'
-                    }
-                    disabled:opacity-50
-                  `}
-                >
-                  Place Bet
-                </button>
-              </>
+          <button
+            onClick={resetBettingState}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            Change
+          </button>
+        </div>
+  
+        {!isEthBet && (
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <span className="font-semibold text-blue-700">
+              Balance: {parseFloat(tokenBalance).toFixed(4)} {box.tokenData.symbol}
+            </span>
+          </div>
+        )}
+  
+        <div className="amount-section space-y-4">
+          <div className="grid grid-cols-4 gap-2">
+            {quickAmounts.map(amount => (
+              <button
+                key={amount}
+                onClick={() => setBetAmount(amount)}
+                className="bg-white py-2 px-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                {amount}
+              </button>
+            ))}
+          </div>
+  
+          <div className="relative">
+            <input
+              type="number"
+              value={betAmount}
+              onChange={(e) => setBetAmount(e.target.value)}
+              className="w-full px-4 py-3 border rounded-lg pr-20"
+              placeholder={`Amount in ${box.tokenData.symbol || 'ETH'}`}
+              min="0"
+              step="0.000000000000000001"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 font-medium text-gray-500">
+              {box.tokenData.symbol || 'ETH'}
+            </span>
+          </div>
+        </div>
+  
+        {transactionStatus === 'initial' && (
+          <div className="space-y-3">
+            {isApprovalRequired && !isEthBet && (
+              <button
+                onClick={handleApproval}
+                disabled={!validateAmount(betAmount) || isProcessing}
+                className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors"
+              >
+                Approve {box.tokenData.symbol}
+              </button>
             )}
             
-            {transactionStatus !== 'initial' && (
-              <div className="p-4 bg-gray-50 rounded-lg space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="animate-spin h-5 w-5 border-2 border-t-transparent border-blue-500 rounded-full" />
-                  <span className="font-medium">
-                    {transactionStatus === 'approving' && `Approving ${box.tokenData.symbol}...`}
-                    {transactionStatus === 'approved' && 'Approval confirmed!'}
-                    {transactionStatus === 'betting' && 'Placing bet...'}
-                    {transactionStatus === 'complete' && 'Transaction complete!'}
-                  </span>
-                </div>
-                {currentTxHash && (
-                  <a
-                    href={`https://basescan.org/tx/${currentTxHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline text-sm block truncate"
-                  >
-                    View on BaseScan
-                  </a>
+            <button
+              onClick={handleBet}
+              disabled={!validateAmount(betAmount) || (isApprovalRequired && !isEthBet) || isProcessing}
+              className={`
+                w-full py-3 rounded-lg font-semibold text-white transition-all
+                ${selectedBetType === 'hunt'
+                  ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700'
+                  : 'bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700'
+                }
+                disabled:opacity-50 disabled:cursor-not-allowed
+              `}
+            >
+              Place Bet
+            </button>
+          </div>
+        )}
+  
+        {transactionStatus !== 'initial' && (
+          <div className="transaction-status bg-white rounded-lg p-4 space-y-3 border">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin h-5 w-5 border-2 border-t-transparent border-blue-500 rounded-full" />
+              <span className="font-medium text-gray-700">
+                {transactionStatus === 'approving' && (
+                  <span className="text-blue-600">Approving {box.tokenData.symbol}...</span>
                 )}
-              </div>
+                {transactionStatus === 'approved' && (
+                  <span className="text-green-600">Approval confirmed!</span>
+                )}
+                {transactionStatus === 'betting' && (
+                  <span className="text-blue-600">Placing bet...</span>
+                )}
+                {transactionStatus === 'complete' && (
+                  <span className="text-green-600">Transaction complete!</span>
+                )}
+              </span>
+            </div>
+            
+            {currentTxHash && (
+              <a
+                href={`https://basescan.org/tx/${currentTxHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:underline text-sm block truncate"
+              >
+                View on BaseScan →
+              </a>
             )}
           </div>
         )}
