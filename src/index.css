@@ -849,20 +849,6 @@ button:disabled {
 }
 
 /* Filter Bar Styles */
-.filter-bar {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.filter-group {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 12px 16px;
-  background: #f8fafc;
-  border-radius: 8px;
-}
 
 .filter-label {
   font-size: 14px;
@@ -1023,22 +1009,21 @@ button:disabled {
 .total-amount-highlight {
   background-color: #EEF2FF;
   border: 2px solid #818CF8;
-  border-radius: 8px;
-  padding: 16px;
-  margin: 16px 0;
+  border-radius: 6px;
+  padding: 8px;
+  margin: 12px 0;
   text-align: center;
-  animation: pulse 2s infinite;
 }
 
 .amount-label {
-  font-size: 14px;
+  font-size: 12px;
   color: #4F46E5;
   font-weight: 500;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .amount-value {
-  font-size: 24px;
+  font-size: 16px;
   color: #4F46E5;
   font-weight: 700;
 }
@@ -1073,4 +1058,37 @@ button:disabled {
 
 .prediction-item:last-child {
   border-bottom: none;
+}
+
+
+/* Filtre My Games */
+.my-games-filter {
+  display: flex;
+  align-items: center;
+  margin-left: 16px;
+  padding: 4px 8px;
+}
+
+.my-games-filter label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #4F46E5;
+}
+
+/* Mise à jour du conteneur de filtres */
+.filter-container .filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }

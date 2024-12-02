@@ -22,6 +22,7 @@ type TokensType = {
 interface Filters {
   sports: SportsType;
   tokens: TokensType;
+  myGames: boolean;
 }
 
 // Sport emojis
@@ -83,7 +84,7 @@ interface ApiResponse {
 
 
 export default function App() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const [transactionData, setTransactionData] = useState<WriteContractData>();
   const [signMessageData, setSignMessageData] = useState<SignMessageProps>();
   const [boxes, setBoxes] = useState<Box[]>([]);
@@ -114,7 +115,8 @@ export default function App() {
       ETH: false,
       KRILL: false,
       custom: ''
-    }
+    },
+    myGames: false
   });
 
   const calculateTimeLeft = (scheduledTime: string) => {
@@ -136,11 +138,14 @@ export default function App() {
       let ethVolume = BigInt(0);
       let krillVolume = BigInt(0);
       let otherVolume = BigInt(0);
-
+  
       boxes.forEach(box => {
+        // Calcul des joueurs uniques
         box.bets.forEach(bet => uniquePlayers.add(bet.participant));
         
-        const amount = BigInt(box.totalAmount || '0');
+        // Calcul des volumes avec vérification du type de token
+        const amount = box.totalAmount ? BigInt(box.totalAmount) : BigInt(0);
+        
         if (!box.tokenData.address) {
           ethVolume += amount;
         } else if (box.tokenData.symbol === 'KRILL') {
@@ -149,7 +154,7 @@ export default function App() {
           otherVolume += amount;
         }
       });
-
+  
       return {
         totalPlayers: uniquePlayers.size,
         activeBoxes: activeBoxes.length,
@@ -203,10 +208,12 @@ export default function App() {
 
   const getFilteredBoxes = (boxes: Box[]) => {
     return boxes.filter(box => {
+      // Filtre des sports
       const sportId = box.sportId as keyof SportsType;
       const sportFilter = !Object.values(filters.sports).some(v => v) || 
                          filters.sports[sportId];
-
+  
+      // Filtre des tokens
       const isEth = !box.tokenData.address;
       const isKrill = box.tokenData.symbol === 'KRILL';
       const isCustomToken = box.tokenData.address?.toLowerCase() === filters.tokens.custom.toLowerCase();
@@ -215,8 +222,14 @@ export default function App() {
                          (filters.tokens.ETH && isEth) ||
                          (filters.tokens.KRILL && isKrill) ||
                          (filters.tokens.custom && isCustomToken);
-
-      return sportFilter && tokenFilter;
+  
+      // Filtre My Games - vérifie si l'utilisateur a participé à la box
+      const myGamesFilter = !filters.myGames || 
+                           (address && box.bets.some(bet => 
+                             bet.participant.toLowerCase() === address.toLowerCase()
+                           ));
+  
+      return sportFilter && tokenFilter && myGamesFilter;
     });
   };
 
@@ -323,12 +336,14 @@ export default function App() {
                       <input
                         type="checkbox"
                         checked={filters.sports[sport]}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const newSportsFilter = {...filters.sports};
+                          newSportsFilter[sport] = e.target.checked;
                           setFilters(prev => ({
                             ...prev,
-                            sports: { ...prev.sports, [sport]: e.target.checked }
-                          }))
-                        }
+                            sports: newSportsFilter
+                          }));
+                        }}
                         className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
                       />
                       <span className="ml-2">{emoji} {sport}</span>
@@ -344,12 +359,18 @@ export default function App() {
                     <input
                       type="checkbox"
                       checked={filters.tokens.ETH}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setFilters(prev => ({
                           ...prev,
-                          tokens: { ...prev.tokens, ETH: e.target.checked }
-                        }))
-                      }
+                          tokens: { 
+                            ...prev.tokens, 
+                            ETH: e.target.checked,
+                            // Réinitialiser les autres si celui-ci est coché
+                            KRILL: e.target.checked ? false : prev.tokens.KRILL,
+                            custom: e.target.checked ? '' : prev.tokens.custom
+                          }
+                        }));
+                      }}
                       className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
                     />
                     <span className="ml-2">ETH</span>
@@ -358,12 +379,18 @@ export default function App() {
                     <input
                       type="checkbox"
                       checked={filters.tokens.KRILL}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setFilters(prev => ({
                           ...prev,
-                          tokens: { ...prev.tokens, KRILL: e.target.checked }
-                        }))
-                      }
+                          tokens: {
+                            ...prev.tokens,
+                            KRILL: e.target.checked,
+                            // Réinitialiser les autres si celui-ci est coché
+                            ETH: e.target.checked ? false : prev.tokens.ETH,
+                            custom: e.target.checked ? '' : prev.tokens.custom
+                          }
+                        }));
+                      }}
                       className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
                     />
                     <span className="ml-2">KRILL</span>
@@ -372,16 +399,45 @@ export default function App() {
                     type="text"
                     placeholder="Custom Token Address"
                     value={filters.tokens.custom}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setFilters(prev => ({
                         ...prev,
-                        tokens: { ...prev.tokens, custom: e.target.value }
-                      }))
-                    }
+                        tokens: {
+                          ...prev.tokens,
+                          custom: e.target.value,
+                          // Réinitialiser les autres si une adresse est entrée
+                          ETH: e.target.value ? false : prev.tokens.ETH,
+                          KRILL: e.target.value ? false : prev.tokens.KRILL
+                        }
+                      }));
+                    }}
+                    disabled={filters.tokens.ETH || filters.tokens.KRILL}
                     className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
                   />
                 </div>
               </div>
+
+              {isConnected && (
+                <div className="filter-group">
+                  <span className="filter-label">View</span>
+                  <div className="filter-options">
+                    <label className="inline-flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={filters.myGames}
+                        onChange={(e) =>
+                          setFilters(prev => ({
+                            ...prev,
+                            myGames: e.target.checked
+                          }))
+                        }
+                        className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
+                      />
+                      <span className="ml-2">🎮 My Games</span>
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
   
