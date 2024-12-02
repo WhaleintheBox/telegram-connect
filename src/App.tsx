@@ -212,6 +212,7 @@ export default function App() {
         const amountInWei = ethers.parseEther(betAmount);
     
         if (isEthBet) {
+          // Pour les paris ETH : Une seule transaction directe
           const ethBalance = await provider.getBalance(address);
           const feeData = await provider.getFeeData();
           
@@ -219,25 +220,25 @@ export default function App() {
             throw new Error("Could not estimate gas price on Base network");
           }
     
-          // Estimation complète pour ETH sur Base
           const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
           const estimatedGas = await boxContract.createBet.estimateGas(
-            selectedBetType === 'hunt',
+            selectedBetType === 'hunt' ? "hunt" : "fish", // Passage d'une string
             { value: amountInWei }
           );
           
           const totalNeeded = amountInWei + (estimatedGas * feeData.gasPrice);
-          
           if (ethBalance < totalNeeded) {
             throw new Error(`Insufficient ETH balance on Base network. You need at least ${ethers.formatEther(totalNeeded)} ETH (including gas fees)`);
           }
     
-          // Transaction unique pour ETH
           setTransactionStatus('betting');
-          const tx = await boxContract.createBet(selectedBetType === 'hunt', {
-            value: amountInWei,
-            gasLimit: estimatedGas * BigInt(120) / BigInt(100) // +20% de marge
-          });
+          const tx = await boxContract.createBet(
+            selectedBetType === 'hunt' ? "hunt" : "fish",
+            {
+              value: amountInWei,
+              gasLimit: estimatedGas * BigInt(120) / BigInt(100) // +20% marge
+            }
+          );
           
           setCurrentTxHash(tx.hash);
           const receipt = await tx.wait();
@@ -245,28 +246,34 @@ export default function App() {
           if (receipt && receipt.status === 0) {
             throw new Error("Transaction failed on Base network");
           }
+    
         } else {
-          // Première transaction: Approbation pour les tokens ERC20
+          // Pour les tokens ERC20 : Deux transactions (approve puis bet)
           const tokenContract = new ethers.Contract(
             box.tokenData.address!,
             ERC20_ABI,
             signer
           );
     
+          // 1. Approbation
           setTransactionStatus('approving');
-          const approveTx = await tokenContract.approve(box.address, amountInWei, {
-            gasLimit: 100000
-          });
-          setCurrentTxHash(approveTx.hash);
-          await approveTx.wait();
+          const currentAllowance = await tokenContract.allowance(address, box.address);
+          
+          if (currentAllowance < amountInWei) {
+            const approveTx = await tokenContract.approve(box.address, amountInWei, {
+              gasLimit: 100000
+            });
+            setCurrentTxHash(approveTx.hash);
+            await approveTx.wait();
+          }
           setTransactionStatus('approved');
     
-          // Deuxième transaction: Création du pari
+          // 2. Création du pari
           const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
           setTransactionStatus('betting');
           
           const betTx = await boxContract.createBetWithAmount(
-            selectedBetType === 'hunt',
+            selectedBetType === 'hunt' ? "hunt" : "fish",
             amountInWei,
             { gasLimit: 500000 }
           );
@@ -286,7 +293,7 @@ export default function App() {
         console.error('Betting error:', error);
         setTransactionStatus('initial');
         
-        // Gestion des messages d'erreur appropriés
+        // Gestion des messages d'erreur
         const errorMessage = error.message || "Transaction failed";
         if (errorMessage.includes("user rejected") || errorMessage.includes("User denied")) {
           alert("Transaction rejected by user");
@@ -327,7 +334,7 @@ export default function App() {
               setSelectedBetType('hunt');
               setActiveBetBox(box);
             }}
-            className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white font-bold py-4 px-8 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all max-w-[180px]"
+            className="w-[120px] bg-gradient-to-r from-green-400 to-green-500 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
             disabled={isProcessing}
           >
             🎯 Hunt
@@ -337,7 +344,7 @@ export default function App() {
               setSelectedBetType('fish');
               setActiveBetBox(box);
             }}
-            className="flex-1 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-bold py-4 px-8 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all max-w-[180px]"
+            className="w-[120px] bg-gradient-to-r from-pink-400 to-pink-500 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
             disabled={isProcessing}
           >
             🎣 Fish
