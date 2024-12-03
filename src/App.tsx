@@ -291,35 +291,24 @@ export default function App() {
         const isEthToken = !box.tokenData.address || box.tokenData.address === '0x0000000000000000000000000000000000000000';
     
         if (isEthToken) {
-          // Transaction ETH directe
-          const currentBalance = await provider.getBalance(address);
-          const feeData = await provider.getFeeData();
-          
-          if (!feeData.gasPrice) {
-            throw new Error("Could not estimate gas fees");
-          }
-    
+          // Transaction ETH simplifiée
+          setTransactionStatus('betting');
           const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
-          const estimatedGas = await boxContract.createBet.estimateGas(
+          
+          // Ajouter une marge de 10% pour le gas
+          const gasLimit = await boxContract.createBet.estimateGas(
             prediction,
             { value: amountInWei }
           );
-          
-          const totalNeeded = amountInWei + (estimatedGas * feeData.gasPrice);
-          
-          if (currentBalance < totalNeeded) {
-            throw new Error(`Insufficient ETH balance. Need ${ethers.formatEther(totalNeeded)} ETH (including gas)`);
-          }
+          const adjustedGasLimit = (gasLimit * BigInt(110)) / BigInt(100);
     
-          setTransactionStatus('betting');
           const tx = await boxContract.createBet(prediction, {
             value: amountInWei,
-            gasLimit: estimatedGas * BigInt(120) / BigInt(100)
+            gasLimit: adjustedGasLimit
           });
           
           setCurrentTxHash(tx.hash);
           await tx.wait();
-          
         } else {
           // Processus en deux étapes pour les tokens ERC20
           await handleERC20Bet(signer, prediction, amountInWei);
@@ -366,13 +355,14 @@ export default function App() {
   
     if (!isActive) {
       return (
-        <div className="w-full flex flex-col sm:flex-row justify-center items-center gap-4 py-6">
+        <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-4 py-4">
+          {/* Bouton Hunt */}
           <button
             onClick={() => {
               setSelectedBetType('hunt');
               setActiveBetBox(box);
             }}
-            className="w-full sm:w-1/3 h-14 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:from-emerald-600 hover:to-emerald-700 hover:shadow-emerald-200/50 hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
+            className="w-full sm:w-[48%] h-14 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:from-emerald-600 hover:to-emerald-700 hover:shadow-emerald-200/50 hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
             disabled={isProcessing}
           >
             <div className="flex items-center justify-center gap-3">
@@ -380,12 +370,14 @@ export default function App() {
               <span className="text-lg">Hunt</span>
             </div>
           </button>
+  
+          {/* Bouton Fish */}
           <button
             onClick={() => {
               setSelectedBetType('fish');
               setActiveBetBox(box);
             }}
-            className="w-full sm:w-1/3 h-14 bg-gradient-to-r from-rose-500 to-rose-600 text-white font-bold rounded-xl shadow-lg hover:from-rose-600 hover:to-rose-700 hover:shadow-rose-200/50 hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
+            className="w-full sm:w-[48%] h-14 bg-gradient-to-r from-rose-500 to-rose-600 text-white font-bold rounded-xl shadow-lg hover:from-rose-600 hover:to-rose-700 hover:shadow-rose-200/50 hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
             disabled={isProcessing}
           >
             <div className="flex items-center justify-center gap-3">
@@ -399,135 +391,133 @@ export default function App() {
   
     // Betting interface
     return (
-      <div className="bg-gray-50 rounded-xl p-6 space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">
-              {selectedBetType === 'hunt' ? '🎯' : '🎣'}
-            </span>
-            <span className="text-2xl font-bold">
-              {selectedBetType === 'hunt' ? 'Hunt' : 'Fish'}
-            </span>
+      <div className="bg-gray-50 rounded-xl p-6">
+        <div className="space-y-4">
+          {/* En-tête avec titre et bouton de retour */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">
+                {selectedBetType === 'hunt' ? '🎯' : '🎣'}
+              </span>
+              <span className="text-2xl font-bold">
+                {selectedBetType === 'hunt' ? 'Hunt' : 'Fish'}
+              </span>
+            </div>
+            <button
+              onClick={resetBettingState}
+              className="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              ← Back
+            </button>
           </div>
-          <button
-            onClick={resetBettingState}
-            className="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            Change
-          </button>
-        </div>
   
-        {/* Balance Display */}
-        <div className="flex gap-4">
-          {!isEthBet && (
-            <div className="flex-1 bg-blue-50 p-4 rounded-lg">
-              <div className="text-sm text-blue-600 mb-1">Token Balance</div>
-              <div className="font-bold text-lg text-blue-700">
-                {parseFloat(tokenBalance).toFixed(4)} {box.tokenData.symbol}
+          {/* Affichage des soldes */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            {!isEthBet && (
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="text-sm text-blue-600 font-medium mb-1">Token Balance</div>
+                <div className="text-xl font-bold text-blue-700">
+                  {parseFloat(tokenBalance).toFixed(4)} {box.tokenData.symbol}
+                </div>
+              </div>
+            )}
+            <div className="bg-emerald-50 p-4 rounded-lg">
+              <div className="text-sm text-emerald-600 font-medium mb-1">ETH Balance</div>
+              <div className="text-xl font-bold text-emerald-700">
+                {parseFloat(ethBalance).toFixed(4)} ETH
               </div>
             </div>
-          )}
-          <div className="flex-1 bg-emerald-50 p-4 rounded-lg">
-            <div className="text-sm text-emerald-600 mb-1">Base ETH Balance</div>
-            <div className="font-bold text-lg text-emerald-700">
-              {parseFloat(ethBalance).toFixed(4)} ETH
-            </div>
           </div>
-        </div>
   
-        {/* Quick Amount Buttons */}
-        <div className="grid grid-cols-4 gap-3">
-          {quickAmounts.map(amount => (
-            <button
-              key={amount}
-              onClick={() => setCustomAmount(amount)}
-              className={`
-                py-3 rounded-lg font-semibold transition-all
-                ${selectedBetType === 'hunt' 
-                  ? customAmount === amount 
-                    ? 'bg-emerald-100 text-emerald-800 shadow-inner' 
-                    : 'bg-white text-emerald-600 hover:bg-emerald-50 border border-emerald-200'
-                  : customAmount === amount 
-                    ? 'bg-rose-100 text-rose-800 shadow-inner' 
-                    : 'bg-white text-rose-600 hover:bg-rose-50 border border-rose-200'
-                }
-              `}
-            >
-              {amount}
-            </button>
-          ))}
-        </div>
-  
-        {/* Custom Amount Input */}
-        <div className="relative">
-          <input
-            type="text"
-            inputMode="decimal"
-            value={customAmount}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                setCustomAmount(value);
-              }
-            }}
-            className={`
-              w-full px-4 py-3 border rounded-lg pr-24 text-lg font-medium 
-              focus:ring-2 focus:border-transparent
-              ${selectedBetType === 'hunt' 
-                ? 'focus:ring-emerald-500' 
-                : 'focus:ring-rose-500'}
-            `}
-            placeholder={`Amount in ${box.tokenData.symbol || 'ETH'}`}
-          />
-          <span className="absolute right-4 top-1/2 -translate-y-1/2 font-medium text-gray-500">
-            {box.tokenData.symbol || 'ETH'}
-          </span>
-        </div>
-  
-        {/* Action Buttons */}
-        {transactionStatus === 'initial' ? (
-          <div className="space-y-3">
-            {isApprovalRequired && !isEthBet && (
+          {/* Quick Amount Buttons dans une grille 2x2 */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            {quickAmounts.map(amount => (
               <button
-                onClick={handleApproval}
-                disabled={!customAmount || isProcessing}
+                key={amount}
+                onClick={() => setCustomAmount(amount)}
                 className={`
-                  w-full py-3 rounded-lg font-semibold text-white transition-all
-                  ${selectedBetType === 'hunt'
-                    ? 'bg-emerald-500 hover:bg-emerald-600'
-                    : 'bg-rose-500 hover:bg-rose-600'
+                  py-4 rounded-lg font-bold text-lg transition-all
+                  ${selectedBetType === 'hunt' 
+                    ? customAmount === amount 
+                      ? 'bg-emerald-100 text-emerald-800 shadow-inner' 
+                      : 'bg-white text-emerald-600 hover:bg-emerald-50 border-2 border-emerald-200'
+                    : customAmount === amount 
+                      ? 'bg-rose-100 text-rose-800 shadow-inner' 
+                      : 'bg-white text-rose-600 hover:bg-rose-50 border-2 border-rose-200'
                   }
-                  disabled:opacity-50 disabled:cursor-not-allowed
                 `}
               >
-                Approve {box.tokenData.symbol}
+                {amount} {box.tokenData.symbol || 'ETH'}
               </button>
-            )}
-            
-            <button
-              onClick={handleBet}
-              disabled={!customAmount || (isApprovalRequired && !isEthBet) || isProcessing}
-              className={`
-                w-full py-3 rounded-xl font-semibold text-white transition-all
-                ${selectedBetType === 'hunt'
-                  ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700'
-                  : 'bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700'
-                }
-                disabled:opacity-50 disabled:cursor-not-allowed
-              `}
-            >
-              Place Bet
-            </button>
+            ))}
           </div>
-        ) : (
-          <TransactionStatus 
-            status={transactionStatus}
-            tokenSymbol={box.tokenData.symbol}
-            txHash={currentTxHash}
-            type={selectedBetType}
-          />
-        )}
+  
+          {/* Input personnalisé */}
+          <div className="relative mb-6">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={customAmount}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                  setCustomAmount(value);
+                }
+              }}
+              className={`
+                w-full px-4 py-4 text-lg font-bold border-2 rounded-lg
+                ${selectedBetType === 'hunt' 
+                  ? 'border-emerald-200 focus:border-emerald-500' 
+                  : 'border-rose-200 focus:border-rose-500'}
+              `}
+              placeholder={`Enter amount in ${box.tokenData.symbol || 'ETH'}`}
+            />
+          </div>
+  
+          {/* Boutons d'action */}
+          {transactionStatus === 'initial' ? (
+            <>
+              {isApprovalRequired && !isEthBet && (
+                <button
+                  onClick={handleApproval}
+                  disabled={!customAmount || isProcessing}
+                  className={`
+                    w-full py-4 mb-3 font-bold text-lg text-white rounded-xl transition-all
+                    ${selectedBetType === 'hunt'
+                      ? 'bg-emerald-500 hover:bg-emerald-600'
+                      : 'bg-rose-500 hover:bg-rose-600'
+                    }
+                    disabled:opacity-50
+                  `}
+                >
+                  Approve {box.tokenData.symbol}
+                </button>
+              )}
+              
+              <button
+                onClick={handleBet}
+                disabled={!customAmount || (isApprovalRequired && !isEthBet) || isProcessing}
+                className={`
+                  w-full py-4 font-bold text-lg text-white rounded-xl transition-all
+                  ${selectedBetType === 'hunt'
+                    ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700'
+                    : 'bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700'
+                  }
+                  disabled:opacity-50
+                `}
+              >
+                Place Bet
+              </button>
+            </>
+          ) : (
+            <TransactionStatus 
+              status={transactionStatus}
+              tokenSymbol={box.tokenData.symbol}
+              txHash={currentTxHash}
+              type={selectedBetType}
+            />
+          )}
+        </div>
       </div>
     );
   };
