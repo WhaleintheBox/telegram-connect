@@ -221,14 +221,23 @@ export default function App() {
     };
   
     const getQuickAmounts = (isEthToken: boolean, symbol: string): QuickAmount[] => {
-      const amounts = isEthToken 
-        ? ['0.005', '0.01', '0.1', '0.5', '1.0']
-        : ['5', '10', '25', '50', '100'];
-    
-      return amounts.map(value => ({
-        value,
-        display: `${value} ${symbol}`
-      }));
+      if (isEthToken) {
+        return [
+          { value: '0.005', display: '0.005 ETH' },
+          { value: '0.01', display: '0.01 ETH' },
+          { value: '0.03', display: '0.03 ETH' },
+          { value: '0.05', display: '0.05 ETH' }, 
+          { value: '0.1', display: '0.1 ETH' }
+        ];
+      }
+      // Pour les tokens ERC20
+      return [
+        { value: '5', display: `5 ${symbol}` },
+        { value: '10', display: `10 ${symbol}` }, 
+        { value: '25', display: `25 ${symbol}` },
+        { value: '50', display: `50 ${symbol}` },
+        { value: '100', display: `100 ${symbol}` }
+      ];
     };
     
     const QuickAmountButton = ({ 
