@@ -1056,40 +1056,50 @@ export default function App() {
                               </div>
                             )
                           )}
-
+                          
                           {box.initialEvents && box.initialEvents.length > 0 && (
                             <div className="predictions-section bg-gray-50 rounded-lg p-4 my-4">
-                              <h4 className="text-sm font-semibold text-gray-700 mb-3">📊 Latest Predictions</h4>
-                              <div className="space-y-2">
+                              <div className="flex items-center gap-2 mb-4">
+                                <span className="text-lg">🔮</span>
+                                <h4 className="text-sm font-semibold text-gray-700">Latest Predictions</h4>
+                              </div>
+                              <div className="space-y-3">
                                 {box.initialEvents.slice(0, 4).map((event, index) => {
                                   const parts = event.prediction.split(' | ').map(p => p.trim());
-                                  const [what = 'No prediction', when = 'Unspecified'] = parts;
+                                  // If no split parts or missing data, handle gracefully
+                                  const what = parts[0] || 'No prediction';
+                                  const when = parts[1] || 'Undefined timing';
                                   
                                   return (
                                     <div 
                                       key={index}
-                                      className="bg-white rounded-md p-3 shadow-sm border border-gray-100"
+                                      className="bg-white rounded-lg p-3 border border-gray-100 hover:shadow-md transition-shadow"
                                     >
-                                      <div className="grid grid-cols-3 gap-2 text-sm">
-                                        <div className="flex flex-col">
-                                          <span className="text-xs text-gray-500 font-medium mb-1">WHO</span>
-                                          <span className="text-gray-900 font-medium truncate" title={event.who}>
-                                            {event.who}
-                                          </span>
-                                        </div>
-                                        <div className="flex flex-col">
-                                          <span className="text-xs text-gray-500 font-medium mb-1">WHAT</span>
-                                          <span className="text-gray-900 font-medium truncate" title={what}>
-                                            {what}
-                                          </span>
-                                        </div>
-                                        <div className="flex flex-col">
-                                          <span className="text-xs text-gray-500 font-medium mb-1">WHEN</span>
-                                          <span className="text-gray-900 font-medium truncate" title={when}>
+                                      {/* Who section */}
+                                      <div className="flex items-center gap-2 mb-2 text-blue-600 font-medium">
+                                        <span className="text-sm">👤</span>
+                                        <span className="text-sm truncate" title={event.who}>
+                                          {event.who}
+                                        </span>
+                                      </div>
+                                      
+                                      {/* What section */}
+                                      <div className="flex items-start gap-2 mb-2 pl-4">
+                                        <span className="text-xs text-gray-500 font-medium w-14">WHAT:</span>
+                                        <span className="text-sm text-gray-800 font-medium flex-1">
+                                          {what}
+                                        </span>
+                                      </div>
+                                      
+                                      {/* When section - Only display if valid timing */}
+                                      {when && when !== 'Undefined timing' && (
+                                        <div className="flex items-start gap-2 pl-4">
+                                          <span className="text-xs text-gray-500 font-medium w-14">WHEN:</span>
+                                          <span className="text-sm text-gray-600">
                                             {when}
                                           </span>
                                         </div>
-                                      </div>
+                                      )}
                                     </div>
                                   );
                                 })}
