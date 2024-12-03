@@ -445,18 +445,18 @@ button:disabled {
   }
   
   .betting-container {
-    flex-direction: column;
+    flex-direction: row; /* Keep horizontal layout on mobile */
     width: 100%;
+    margin: 0;
+    padding: 16px;
   }
   
   .hunt-button,
   .fish-button {
-    width: 100%;
+    flex: 1;
+    min-width: 0; /* Allow buttons to shrink if needed */
   }
-
 }
-
-
 
 
 /* Stats Panel */
@@ -618,6 +618,8 @@ button:disabled {
   display: flex;
   gap: 8px;
   width: calc(100% + 32px);
+  flex-direction: row; /* Force horizontal layout */
+  justify-content: stretch; /* Stretch buttons to fill container */
 }
 
 .box-header {
@@ -986,7 +988,7 @@ button:disabled {
 
 .hunt-button, 
 .fish-button {
-  flex: 1 1 50%; /* This ensures equal width distribution */
+  flex: 1 1 0; /* Equal width distribution with 0 basis to force equal size */
   min-height: 56px;
   padding: 12px 16px;
   border: none;
@@ -994,10 +996,11 @@ button:disabled {
   font-weight: 600;
   border-radius: 6px;
   transition: all 0.2s ease;
-  width: 100%; /* Ensure full width within flex container */
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0; /* Remove any margins that might cause wrapping */
+  max-width: 50%; /* Ensure buttons don't exceed half the container */
 }
 
 /* Specific gradient backgrounds */
@@ -1017,6 +1020,7 @@ button:disabled {
 .fish-button:hover {
   background: linear-gradient(to right, #e11d48, #be123c);
 }
+
 /* Style pour les boutons de montant rapide */
 .quick-amount-button {
   background: white !important;
