@@ -367,13 +367,12 @@ export default function App() {
     if (!isActive) {
       return (
         <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-4 py-4">
-          {/* Bouton Hunt */}
           <button
             onClick={() => {
               setSelectedBetType('hunt');
               setActiveBetBox(box);
             }}
-            className="w-full sm:w-[48%] h-14 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:from-emerald-600 hover:to-emerald-700 hover:shadow-emerald-200/50 hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
+            className="hunt-button w-full sm:w-[48%] h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
             disabled={isProcessing}
           >
             <div className="flex items-center justify-center gap-3">
@@ -381,13 +380,13 @@ export default function App() {
               <span className="text-lg">Hunt</span>
             </div>
           </button>
-
+    
           <button
             onClick={() => {
               setSelectedBetType('fish');
               setActiveBetBox(box);
             }}
-            className="w-full sm:w-[48%] h-14 bg-gradient-to-r from-rose-500 to-rose-600 text-white font-bold rounded-xl shadow-lg hover:from-rose-600 hover:to-rose-700 hover:shadow-rose-200/50 hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
+            className="fish-button w-full sm:w-[48%] h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
             disabled={isProcessing}
           >
             <div className="flex items-center justify-center gap-3">
@@ -445,12 +444,9 @@ export default function App() {
               <button
                 key={amount}
                 onClick={() => setCustomAmount(amount)}
-                className={`
-                  py-4 rounded-lg font-bold text-lg transition-all
-                  ${customAmount === amount 
-                    ? 'bg-gray-100 text-gray-800 shadow-inner' 
-                    : 'bg-white text-gray-600 hover:bg-gray-50 border-2 border-gray-200'}
-                `}
+                className={`quick-amount-button py-4 rounded-lg font-bold text-lg transition-all ${
+                  customAmount === amount ? 'selected' : ''
+                }`}
               >
                 {amount} {box.tokenData.symbol || 'ETH'}
               </button>
@@ -486,14 +482,9 @@ export default function App() {
                 <button
                   onClick={handleApproval}
                   disabled={!customAmount || isProcessing}
-                  className={`
-                    w-full py-4 mb-3 font-bold text-lg text-white rounded-xl transition-all
-                    ${selectedBetType === 'hunt'
-                      ? 'bg-emerald-500 hover:bg-emerald-600'
-                      : 'bg-rose-500 hover:bg-rose-600'
-                    }
-                    disabled:opacity-50
-                  `}
+                  className={`bet-button w-full py-4 mb-3 font-bold text-lg text-white rounded-xl transition-all ${
+                    selectedBetType === 'hunt' ? 'hunt-type' : 'fish-type'
+                  } disabled:opacity-50`}
                 >
                   Approve {box.tokenData.symbol}
                 </button>
@@ -502,14 +493,9 @@ export default function App() {
               <button
                 onClick={handleBet}
                 disabled={!customAmount || (isApprovalRequired && !isEthBet) || isProcessing}
-                className={`
-                  w-full py-4 font-bold text-lg text-white rounded-xl transition-all
-                  ${selectedBetType === 'hunt'
-                    ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700'
-                    : 'bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700'
-                  }
-                  disabled:opacity-50
-                `}
+                className={`bet-button w-full py-4 font-bold text-lg text-white rounded-xl transition-all ${
+                  selectedBetType === 'hunt' ? 'hunt-type' : 'fish-type'
+                } disabled:opacity-50`}
               >
                 Place Bet
               </button>

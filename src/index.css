@@ -1286,3 +1286,66 @@ button:disabled {
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* Reset du style par défaut des boutons pour Hunt/Fish */
+button.hunt-button,
+button.fish-button {
+  background-color: transparent; /* Override default button background */
+  border: none;
+  height: auto; /* Override default button height */
+  line-height: normal; /* Override default button line-height */
+}
+
+/* Styles spécifiques pour les boutons Hunt/Fish */
+.hunt-button,
+button[class*="hunt"] {
+  background: linear-gradient(to right, #10b981, #059669) !important;
+  color: white !important;
+  border: none !important;
+}
+
+.hunt-button:hover,
+button[class*="hunt"]:hover {
+  background: linear-gradient(to right, #059669, #047857) !important;
+  border: none !important;
+}
+
+.fish-button,
+button[class*="fish"] {
+  background: linear-gradient(to right, #f43f5e, #e11d48) !important;
+  color: white !important;
+  border: none !important;
+}
+
+.fish-button:hover,
+button[class*="fish"]:hover {
+  background: linear-gradient(to right, #e11d48, #be123c) !important;
+  border: none !important;
+}
+
+/* Style pour les boutons de montant rapide */
+.quick-amount-button {
+  background: white !important;
+  border: 2px solid #e5e7eb !important;
+  color: #6b7280 !important;
+}
+
+.quick-amount-button:hover {
+  background: #f9fafb !important;
+  border-color: #d1d5db !important;
+}
+
+.quick-amount-button.selected {
+  background: #f3f4f6 !important;
+  border-color: #9ca3af !important;
+  color: #111827 !important;
+}
+
+/* Styles pour le bouton de pari */
+.bet-button.hunt-type {
+  background: linear-gradient(to right, #10b981, #059669) !important;
+}
+
+.bet-button.fish-type {
+  background: linear-gradient(to right, #f43f5e, #e11d48) !important;
+}
