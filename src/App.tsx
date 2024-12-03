@@ -366,13 +366,13 @@ export default function App() {
   
     if (!isActive) {
       return (
-        <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-4 py-4">
+        <div className="w-full flex flex-col gap-4 pt-2 pb-4">
           <button
             onClick={() => {
               setSelectedBetType('hunt');
               setActiveBetBox(box);
             }}
-            className="hunt-button w-full sm:w-[48%] h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
+            className="hunt-button w-full h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
             disabled={isProcessing}
           >
             <div className="flex items-center justify-center gap-3">
@@ -386,7 +386,7 @@ export default function App() {
               setSelectedBetType('fish');
               setActiveBetBox(box);
             }}
-            className="fish-button w-full sm:w-[48%] h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
+            className="fish-button w-full h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
             disabled={isProcessing}
           >
             <div className="flex items-center justify-center gap-3">
@@ -414,7 +414,11 @@ export default function App() {
             </div>
             <button
               onClick={resetBettingState}
-              className="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors"
+              className={`px-4 py-2 text-white font-medium rounded-lg transition-colors ${
+                selectedBetType === 'hunt' 
+                  ? 'bg-emerald-500 hover:bg-emerald-600' 
+                  : 'bg-rose-500 hover:bg-rose-600'
+              }`}
             >
               ← Back
             </button>
