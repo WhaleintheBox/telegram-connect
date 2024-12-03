@@ -879,6 +879,8 @@ button:disabled {
 
 .box-content {
   padding: 16px;
+  display: flex;
+  flex-direction: column;
 }
 
 .box-header {
@@ -1102,8 +1104,9 @@ button:disabled {
 
 .betting-buttons {
   display: flex;
-  gap: 12px;
-  justify-content: center;
+  width: calc(100% + 32px); /* Compenser le padding négatif */
+  margin: 0 -16px;
+  padding: 0 16px;
 }
 
 .hunt-button, .fish-button {
@@ -1113,6 +1116,7 @@ button:disabled {
   transition: all 0.2s ease;
   flex: 1;
   max-width: 140px;
+  min-width: 0;
 }
 
 .hunt-button {
