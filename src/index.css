@@ -1326,19 +1326,32 @@ button[class*="fish"]:hover {
 /* Style pour les boutons de montant rapide */
 .quick-amount-button {
   background: white !important;
-  border: 2px solid #e5e7eb !important;
+  border: 1px solid #e5e7eb !important;
   color: #6b7280 !important;
+  padding: 0.75rem 1rem !important;
+  border-radius: 0.75rem !important;
+  font-weight: 500 !important;
+  line-height: 1.25 !important;
 }
 
-.quick-amount-button:hover {
+/* État sélectionné pour Hunt */
+.quick-amount-button.selected.hunt {
+  background: #dcfce7 !important;
+  border-color: #22c55e !important;
+  color: #15803d !important;
+}
+
+/* État sélectionné pour Fish */
+.quick-amount-button.selected.fish {
+  background: #ffe4e6 !important;
+  border-color: #f43f5e !important;
+  color: #be123c !important;
+}
+
+/* Hover states */
+.quick-amount-button:hover:not(.selected) {
   background: #f9fafb !important;
   border-color: #d1d5db !important;
-}
-
-.quick-amount-button.selected {
-  background: #f3f4f6 !important;
-  border-color: #9ca3af !important;
-  color: #111827 !important;
 }
 
 /* Styles pour le bouton de pari */
