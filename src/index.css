@@ -416,28 +416,36 @@ button:disabled {
 }
 
 .stats-title {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 2rem;
-  font-weight: 700;
+  font-family: 'Impact', sans-serif;
+  font-size: 2.5rem;
+  font-weight: bold;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   color: #1a202c;
-  margin: 1rem auto;
+  text-shadow: 
+    2px 2px 0 #3182ce, 
+    -2px -2px 0 #3182ce, 
+    2px -2px 0 #3182ce, 
+    -2px 2px 0 #3182ce,
+    0px 3px 3px rgba(0,0,0,0.4);
+  text-align: center;
+  margin: 1rem auto; /* Assurez-vous que l'élément est bien centré horizontalement */
   padding: 0.5rem;
   position: relative;
-  display: flex; /* Changer display à flex */
-  justify-content: center; /* Centrer horizontalement */
-  align-items: center; /* Centrer verticalement */
+  display: inline-flex; /* Utilisez inline-flex pour pouvoir centrer le contenu plus facilement */
+  align-items: center; /* Centre verticalement le texte avec les icônes */
 }
 
 .stats-title::before {
   content: '🐳';
-  margin-right: 0.5rem;
+  margin-right: 0.5rem; /* Espace entre l'icône de gauche et le texte */
+  font-size: 2rem;
 }
 
 .stats-title::after {
   content: '📦';
-  margin-left: 0.5rem;
+  margin-left: 0.5rem; /* Espace entre l'icône de droite et le texte */
+  font-size: 2rem;
 }
 
 
