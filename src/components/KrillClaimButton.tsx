@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ethers } from 'ethers';
 import { KRILL_ABI } from '../constants/contracts';
 
-const KRILL_CONTRACT = "0x506C4805cA55459e88901542f99b92c4c1DC1e10";
+const KRILL_CONTRACT = "0x33E5b643C05a3B00F71a066FefA4F59eF6BE27fc";
 
 const KrillClaimButton = () => {
   const [isProcessing, setIsProcessing] = useState(false);
