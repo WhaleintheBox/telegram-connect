@@ -965,7 +965,7 @@ export default function App() {
                           <div className="total-amount-highlight">
                             <div className="amount-label">Total Pool</div>
                             <div className={`amount-value ${getTotalAmount(box) !== '0.0000' ? 'animate-pulse' : ''}`}>
-                              {getTotalAmount(box)} {box.tokenData.symbol || 'ETH'}
+                              {getTotalAmount(box)}
                             </div>
                           </div>
 
