@@ -877,7 +877,6 @@ export default function App() {
         <>
           {/* Stats Panel */}
           <div className="stats-container">
-            <h2 className="stats-title">🐳 Whale in the Box 📦</h2>
             <div className="stats-grid">
               <div className="stat-item">
                 <span className="stat-label">🐳 Whales</span>
