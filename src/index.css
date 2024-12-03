@@ -55,6 +55,222 @@ button:disabled {
   border-color: #e4e4e7;
 }
 
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f4f4f5;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  color: #71717a;
+  font-size: 14px;
+}
+
+.detail-value {
+  font-weight: 500;
+  color: #18181b;
+}
+
+.contract-address {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.contract-address:hover {
+  text-decoration: underline;
+}
+
+.amount {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+/* Buttons */
+.buttonContainer {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.transactionButton {
+  min-width: 200px;
+}
+
+/* Transaction status */
+.transaction-status {
+  margin-top: 16px;
+  font-family: monospace;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.status-label {
+  color: #71717a;
+  font-size: 14px;
+}
+
+.hash-link {
+  color: #3b82f6;
+  text-decoration: none;
+  font-family: monospace;
+}
+
+.hash-link:hover {
+  text-decoration: underline;
+}
+
+.status-message {
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.status-message.pending {
+  background-color: #f8fafc;
+  color: #64748b;
+}
+
+.status-message.success {
+  background-color: #f0fdf4;
+  color: #15803d;
+}
+
+.status-message.error {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+/* Connect wallet */
+.set {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+/* Responsive */
+@media screen and (max-width: 600px) {
+  .container {
+    margin: 8px;
+    padding: 16px;
+  }
+  
+  .header-logo {
+    height: 40px;
+  }
+  
+  .detail-row {
+    padding: 6px 0;
+  }
+  
+  .detail-label,
+  .detail-value {
+    font-size: 13px;
+  }
+  
+  .row {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .inline {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+  
+  .buttonContainer,
+  .accountButtons {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .transactionButton,
+  button {
+    width: 100%;
+  }
+  
+  .text {
+    text-align: center;
+  }
+}
+
+.text-xl {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.space-y-4 > * + * {
+  margin-top: 1rem;
+}
+
+.shadow-sm {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.shadow-md {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.transition-shadow {
+  transition-property: box-shadow;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.hover\:shadow-md:hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.text-gray-500 {
+  color: #6b7280;
+}
+
+.text-gray-600 {
+  color: #4b5563;
+}
+
+.bg-green-100 {
+  background-color: #dcfce7;
+}
+
+.text-green-800 {
+  color: #166534;
+}
+
+.bg-gray-100 {
+  background-color: #f3f4f6;
+}
+
+.text-gray-800 {
+  color: #1f2937;
+}
+
+.bg-blue-100 {
+  background-color: #dbeafe;
+}
+
+.text-blue-800 {
+  color: #1e40af;
+}
+
 /* Account info et header */
 .container {
   background-color: #ffffff;
@@ -276,447 +492,8 @@ button:disabled {
   }
 }
 
-.text-xl {
-  font-size: 1.25rem;
-  line-height: 1.75rem;
-}
 
-.font-bold {
-  font-weight: 700;
-}
 
-.space-y-4 > * + * {
-  margin-top: 1rem;
-}
-
-.shadow-sm {
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-}
-
-.shadow-md {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-}
-
-.transition-shadow {
-  transition-property: box-shadow;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
-.hover\:shadow-md:hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-}
-
-.text-gray-500 {
-  color: #6b7280;
-}
-
-.text-gray-600 {
-  color: #4b5563;
-}
-
-.bg-green-100 {
-  background-color: #dcfce7;
-}
-
-.text-green-800 {
-  color: #166534;
-}
-
-.bg-gray-100 {
-  background-color: #f3f4f6;
-}
-
-.text-gray-800 {
-  color: #1f2937;
-}
-
-.bg-blue-100 {
-  background-color: #dbeafe;
-}
-
-.text-blue-800 {
-  color: #1e40af;
-}
-
-/* Stats Panel */
-.stats-container {
-  background-color: #ffffff;
-  border-radius: 12px;
-  border: 1px solid #e4e4e7;
-  padding: 24px;
-  margin: 16px;
-  width: auto;
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-}
-
-.stats-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  text-align: center;
-  color: #0f172a;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 1rem;
-}
-
-.stat-item {
-  background-color: #f8fafc;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.stat-label {
-  color: #64748b;
-  font-size: 0.875rem;
-}
-
-.stat-value {
-  color: #0f172a;
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-
-.avatar {
-  background-color: #f4f4f5;
-  border-radius: 100%;
-  height: 38px;
-  width: 38px;
-}
-
-.backButton {
-  margin-right: 10px;
-  background: #f4f4f5;
-  border: 1px solid #e4e4e7;
-  color: #333333;
-}
-
-.backButton:hover {
-  background: #e4e4e7;
-}
-
-button {
-  background-color: #3b82f6;
-  border: 1px solid #3b82f6;
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 500;
-  height: 40px;
-  line-height: 40px;
-  padding: 0 20px;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-button:hover {
-  background-color: #2563eb;
-  border-color: #2563eb;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background-color: #e4e4e7;
-  border-color: #e4e4e7;
-}
-
-/* Account info et header */
-.container {
-  background-color: #ffffff;
-  border-radius: 12px;
-  border: 1px solid #e4e4e7;
-  padding: 24px;
-  margin: 16px;
-  width: auto;
-  max-width: 480px;
-  margin-left: auto;
-  margin-right: auto;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-}
-
-.header {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 24px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid #e4e4e7;
-}
-
-.header-logo {
-  height: 60px;
-  width: auto;
-  object-fit: contain;
-}
-
-.row {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.inline {
-  align-items: center;
-  display: flex;
-  gap: 12px;
-}
-
-.accountButtons {
-  display: flex;
-  gap: 8px;
-}
-
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.text {
-  font-weight: 500;
-  color: #333333;
-  white-space: nowrap;
-}
-
-.subtext {
-  color: #71717a;
-  font-weight: 400;
-  font-size: 12px;
-}
-
-/* Transaction details */
-.transaction-info {
-  margin-bottom: 24px;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #f4f4f5;
-}
-
-.detail-row:last-child {
-  border-bottom: none;
-}
-
-.detail-label {
-  color: #71717a;
-  font-size: 14px;
-}
-
-.detail-value {
-  font-weight: 500;
-  color: #18181b;
-}
-
-.contract-address {
-  color: #3b82f6;
-  text-decoration: none;
-}
-
-.contract-address:hover {
-  text-decoration: underline;
-}
-
-.amount {
-  color: #3b82f6;
-  font-weight: 600;
-}
-
-/* Buttons */
-.buttonContainer {
-  display: flex;
-  justify-content: center;
-  margin-top: 24px;
-}
-
-.transactionButton {
-  min-width: 200px;
-}
-
-/* Transaction status */
-.transaction-status {
-  margin-top: 16px;
-  font-family: monospace;
-}
-
-.status-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.status-label {
-  color: #71717a;
-  font-size: 14px;
-}
-
-.hash-link {
-  color: #3b82f6;
-  text-decoration: none;
-  font-family: monospace;
-}
-
-.hash-link:hover {
-  text-decoration: underline;
-}
-
-.status-message {
-  padding: 12px;
-  border-radius: 8px;
-  margin-top: 8px;
-  font-size: 14px;
-}
-
-.status-message.pending {
-  background-color: #f8fafc;
-  color: #64748b;
-}
-
-.status-message.success {
-  background-color: #f0fdf4;
-  color: #15803d;
-}
-
-.status-message.error {
-  background-color: #fef2f2;
-  color: #dc2626;
-}
-
-/* Connect wallet */
-.set {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-}
-
-/* Responsive */
-@media screen and (max-width: 600px) {
-  .container {
-    margin: 8px;
-    padding: 16px;
-  }
-  
-  .header-logo {
-    height: 40px;
-  }
-  
-  .detail-row {
-    padding: 6px 0;
-  }
-  
-  .detail-label,
-  .detail-value {
-    font-size: 13px;
-  }
-  
-  .row {
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  .inline {
-    flex-direction: column;
-    gap: 16px;
-    text-align: center;
-  }
-  
-  .buttonContainer,
-  .accountButtons {
-    flex-direction: column;
-    width: 100%;
-  }
-  
-  .transactionButton,
-  button {
-    width: 100%;
-  }
-  
-  .text {
-    text-align: center;
-  }
-}
-
-.text-xl {
-  font-size: 1.25rem;
-  line-height: 1.75rem;
-}
-
-.font-bold {
-  font-weight: 700;
-}
-
-.space-y-4 > * + * {
-  margin-top: 1rem;
-}
-
-.shadow-sm {
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-}
-
-.shadow-md {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-}
-
-.transition-shadow {
-  transition-property: box-shadow;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
-.hover\:shadow-md:hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-}
-
-.text-gray-500 {
-  color: #6b7280;
-}
-
-.text-gray-600 {
-  color: #4b5563;
-}
-
-.bg-green-100 {
-  background-color: #dcfce7;
-}
-
-.text-green-800 {
-  color: #166534;
-}
-
-.bg-gray-100 {
-  background-color: #f3f4f6;
-}
-
-.text-gray-800 {
-  color: #1f2937;
-}
-
-.bg-blue-100 {
-  background-color: #dbeafe;
-}
-
-.text-blue-800 {
-  color: #1e40af;
-}
 
 /* Stats Panel */
 .stats-container {
@@ -789,13 +566,6 @@ button:disabled {
 }
 
 
-
-.box-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-
 .box-image-container {
   width: 100%;
   height: 200px;
@@ -814,12 +584,6 @@ button:disabled {
   transform: scale(1.05);
 }
 
-.boxes-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  padding: 1rem 0;
-}
 
 @media (max-width: 768px) {
   .prediction-bar {
@@ -881,6 +645,15 @@ button:disabled {
   padding: 16px;
   display: flex;
   flex-direction: column;
+}
+
+/* Button container */
+.betting-container {
+  margin: -16px;
+  padding: 16px;
+  display: flex;
+  gap: 8px;
+  width: calc(100% + 32px);
 }
 
 .box-header {
@@ -1030,12 +803,6 @@ button:disabled {
   font-weight: 700;
 }
 
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(129, 140, 248, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(129, 140, 248, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(129, 140, 248, 0); }
-}
-
 /* Predictions Section */
 .predictions-section {
   background-color: #F8FAFC;
@@ -1102,45 +869,6 @@ button:disabled {
   border-radius: 8px;
 }
 
-.betting-buttons {
-  display: flex;
-  width: calc(100% + 32px); /* Compenser le padding négatif */
-  margin: 0 -16px;
-  padding: 0 16px;
-}
-
-.hunt-button, .fish-button {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  flex: 1;
-  max-width: 140px;
-  min-width: 0;
-}
-
-.hunt-button {
-  background: linear-gradient(90deg, #22C55E 0%, #16A34A 100%);
-  border: none;
-  color: white;
-}
-
-.fish-button {
-  background: linear-gradient(90deg, #EC4899 0%, #DB2777 100%);
-  border: none;
-  color: white;
-}
-
-.hunt-button:hover, .fish-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-.hunt-button:disabled, .fish-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
 
 .connect-notice {
   text-align: center;
@@ -1291,22 +1019,19 @@ button:disabled {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Reset du style par défaut des boutons pour Hunt/Fish */
-button.hunt-button,
-button.fish-button {
-  background-color: transparent; /* Override default button background */
+
+.hunt-button, .fish-button {
+  flex: 1;
+  min-height: 56px;
+  padding: 12px 16px;
   border: none;
-  height: auto; /* Override default button height */
-  line-height: normal; /* Override default button line-height */
+  color: white;
+  font-weight: 600;
+  border-radius: 6px;
 }
 
-/* Styles spécifiques pour les boutons Hunt/Fish */
-.hunt-button,
-button[class*="hunt"] {
-  background: linear-gradient(to right, #10b981, #059669) !important;
-  color: white !important;
-  border: none !important;
-}
+.hunt-button { background: linear-gradient(to right, #10b981, #059669); }
+.fish-button { background: linear-gradient(to right, #f43f5e, #e11d48); }
 
 .hunt-button:hover,
 button[class*="hunt"]:hover {
@@ -1314,12 +1039,6 @@ button[class*="hunt"]:hover {
   border: none !important;
 }
 
-.fish-button,
-button[class*="fish"] {
-  background: linear-gradient(to right, #f43f5e, #e11d48) !important;
-  color: white !important;
-  border: none !important;
-}
 
 .fish-button:hover,
 button[class*="fish"]:hover {
