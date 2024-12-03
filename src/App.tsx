@@ -412,36 +412,34 @@ export default function App() {
     // Dans le BettingSection, quand !isActive
     if (!isActive) {
       return (
-        <div className="box-content">
-          <div className="w-full flex gap-2">
-            <button
-              onClick={() => {
-                setSelectedBetType('hunt');
-                setActiveBetBox(box);
-              }}
-              className="hunt-button h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50 flex-1"
-              disabled={isProcessing}
-            >
-              <div className="flex items-center justify-center gap-3">
-                <span className="text-2xl">🎯</span>
-                <span className="text-lg">Hunt</span>
-              </div>
-            </button>
+        <div className="flex gap-2 px-4 pt-2 pb-4">
+          <button
+            onClick={() => {
+              setSelectedBetType('hunt');
+              setActiveBetBox(box);
+            }}
+            className="hunt-button h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all flex-1"
+            disabled={isProcessing}
+          >
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-2xl">🎯</span>
+              <span className="text-lg">Hunt</span>
+            </div>
+          </button>
     
-            <button
-              onClick={() => {
-                setSelectedBetType('fish');
-                setActiveBetBox(box);
-              }}
-              className="fish-button h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50 flex-1"
-              disabled={isProcessing}
-            >
-              <div className="flex items-center justify-center gap-3">
-                <span className="text-2xl">🎣</span>
-                <span className="text-lg">Fish</span>
-              </div>
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              setSelectedBetType('fish');
+              setActiveBetBox(box);
+            }}
+            className="fish-button h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all flex-1"
+            disabled={isProcessing}
+          >
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-2xl">🎣</span>
+              <span className="text-lg">Fish</span>
+            </div>
+          </button>
         </div>
       );
     }
