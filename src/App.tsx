@@ -373,14 +373,14 @@ export default function App() {
     // Dans le BettingSection, quand !isActive
     if (!isActive) {
       return (
-        <div className="w-full mt-2"> {/* Changed from flex container to full width block */}
-          <div className="flex flex-col gap-3"> {/* Adjusted gap and added flex container */}
+        <div className="w-full mt-2 px-4"> {/* Ajout de padding horizontal */}
+          <div className="space-y-3"> {/* Utilisation de space-y au lieu de flex et gap */}
             <button
               onClick={() => {
                 setSelectedBetType('hunt');
                 setActiveBetBox(box);
               }}
-              className="hunt-button w-full h-12 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
+              className="hunt-button w-full h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
               disabled={isProcessing}
             >
               <div className="flex items-center justify-center gap-3">
@@ -388,13 +388,13 @@ export default function App() {
                 <span className="text-lg">Hunt</span>
               </div>
             </button>
-
+    
             <button
               onClick={() => {
                 setSelectedBetType('fish');
                 setActiveBetBox(box);
               }}
-              className="fish-button w-full h-12 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
+              className="fish-button w-full h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
               disabled={isProcessing}
             >
               <div className="flex items-center justify-center gap-3">
@@ -434,18 +434,18 @@ export default function App() {
           </div>
     
           {/* Affichage des soldes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {!isEthBet && (
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="text-sm text-blue-600 font-medium mb-1">Token Balance</div>
-                <div className="text-xl font-bold text-blue-700">
+              <div className="bg-blue-50 p-3 rounded-lg"> {/* Réduction du padding */}
+                <div className="text-xs text-blue-600 font-medium">Token Balance</div>
+                <div className="text-base font-bold text-blue-700"> {/* Réduction de la taille du texte */}
                   {parseFloat(tokenBalance).toFixed(4)} {box.tokenData.symbol}
                 </div>
               </div>
             )}
-            <div className="bg-emerald-50 p-4 rounded-lg">
-              <div className="text-sm text-emerald-600 font-medium mb-1">ETH Balance</div>
-              <div className="text-xl font-bold text-emerald-700">
+            <div className="bg-emerald-50 p-3 rounded-lg"> {/* Réduction du padding */}
+              <div className="text-xs text-emerald-600 font-medium">ETH Balance</div>
+              <div className="text-base font-bold text-emerald-700"> {/* Réduction de la taille du texte */}
                 {parseFloat(ethBalance).toFixed(4)} ETH
               </div>
             </div>
@@ -489,7 +489,7 @@ export default function App() {
                   key={amount}
                   onClick={() => setCustomAmount(amount)}
                   className={`
-                    py-3 px-2 rounded-lg font-bold text-base transition-all
+                    py-2 px-2 rounded-lg font-medium text-sm transition-all whitespace-nowrap
                     ${customAmount === amount 
                       ? selectedBetType === 'hunt'
                         ? 'bg-emerald-100 text-emerald-800 border-2 border-emerald-300'
