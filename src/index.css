@@ -398,65 +398,7 @@ button:disabled {
   width: 100%;
 }
 
-/* Responsive */
-@media screen and (max-width: 600px) {
-  .container {
-    margin: 8px;
-    padding: 16px;
-  }
-  
-  .header-logo {
-    height: 40px;
-  }
-  
-  .detail-row {
-    padding: 6px 0;
-  }
-  
-  .detail-label,
-  .detail-value {
-    font-size: 13px;
-  }
-  
-  .row {
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  .inline {
-    flex-direction: column;
-    gap: 16px;
-    text-align: center;
-  }
-  
-  .buttonContainer,
-  .accountButtons {
-    flex-direction: column;
-    width: 100%;
-  }
-  
-  .transactionButton,
-  button {
-    width: 100%;
-  }
-  
-  .text {
-    text-align: center;
-  }
-  
-  .betting-container {
-    flex-direction: row; /* Keep horizontal layout on mobile */
-    width: 100%;
-    margin: 0;
-    padding: 16px;
-  }
-  
-  .hunt-button,
-  .fish-button {
-    flex: 1;
-    min-width: 0; /* Allow buttons to shrink if needed */
-  }
-}
+
 
 
 /* Stats Panel */
@@ -613,13 +555,12 @@ button:disabled {
 
 /* Button container */
 .betting-container {
-  margin: -16px;
-  padding: 16px;
   display: flex;
+  flex-direction: row;
   gap: 8px;
-  width: calc(100% + 32px);
-  flex-direction: row; /* Force horizontal layout */
-  justify-content: stretch; /* Stretch buttons to fill container */
+  width: 100%;
+  margin: 0;
+  padding: 16px;
 }
 
 .box-header {
@@ -988,7 +929,7 @@ button:disabled {
 
 .hunt-button, 
 .fish-button {
-  flex: 1 1 0; /* Equal width distribution with 0 basis to force equal size */
+  flex: 1;
   min-height: 56px;
   padding: 12px 16px;
   border: none;
@@ -999,15 +940,15 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0; /* Remove any margins that might cause wrapping */
-  max-width: 50%; /* Ensure buttons don't exceed half the container */
+  width: 100%;
 }
 
-/* Specific gradient backgrounds */
+/* Hunt button specific styles */
 .hunt-button { 
   background: linear-gradient(to right, #10b981, #059669);
 }
 
+/* Fish button specific styles */
 .fish-button { 
   background: linear-gradient(to right, #f43f5e, #e11d48);
 }
@@ -1059,4 +1000,61 @@ button:disabled {
 
 .bet-button.fish-type {
   background: linear-gradient(to right, #f43f5e, #e11d48) !important;
+}
+
+/* Responsive */
+@media screen and (max-width: 600px) {
+  .container {
+    margin: 8px;
+    padding: 16px;
+  }
+  
+  .header-logo {
+    height: 40px;
+  }
+  
+  .detail-row {
+    padding: 6px 0;
+  }
+  
+  .detail-label,
+  .detail-value {
+    font-size: 13px;
+  }
+  
+  .row {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .inline {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+  
+  .buttonContainer,
+  .accountButtons {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .transactionButton,
+  button {
+    width: 100%;
+  }
+  
+  .text {
+    text-align: center;
+  }
+
+  .betting-container {
+    flex-direction: row;
+    padding: 16px;
+  }
+  
+  .hunt-button,
+  .fish-button {
+    flex: 1;
+  }
 }
