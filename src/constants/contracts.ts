@@ -1,4 +1,3 @@
-// Export des ABI des contrats
   export const BOX_ABI = [
     {
       "inputs": [],
@@ -191,7 +190,7 @@
       "stateMutability": "view",
       "type": "function"
   }
-] as const;
+  ] as const;
     
   export const FACTORY_ABI = [
         {"inputs":[{"internalType":"address","name":"_initialOracleAddress","type":"address"},{"internalType":"address","name":"_initialStakingAddress","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
@@ -211,7 +210,7 @@
         {"inputs":[{"internalType":"address","name":"_newStakingAddress","type":"address"}],"name":"setStakingAddress","outputs":[],"stateMutability":"nonpayable","type":"function"},
         {"inputs":[],"name":"stakingAddress","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
         {"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"}
-] as const;
+  ] as const;
   
   export const ORACLE_ABI = [
         {
@@ -597,7 +596,7 @@
           "stateMutability": "view",
           "type": "function"
         }
-] as const;
+  ] as const;
   
   export const KRILL_ABI = [
         {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
@@ -669,7 +668,7 @@
         {"inputs":[{"internalType":"address","name":"newImplementation","type":"address"},{"internalType":"bytes","name":"data","type":"bytes"}],"name":"upgradeToAndCall","outputs":[],"stateMutability":"payable","type":"function"},
         {"inputs":[],"name":"version","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"pure","type":"function"},
         {"stateMutability":"payable","type":"receive"}
-] as const;
+  ] as const;
   
   // Adresses des contrats
   export const ADDRESSES = {

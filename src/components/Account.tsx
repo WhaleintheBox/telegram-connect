@@ -1,4 +1,5 @@
 import { useAccount, useDisconnect, useEnsAvatar, useEnsName } from 'wagmi';
+import KrillClaimButton from './KrillClaimButton';
 
 export function Account(props: { botName: string }) {
   const { address, connector } = useAccount();
@@ -29,6 +30,10 @@ export function Account(props: { botName: string }) {
           </div>
         </div>
         <div className="accountButtons">
+          {/* Bouton de claim KRILL */}
+          <KrillClaimButton />
+          
+          {/* Bouton retour vers Telegram */}
           <a
             href={`https://t.me/${props.botName}`}
             target="_blank"
@@ -38,6 +43,8 @@ export function Account(props: { botName: string }) {
               Back to chat
             </button>
           </a>
+          
+          {/* Bouton de déconnexion */}
           <button onClick={() => disconnect()} type="button">
             Disconnect
           </button>
@@ -46,7 +53,6 @@ export function Account(props: { botName: string }) {
     </div>
   );
 }
-
 
 function formatAddress(address?: string) {
   if (!address) return null;

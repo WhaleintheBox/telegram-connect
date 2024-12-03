@@ -61,7 +61,6 @@ interface Box {
   address: string;
   chainId: number;
   sportId: string;
-  sportData: SportData;
   bets: Bet[];
   isSettled: boolean;
   totalAmount: string;
@@ -69,6 +68,16 @@ interface Box {
   lastUpdated: string;
   imageData?: string;
   initialEvents: Array<{who: string; prediction: string}>;
+  timeRemaining?: number;
+  metadata?: {
+    createdAt: string;
+    updatedAt: string;
+    version: string;
+  };
+  sportData: SportData & {
+    formattedStatus?: string;
+    timeUntilStart?: number;
+  };
 }
 
 interface Stats {
