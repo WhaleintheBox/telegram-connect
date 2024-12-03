@@ -161,53 +161,6 @@ button:disabled {
   width: 100%;
 }
 
-/* Responsive */
-@media screen and (max-width: 600px) {
-  .container {
-    margin: 8px;
-    padding: 16px;
-  }
-  
-  .header-logo {
-    height: 40px;
-  }
-  
-  .detail-row {
-    padding: 6px 0;
-  }
-  
-  .detail-label,
-  .detail-value {
-    font-size: 13px;
-  }
-  
-  .row {
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  .inline {
-    flex-direction: column;
-    gap: 16px;
-    text-align: center;
-  }
-  
-  .buttonContainer,
-  .accountButtons {
-    flex-direction: column;
-    width: 100%;
-  }
-  
-  .transactionButton,
-  button {
-    width: 100%;
-  }
-  
-  .text {
-    text-align: center;
-  }
-}
-
 .text-xl {
   font-size: 1.25rem;
   line-height: 1.75rem;
@@ -490,6 +443,17 @@ button:disabled {
   .text {
     text-align: center;
   }
+  
+  .betting-container {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .hunt-button,
+  .fish-button {
+    width: 100%;
+  }
+
 }
 
 
@@ -1020,32 +984,39 @@ button:disabled {
 }
 
 
-.hunt-button, .fish-button {
-  flex: 1;
+.hunt-button, 
+.fish-button {
+  flex: 1 1 50%; /* This ensures equal width distribution */
   min-height: 56px;
   padding: 12px 16px;
   border: none;
   color: white;
   font-weight: 600;
   border-radius: 6px;
+  transition: all 0.2s ease;
+  width: 100%; /* Ensure full width within flex container */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.hunt-button { background: linear-gradient(to right, #10b981, #059669); }
-.fish-button { background: linear-gradient(to right, #f43f5e, #e11d48); }
-
-.hunt-button:hover,
-button[class*="hunt"]:hover {
-  background: linear-gradient(to right, #059669, #047857) !important;
-  border: none !important;
+/* Specific gradient backgrounds */
+.hunt-button { 
+  background: linear-gradient(to right, #10b981, #059669);
 }
 
-
-.fish-button:hover,
-button[class*="fish"]:hover {
-  background: linear-gradient(to right, #e11d48, #be123c) !important;
-  border: none !important;
+.fish-button { 
+  background: linear-gradient(to right, #f43f5e, #e11d48);
 }
 
+/* Hover states */
+.hunt-button:hover {
+  background: linear-gradient(to right, #059669, #047857);
+}
+
+.fish-button:hover {
+  background: linear-gradient(to right, #e11d48, #be123c);
+}
 /* Style pour les boutons de montant rapide */
 .quick-amount-button {
   background: white !important;
