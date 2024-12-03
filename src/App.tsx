@@ -151,7 +151,6 @@ export default function App() {
 
   const BettingSection = ({ box }: { box: Box }) => {
     const isEthBet = !box.tokenData.address;
-    const quickAmounts = ['0.01', '0.05', '0.1', '0.5'];
     const isActive = box === activeBetBox;
     const [tokenBalance, setTokenBalance] = useState<string>('0');
     const [tokenAllowance, setTokenAllowance] = useState<string>('0');
@@ -216,6 +215,13 @@ export default function App() {
       } finally {
         setIsProcessing(false);
       }
+    };
+  
+    const getQuickAmounts = (isEthToken: boolean): string[] => {
+      if (isEthToken) {
+        return ['0.005', '0.01', '0.1', '0.5', '1'];
+      }
+      return ['5', '10', '25', '50', '100'];
     };
     
     // Fetch balances on mount
@@ -364,36 +370,39 @@ export default function App() {
       await betTx.wait();
     };
   
+    // Dans le BettingSection, quand !isActive
     if (!isActive) {
       return (
-        <div className="w-full flex flex-col gap-4 pt-2 pb-4">
-          <button
-            onClick={() => {
-              setSelectedBetType('hunt');
-              setActiveBetBox(box);
-            }}
-            className="hunt-button w-full h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
-            disabled={isProcessing}
-          >
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-2xl">🎯</span>
-              <span className="text-lg">Hunt</span>
-            </div>
-          </button>
-    
-          <button
-            onClick={() => {
-              setSelectedBetType('fish');
-              setActiveBetBox(box);
-            }}
-            className="fish-button w-full h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
-            disabled={isProcessing}
-          >
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-2xl">🎣</span>
-              <span className="text-lg">Fish</span>
-            </div>
-          </button>
+        <div className="w-full mt-2"> {/* Changed from flex container to full width block */}
+          <div className="flex flex-col gap-3"> {/* Adjusted gap and added flex container */}
+            <button
+              onClick={() => {
+                setSelectedBetType('hunt');
+                setActiveBetBox(box);
+              }}
+              className="hunt-button w-full h-12 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
+              disabled={isProcessing}
+            >
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-2xl">🎯</span>
+                <span className="text-lg">Hunt</span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedBetType('fish');
+                setActiveBetBox(box);
+              }}
+              className="fish-button w-full h-12 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
+              disabled={isProcessing}
+            >
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-2xl">🎣</span>
+                <span className="text-lg">Fish</span>
+              </div>
+            </button>
+          </div>
         </div>
       );
     }
@@ -423,7 +432,7 @@ export default function App() {
               ← Back
             </button>
           </div>
-  
+    
           {/* Affichage des soldes */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             {!isEthBet && (
@@ -441,44 +450,60 @@ export default function App() {
               </div>
             </div>
           </div>
-  
-          {/* Quick Amount Buttons dans une grille 2x2 */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            {quickAmounts.map(amount => (
-              <button
-                key={amount}
-                onClick={() => setCustomAmount(amount)}
-                className={`quick-amount-button py-4 rounded-lg font-bold text-lg transition-all ${
-                  customAmount === amount ? 'selected' : ''
-                }`}
-              >
-                {amount} {box.tokenData.symbol || 'ETH'}
-              </button>
-            ))}
+    
+          {/* Input et montants prédéfinis améliorés */}
+          <div className="space-y-6">
+            {/* Input personnalisé en premier */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <span className="text-gray-500 font-medium">
+                  {isEthBet ? 'ETH' : box.tokenData.symbol}
+                </span>
+              </div>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={customAmount}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setCustomAmount(value);
+                  }
+                }}
+                className={`
+                  w-full pl-16 pr-4 py-4 text-lg font-bold border-2 rounded-xl
+                  ${selectedBetType === 'hunt' 
+                    ? 'border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500' 
+                    : 'border-rose-200 focus:border-rose-500 focus:ring-rose-500'
+                  }
+                  focus:ring-2 focus:outline-none transition-all
+                `}
+                placeholder="Enter amount"
+              />
+            </div>
+    
+            {/* Montants prédéfinis avec les bonnes valeurs */}
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+              {getQuickAmounts(isEthBet).map(amount => (
+                <button
+                  key={amount}
+                  onClick={() => setCustomAmount(amount)}
+                  className={`
+                    py-3 px-2 rounded-lg font-bold text-base transition-all
+                    ${customAmount === amount 
+                      ? selectedBetType === 'hunt'
+                        ? 'bg-emerald-100 text-emerald-800 border-2 border-emerald-300'
+                        : 'bg-rose-100 text-rose-800 border-2 border-rose-300'
+                      : 'bg-gray-50 text-gray-700 border-2 border-gray-200 hover:bg-gray-100'
+                    }
+                  `}
+                >
+                  {amount} {isEthBet ? 'ETH' : box.tokenData.symbol}
+                </button>
+              ))}
+            </div>
           </div>
-  
-          {/* Input personnalisé */}
-          <div className="relative mb-6">
-            <input
-              type="text"
-              inputMode="decimal"
-              value={customAmount}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                  setCustomAmount(value);
-                }
-              }}
-              className={`
-                w-full px-4 py-4 text-lg font-bold border-2 rounded-lg
-                ${selectedBetType === 'hunt' 
-                  ? 'border-emerald-200 focus:border-emerald-500' 
-                  : 'border-rose-200 focus:border-rose-500'}
-              `}
-              placeholder={`Enter amount in ${box.tokenData.symbol || 'ETH'}`}
-            />
-          </div>
-  
+    
           {/* Boutons d'action */}
           {transactionStatus === 'initial' ? (
             <>
