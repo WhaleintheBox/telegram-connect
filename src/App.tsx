@@ -22,8 +22,14 @@ type TokensType = {
 interface Filters {
   sports: SportsType;
   tokens: TokensType;
+  status: {
+    open: boolean;
+    live: boolean;
+    closed: boolean;
+  };
   myGames: boolean;
 }
+
 
 const SPORT_EMOJIS: Record<keyof SportsType, string> = {
   SOCCER: '⚽', F1: '🏎️', MMA: '🥊', NFL: '🏈', BASKETBALL: '🏀'
@@ -110,6 +116,11 @@ export default function App() {
       KRILL: false,
       custom: ''
     },
+    status: {
+      open: false,
+      live: false,
+      closed: false
+    },
     myGames: false
   });
 
@@ -121,6 +132,24 @@ export default function App() {
     setCallbackError(error);
   };
 
+  const getTotalAmount = (box: Box): string => {
+    // Vérifier si c'est un token ETH (adresse nulle ou 0x000...)
+    const isEthToken = !box.tokenData.address || box.tokenData.address === '0x0000000000000000000000000000000000000000';
+    
+    try {
+      // Calculer le total des paris
+      const total = box.bets.reduce((sum, bet) => {
+        return sum + BigInt(bet.amount);
+      }, BigInt(0));
+      
+      // Formater selon le type de token
+      const formattedTotal = formatEther(total);
+      return `${parseFloat(formattedTotal).toFixed(4)} ${isEthToken ? 'ETH' : box.tokenData.symbol}`;
+    } catch (error) {
+      console.error('Error calculating total amount:', error);
+      return '0.0000';
+    }
+  };
 
   const BettingSection = ({ box }: { box: Box }) => {
     const isEthBet = !box.tokenData.address;
@@ -134,7 +163,22 @@ export default function App() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [transactionStatus, setTransactionStatus] = useState<'initial' | 'approving' | 'approved' | 'betting' | 'complete'>('initial');
     const [currentTxHash, setCurrentTxHash] = useState<string | null>(null);
-  
+    const handleBetError = (error: any) => {
+      console.error('Betting error:', error);
+      setTransactionStatus('initial');
+      
+      const errorMessage = error.message || "Transaction failed";
+      if (errorMessage.includes("user rejected") || errorMessage.includes("User denied")) {
+        alert("Transaction was rejected by your wallet");
+      } else if (errorMessage.includes("insufficient funds")) {
+        alert("Your balance is insufficient for this transaction");
+      } else if (errorMessage.includes("gas")) {
+        alert("Gas estimation failed. Please ensure you have enough ETH for gas fees");
+      } else {
+        alert(errorMessage);
+      }
+    };
+
     const resetBettingState = () => {
       setSelectedBetType(null);
       setActiveBetBox(null);
@@ -243,8 +287,13 @@ export default function App() {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         const amountInWei = ethers.parseEther(customAmount);
+        const prediction = selectedBetType === 'hunt' ? "true" : "false";
     
-        if (isEthBet) {
+        // Vérifier si c'est un token ETH
+        const isEthToken = !box.tokenData.address || box.tokenData.address === '0x0000000000000000000000000000000000000000';
+    
+        if (isEthToken) {
+          // Transaction ETH directe
           const currentBalance = await provider.getBalance(address);
           const feeData = await provider.getFeeData();
           
@@ -253,9 +302,8 @@ export default function App() {
           }
     
           const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
-          // Using boolean for prediction instead of string
           const estimatedGas = await boxContract.createBet.estimateGas(
-            selectedBetType === 'hunt', // true for hunt, false for fish
+            prediction,
             { value: amountInWei }
           );
           
@@ -266,56 +314,56 @@ export default function App() {
           }
     
           setTransactionStatus('betting');
-          const tx = await boxContract.createBet(
-            selectedBetType === 'hunt', // true for hunt, false for fish
-            {
-              value: amountInWei,
-              gasLimit: estimatedGas * BigInt(120) / BigInt(100)
-            }
-          );
+          const tx = await boxContract.createBet(prediction, {
+            value: amountInWei,
+            gasLimit: estimatedGas * BigInt(120) / BigInt(100)
+          });
           
           setCurrentTxHash(tx.hash);
           await tx.wait();
           
         } else {
-          const tokenContract = new ethers.Contract(
-            box.tokenData.address!,
-            ERC20_ABI,
-            signer
-          );
-          
-          if (isApprovalRequired) {
-            setTransactionStatus('approving');
-            const approveTx = await tokenContract.approve(box.address, amountInWei);
-            setCurrentTxHash(approveTx.hash);
-            await approveTx.wait();
-          }
-    
-          setTransactionStatus('betting');
-          const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
-          // Using boolean for prediction instead of string
-          const betTx = await boxContract.createBetWithAmount(
-            selectedBetType === 'hunt', // true for hunt, false for fish
-            amountInWei
-          );
-          
-          setCurrentTxHash(betTx.hash);
-          await betTx.wait();
+          // Processus en deux étapes pour les tokens ERC20
+          await handleERC20Bet(signer, prediction, amountInWei);
         }
     
         setTransactionStatus('complete');
         await fetchBoxes();
         
       } catch (error: any) {
-        console.error('Betting error:', error);
-        setTransactionStatus('initial');
-        alert(error.message);
+        handleBetError(error);
       } finally {
         setIsProcessing(false);
         if (transactionStatus === 'complete') {
           setTimeout(resetBettingState, 2000);
         }
       }
+    };
+    
+    // Fonction séparée pour gérer les paris en ERC20
+    const handleERC20Bet = async (signer: ethers.Signer, prediction: string, amountInWei: bigint) => {
+      const tokenContract = new ethers.Contract(
+        box.tokenData.address!,
+        ERC20_ABI,
+        signer
+      );
+      
+      if (isApprovalRequired) {
+        setTransactionStatus('approving');
+        const approveTx = await tokenContract.approve(box.address, amountInWei);
+        setCurrentTxHash(approveTx.hash);
+        await approveTx.wait();
+      }
+    
+      setTransactionStatus('betting');
+      const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
+      const betTx = await boxContract.createBetWithAmount(
+        prediction,
+        amountInWei
+      );
+      
+      setCurrentTxHash(betTx.hash);
+      await betTx.wait();
     };
   
     if (!isActive) {
@@ -485,6 +533,8 @@ export default function App() {
       </div>
     );
   };
+
+
   
   const TransactionStatus = ({ 
     status, 
@@ -643,26 +693,57 @@ export default function App() {
   };
 
   const getFilteredBoxes = (boxes: Box[]) => {
+    if (!Array.isArray(boxes)) return [];
+    
     return boxes.filter(box => {
-      const sportId = box.sportId as keyof SportsType;
-      const hasSportFilter = Object.values(filters.sports).some(v => v);
-      const sportMatch = !hasSportFilter || filters.sports[sportId];
+      if (!box) return false;
       
-      const isEth = !box.tokenData.address;
-      const isKrill = box.tokenData.symbol === 'KRILL';
-      const isCustomToken = box.tokenData.address?.toLowerCase() === filters.tokens.custom.toLowerCase();
-      const hasTokenFilter = filters.tokens.ETH || filters.tokens.KRILL || filters.tokens.custom;
-      const tokenMatch = !hasTokenFilter || 
-                      (filters.tokens.ETH && isEth) ||
-                      (filters.tokens.KRILL && isKrill) ||
-                      (filters.tokens.custom && isCustomToken);
-      
-      const myGamesMatch = !filters.myGames || 
-                        (address && box.bets.some(bet => 
-                          bet.participant.toLowerCase() === address.toLowerCase()
-                        ));
-      
-      return sportMatch && tokenMatch && myGamesMatch;
+      try {
+        // Sport filtering - avec protection contre les undefined
+        const sportId = String(box.sportId || '');
+        const hasSportFilter = Object.values(filters.sports).some(v => v);
+        const sportMatch = !hasSportFilter || (sportId in filters.sports && filters.sports[sportId as keyof SportsType]);
+        
+        // Token filtering - avec protection contre les undefined
+        const tokenData = box.tokenData || { address: null, symbol: '' };
+        const isEth = !tokenData.address || tokenData.address === '0x0000000000000000000000000000000000000000';
+        const isKrill = tokenData.symbol === 'KRILL';
+        
+        // Custom token handling
+        const customAddr = (filters.tokens.custom || '').toLowerCase();
+        const boxAddr = (tokenData.address || '').toLowerCase();
+        const hasCustomToken = customAddr !== '' && boxAddr === customAddr;
+    
+        const hasTokenFilter = filters.tokens.ETH || filters.tokens.KRILL || customAddr !== '';
+        const tokenMatch = !hasTokenFilter || 
+                        (filters.tokens.ETH && isEth) ||
+                        (filters.tokens.KRILL && isKrill) ||
+                        hasCustomToken;
+        
+        // Game ownership filtering - avec protection contre les undefined
+        const myGamesMatch = !filters.myGames || (
+          address && 
+          Array.isArray(box.bets) && 
+          box.bets.some(bet => 
+            bet && 
+            typeof bet.participant === 'string' && 
+            bet.participant.toLowerCase() === address.toLowerCase()
+          )
+        );
+    
+        // Status filtering - avec protection contre les undefined
+        const boxStatus = box.sportData?.status || '';
+        const isLive = boxStatus === 'live';
+        const statusMatch = (!filters.status.open && !filters.status.live && !filters.status.closed) || 
+                           (filters.status.closed && !!box.isSettled) ||
+                           (filters.status.live && isLive) ||
+                           (filters.status.open && !box.isSettled && !isLive);
+    
+        return sportMatch && tokenMatch && myGamesMatch && statusMatch;
+      } catch (error) {
+        console.error('Error filtering box:', box, error);
+        return false;
+      }
     });
   };
 
@@ -692,6 +773,7 @@ export default function App() {
         .catch(setSchemaError);
     }
   }, []);
+
 
   return (
     <>
@@ -805,6 +887,48 @@ export default function App() {
                 </div>
               </div>
 
+
+              <div className="filter-group">
+                <span className="filter-label">Status</span>
+                <div className="filter-options">
+                  <label className="inline-flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={filters.status.open}
+                      onChange={(e) => setFilters(prev => ({
+                        ...prev,
+                        status: { ...prev.status, open: e.target.checked }
+                      }))}
+                      className="form-checkbox h-4 w-4 text-emerald-600 rounded border-gray-300"
+                    />
+                    <span className="ml-2">🟢 Open</span>
+                  </label>
+                  <label className="inline-flex items-center ml-4">
+                    <input
+                      type="checkbox"
+                      checked={filters.status.live}
+                      onChange={(e) => setFilters(prev => ({
+                        ...prev,
+                        status: { ...prev.status, live: e.target.checked }
+                      }))}
+                      className="form-checkbox h-4 w-4 text-yellow-600 rounded border-gray-300"
+                    />
+                    <span className="ml-2">🟡 Live</span>
+                  </label>
+                  <label className="inline-flex items-center ml-4">
+                    <input
+                      type="checkbox"
+                      checked={filters.status.closed}
+                      onChange={(e) => setFilters(prev => ({
+                        ...prev,
+                        status: { ...prev.status, closed: e.target.checked }
+                      }))}
+                      className="form-checkbox h-4 w-4 text-red-600 rounded border-gray-300"
+                    />
+                    <span className="ml-2">🔴 Closed</span>
+                  </label>
+                </div>
+              </div>
               {isConnected && (
                 <div className="filter-group">
                   <span className="filter-label">View</span>
@@ -867,8 +991,8 @@ export default function App() {
 
                           <div className="total-amount-highlight">
                             <div className="amount-label">Total Pool</div>
-                            <div className="amount-value">
-                              {formatEther(BigInt(box.totalAmount || '0'))} {box.tokenData.symbol || 'ETH'}
+                            <div className={`amount-value ${getTotalAmount(box) !== '0.0000' ? 'animate-pulse' : ''}`}>
+                              {getTotalAmount(box)} {box.tokenData.symbol || 'ETH'}
                             </div>
                           </div>
 
