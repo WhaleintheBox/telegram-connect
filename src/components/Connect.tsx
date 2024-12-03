@@ -1,36 +1,52 @@
+// Connect.tsx
 import * as React from 'react';
 import { Connector, useConnect } from 'wagmi';
 
 export function Connect() {
-  const { connectors, connect, isPending } = useConnect();
+  const { connectors, connect } = useConnect();
 
   return (
     <div className="container">
-      <div className="grid grid-cols-1 gap-4 p-4">
+      <div className="set">
         {connectors.map((connector) => (
           <ConnectorButton
             key={connector.uid}
             connector={connector}
-            onClick={() => connect({ connector, chainId: 8453 })} // Force Base chain
-            isLoading={isPending}
+            onClick={() => {
+              // Sur mobile, forcer WalletConnect si ce n'est pas une dApp browser
+              if (window.ethereum === undefined && 
+                  connector.name.toLowerCase().includes('injected')) {
+                const walletConnectConnector = connectors.find(c => 
+                  c.name.toLowerCase().includes('walletconnect')
+                );
+                if (walletConnectConnector) {
+                  connect({ connector: walletConnectConnector, chainId: 8453 });
+                  return;
+                }
+              }
+              connect({ connector, chainId: 8453 });
+            }}
           />
         ))}
       </div>
+
+      {/* Message d'aide pour mobile */}
+      {window.ethereum === undefined && (
+        <div className="mt-4 text-sm text-center text-gray-600">
+          💡 Tip: Pour une meilleure expérience sur mobile, utilisez WalletConnect ou ouvrez ce site dans une dApp browser comme MetaMask.
+        </div>
+      )}
     </div>
   );
-}
-
-interface ConnectorButtonProps {
-  connector: Connector;
-  onClick: () => void;
-  isLoading?: boolean;
 }
 
 function ConnectorButton({
   connector,
   onClick,
-  isLoading
-}: ConnectorButtonProps) {
+}: {
+  connector: Connector;
+  onClick: () => void;
+}) {
   const [ready, setReady] = React.useState(false);
   
   React.useEffect(() => {
@@ -39,25 +55,25 @@ function ConnectorButton({
         const provider = await connector.getProvider();
         setReady(!!provider);
       } catch (error) {
-        console.error('Error getting provider:', error);
+        console.error('Error checking provider:', error);
         setReady(false);
       }
     }
-
+    
     checkProvider();
   }, [connector]);
 
   return (
     <button
-      disabled={!ready || isLoading}
+      disabled={!ready}
       onClick={onClick}
       type="button"
-      className="w-full px-6 py-4 text-lg font-semibold text-white rounded-xl transition-all transform hover:-translate-y-0.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:opacity-50"
+      className="w-full sm:w-1/3 h-14 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-xl shadow-lg hover:from-blue-600 hover:to-blue-700 hover:shadow-blue-200/50 hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
     >
       <div className="flex items-center justify-center gap-3">
         {getConnectorIcon(connector.name)}
-        <span>
-          {isLoading ? 'Connecting...' : `Connect with ${connector.name}`}
+        <span className="text-lg">
+          {`Connect with ${connector.name}`}
         </span>
       </div>
     </button>
