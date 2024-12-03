@@ -697,6 +697,17 @@ export default function App() {
       if (!box || !box.sportData || !box.tokenData) return false;
       
       try {
+        // Si aucun filtre n'est sélectionné du tout, on montre toutes les boxes
+        const hasAnyFilter = Object.values(filters.sports).some(v => v) || 
+                           filters.tokens.ETH || 
+                           filters.tokens.KRILL || 
+                           filters.tokens.custom !== '' ||
+                           filters.status.open ||
+                           filters.status.closed ||
+                           filters.myGames;
+                           
+        if (!hasAnyFilter) return true;
+  
         // Sport filtering
         const sportId = String(box.sportId || '');
         const hasSportFilter = Object.values(filters.sports).some(v => v);
@@ -709,7 +720,7 @@ export default function App() {
         const customAddr = (filters.tokens.custom || '').toLowerCase();
         const boxAddr = (box.tokenData.address || '').toLowerCase();
         const hasCustomToken = customAddr !== '' && boxAddr === customAddr;
-    
+  
         const hasTokenFilter = filters.tokens.ETH || filters.tokens.KRILL || customAddr !== '';
         const tokenMatch = !hasTokenFilter || 
                         (filters.tokens.ETH && isEth) ||
@@ -728,15 +739,16 @@ export default function App() {
         );
       
         // Status filtering basé uniquement sur le temps restant
-        const noStatusFilter = !filters.status.open && !filters.status.closed;
         const scheduledTime = box.sportData?.scheduled ? new Date(box.sportData.scheduled).getTime() : 0;
         const isBoxOpen = scheduledTime > Date.now() && !box.isSettled;
+        const isBoxClosed = box.isSettled || scheduledTime <= Date.now();
         
-        const statusMatch = noStatusFilter || 
-                         (filters.status.closed && (box.isSettled || scheduledTime <= Date.now())) ||
+        const statusMatch = (!filters.status.open && !filters.status.closed) || 
+                         (filters.status.closed && isBoxClosed) ||
                          (filters.status.open && isBoxOpen);
-    
+  
         return sportMatch && tokenMatch && myGamesMatch && statusMatch;
+        
       } catch (error) {
         console.error('Error filtering box:', box, error);
         return false;
