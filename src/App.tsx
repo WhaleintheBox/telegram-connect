@@ -230,7 +230,11 @@ export default function App() {
           const baseEthBalance = await provider.getBalance(address);
           setEthBalance(ethers.formatEther(baseEthBalance));
           
-          if (!isEthBet && box.tokenData.address) {
+          // Check if it's ETH (null address or 0x000...)
+          const isEthToken = !box.tokenData.address || box.tokenData.address === '0x0000000000000000000000000000000000000000';
+          
+          // Only fetch token balances for non-ETH tokens
+          if (!isEthToken && box.tokenData.address) {
             if (!ethers.isAddress(box.tokenData.address)) {
               console.warn('Invalid token address');
               return;
@@ -247,7 +251,7 @@ export default function App() {
               ERC20_ABI,
               provider
             );
-  
+
             const [balance, allowance] = await Promise.all([
               tokenContract.balanceOf(address),
               tokenContract.allowance(address, box.address)
@@ -255,6 +259,10 @@ export default function App() {
             
             setTokenBalance(ethers.formatEther(balance));
             setTokenAllowance(ethers.formatEther(allowance));
+          } else {
+            // For ETH, set token balance to ETH balance and max allowance
+            setTokenBalance(ethers.formatEther(baseEthBalance));
+            setTokenAllowance(ethers.MaxUint256.toString());
           }
         } catch (error) {
           console.error('Error fetching balances:', error);
@@ -262,20 +270,30 @@ export default function App() {
       };
       
       fetchBalances();
-    }, [box.tokenData.address, address, isEthBet]);
-      
-  
+    }, [box.tokenData.address, address]);
+
+    // Check approval requirements
     useEffect(() => {
-      if (!isEthBet && customAmount) {
-        try {
+      try {
+        // Check if it's ETH (null address or 0x000...)
+        const isEthToken = !box.tokenData.address || box.tokenData.address === '0x0000000000000000000000000000000000000000';
+        
+        // Never require approval for ETH
+        if (isEthToken) {
+          setIsApprovalRequired(false);
+          return;
+        }
+        
+        // Check approval for ERC20 tokens only if we have a custom amount
+        if (customAmount) {
           const amountInWei = ethers.parseEther(customAmount);
           const currentAllowance = ethers.parseEther(tokenAllowance);
           setIsApprovalRequired(amountInWei > currentAllowance);
-        } catch (error) {
-          console.warn('Invalid amount for approval check:', error);
         }
+      } catch (error) {
+        console.warn('Invalid amount for approval check:', error);
       }
-    }, [customAmount, tokenAllowance, isEthBet]);
+    }, [customAmount, tokenAllowance, box.tokenData.address]);
   
     const handleBet = async () => {
       if (!window.ethereum || !customAmount || !address) return;
@@ -287,30 +305,23 @@ export default function App() {
         const amountInWei = ethers.parseEther(customAmount);
         const prediction = selectedBetType === 'hunt' ? "true" : "false";
     
-        // Vérifier si c'est un token ETH
+        // Check if it's ETH (null address or 0x000...)
         const isEthToken = !box.tokenData.address || box.tokenData.address === '0x0000000000000000000000000000000000000000';
     
-        if (isEthToken) {
-          // Transaction ETH simplifiée
-          setTransactionStatus('betting');
-          const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
-          
-          // Ajouter une marge de 10% pour le gas
-          const gasLimit = await boxContract.createBet.estimateGas(
-            prediction,
-            { value: amountInWei }
-          );
-          const adjustedGasLimit = (gasLimit * BigInt(110)) / BigInt(100);
+        setTransactionStatus('betting');
+        const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
     
+        if (isEthToken) {
+          // Direct ETH transaction
           const tx = await boxContract.createBet(prediction, {
             value: amountInWei,
-            gasLimit: adjustedGasLimit
+            gasLimit: 300000 // Fixed gas limit for ETH transactions
           });
           
           setCurrentTxHash(tx.hash);
           await tx.wait();
         } else {
-          // Processus en deux étapes pour les tokens ERC20
+          // ERC20 token transaction
           await handleERC20Bet(signer, prediction, amountInWei);
         }
     
@@ -370,8 +381,7 @@ export default function App() {
               <span className="text-lg">Hunt</span>
             </div>
           </button>
-  
-          {/* Bouton Fish */}
+
           <button
             onClick={() => {
               setSelectedBetType('fish');
@@ -437,14 +447,9 @@ export default function App() {
                 onClick={() => setCustomAmount(amount)}
                 className={`
                   py-4 rounded-lg font-bold text-lg transition-all
-                  ${selectedBetType === 'hunt' 
-                    ? customAmount === amount 
-                      ? 'bg-emerald-100 text-emerald-800 shadow-inner' 
-                      : 'bg-white text-emerald-600 hover:bg-emerald-50 border-2 border-emerald-200'
-                    : customAmount === amount 
-                      ? 'bg-rose-100 text-rose-800 shadow-inner' 
-                      : 'bg-white text-rose-600 hover:bg-rose-50 border-2 border-rose-200'
-                  }
+                  ${customAmount === amount 
+                    ? 'bg-gray-100 text-gray-800 shadow-inner' 
+                    : 'bg-white text-gray-600 hover:bg-gray-50 border-2 border-gray-200'}
                 `}
               >
                 {amount} {box.tokenData.symbol || 'ETH'}
