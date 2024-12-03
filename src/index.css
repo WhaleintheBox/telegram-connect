@@ -416,19 +416,30 @@ button:disabled {
 }
 
 .stats-title {
-  font-family: 'Impact', sans-serif;
-  font-size: 3rem;
-  font-weight: bold;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  color: #2d3748; /* Une couleur de texte foncée */
-  text-shadow: 
-    2px 2px 0 #fff, 
-    -2px -2px 0 #fff, 
-    2px -2px 0 #fff, 
-    -2px 2px 0 #fff, 
-    3px 3px 5px rgba(0,0,0,0.5); /* Une ombre portée pour un effet 3D */
+  letter-spacing: 1px;
+  color: #1a202c;
+  margin: 1rem auto;
+  padding: 0.5rem;
+  position: relative;
+  display: flex; /* Changer display à flex */
+  justify-content: center; /* Centrer horizontalement */
+  align-items: center; /* Centrer verticalement */
 }
+
+.stats-title::before {
+  content: '🐳';
+  margin-right: 0.5rem;
+}
+
+.stats-title::after {
+  content: '📦';
+  margin-left: 0.5rem;
+}
+
 
 .stats-grid {
   display: grid;
