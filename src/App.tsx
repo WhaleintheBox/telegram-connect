@@ -153,7 +153,7 @@ export default function App() {
   };
 
   const BettingSection = ({ box }: { box: Box }) => {
-    const isEthBet = !box.tokenData.address;
+    const isEthBet = !box.tokenData.address || box.tokenData.address === '0x0000000000000000000000000000000000000000';
     const isActive = box === activeBetBox;
     const [tokenBalance, setTokenBalance] = useState<string>('0');
     const [tokenAllowance, setTokenAllowance] = useState<string>('0');
@@ -223,11 +223,11 @@ export default function App() {
     const getQuickAmounts = (isEthToken: boolean, symbol: string): QuickAmount[] => {
       if (isEthToken) {
         return [
+          { value: '0.0025', display: '0.0025 ETH' },
           { value: '0.005', display: '0.005 ETH' },
           { value: '0.01', display: '0.01 ETH' },
-          { value: '0.03', display: '0.03 ETH' },
-          { value: '0.05', display: '0.05 ETH' }, 
-          { value: '0.1', display: '0.1 ETH' }
+          { value: '0.025', display: '0.025 ETH' },
+          { value: '0.05', display: '0.05 ETH' }
         ];
       }
       // Pour les tokens ERC20
