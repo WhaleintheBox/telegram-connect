@@ -414,35 +414,35 @@ export default function App() {
       return (
         <div className="w-full px-4 py-2"> {/* Padding ajusté */}
           <div className="flex flex-col gap-2"> {/* Espacement réduit */}
-            <div className="flex gap-2 w-full"> {/* Conteneur flex pour les boutons */}
-              <button
-                onClick={() => {
-                  setSelectedBetType('hunt');
-                  setActiveBetBox(box);
-                }}
-                className="hunt-button flex-1 h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
-                disabled={isProcessing}
-              >
-                <div className="flex items-center justify-center gap-3">
-                  <span className="text-2xl">🎯</span>
-                  <span className="text-lg">Hunt</span>
-                </div>
-              </button>
-    
-              <button
-                onClick={() => {
-                  setSelectedBetType('fish');
-                  setActiveBetBox(box);
-                }}
-                className="fish-button flex-1 h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50"
-                disabled={isProcessing}
-              >
-                <div className="flex items-center justify-center gap-3">
-                  <span className="text-2xl">🎣</span>
-                  <span className="text-lg">Fish</span>
-                </div>
-              </button>
-            </div>
+          <div className="w-full flex gap-2">
+            <button
+              onClick={() => {
+                setSelectedBetType('hunt');
+                setActiveBetBox(box);
+              }}
+              className="hunt-button h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50 flex-1"
+              disabled={isProcessing}
+            >
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-2xl">🎯</span>
+                <span className="text-lg">Hunt</span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedBetType('fish');
+                setActiveBetBox(box);
+              }}
+              className="fish-button h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all disabled:opacity-50 flex-1"
+              disabled={isProcessing}
+            >
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-2xl">🎣</span>
+                <span className="text-lg">Fish</span>
+              </div>
+            </button>
+          </div>
           </div>
         </div>
       );
