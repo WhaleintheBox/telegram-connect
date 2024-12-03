@@ -1060,8 +1060,7 @@ export default function App() {
                           {box.initialEvents && box.initialEvents.length > 0 && (
                             <div className="predictions-section bg-gray-50 rounded-lg p-4 my-4">
                               <div className="flex items-center gap-2 mb-4">
-                                <span className="text-lg">🔮</span>
-                                <h4 className="text-sm font-semibold text-gray-700">Latest Predictions</h4>
+                                <span className="text-lg">🔮 Predictions</span>
                               </div>
                               <div className="space-y-3">
                                 {box.initialEvents.slice(0, 4).map((event, index) => {
@@ -1077,7 +1076,7 @@ export default function App() {
                                     >
                                       {/* Who section */}
                                       <div className="flex items-center gap-2 mb-2 text-blue-600 font-medium">
-                                        <span className="text-sm">👤</span>
+                                        <span className="text-sm">🧞‍♂️</span>
                                         <span className="text-sm truncate" title={event.who}>
                                           {event.who}
                                         </span>
