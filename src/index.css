@@ -416,11 +416,18 @@ button:disabled {
 }
 
 .stats-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  text-align: center;
-  color: #0f172a;
+  font-family: 'Impact', sans-serif;
+  font-size: 3rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #2d3748; /* Une couleur de texte foncée */
+  text-shadow: 
+    2px 2px 0 #fff, 
+    -2px -2px 0 #fff, 
+    2px -2px 0 #fff, 
+    -2px 2px 0 #fff, 
+    3px 3px 5px rgba(0,0,0,0.5); /* Une ombre portée pour un effet 3D */
 }
 
 .stats-grid {
