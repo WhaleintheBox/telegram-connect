@@ -24,9 +24,8 @@ interface Filters {
   tokens: TokensType;
   status: {
     open: boolean;
-    live: boolean;
     closed: boolean;
-  };
+  };  // Removed 'live' status
   myGames: boolean;
 }
 
@@ -118,7 +117,6 @@ export default function App() {
     },
     status: {
       open: false,
-      live: false,
       closed: false
     },
     myGames: false
@@ -696,22 +694,20 @@ export default function App() {
     if (!Array.isArray(boxes)) return [];
     
     return boxes.filter(box => {
-      if (!box) return false;
+      if (!box || !box.sportData || !box.tokenData) return false;
       
       try {
-        // Sport filtering - avec protection contre les undefined
+        // Sport filtering
         const sportId = String(box.sportId || '');
         const hasSportFilter = Object.values(filters.sports).some(v => v);
         const sportMatch = !hasSportFilter || (sportId in filters.sports && filters.sports[sportId as keyof SportsType]);
         
-        // Token filtering - avec protection contre les undefined
-        const tokenData = box.tokenData || { address: null, symbol: '' };
-        const isEth = !tokenData.address || tokenData.address === '0x0000000000000000000000000000000000000000';
-        const isKrill = tokenData.symbol === 'KRILL';
+        // Token filtering
+        const isEth = !box.tokenData.address || box.tokenData.address === '0x0000000000000000000000000000000000000000';
+        const isKrill = box.tokenData.symbol === 'KRILL';
         
-        // Custom token handling
         const customAddr = (filters.tokens.custom || '').toLowerCase();
-        const boxAddr = (tokenData.address || '').toLowerCase();
+        const boxAddr = (box.tokenData.address || '').toLowerCase();
         const hasCustomToken = customAddr !== '' && boxAddr === customAddr;
     
         const hasTokenFilter = filters.tokens.ETH || filters.tokens.KRILL || customAddr !== '';
@@ -720,7 +716,7 @@ export default function App() {
                         (filters.tokens.KRILL && isKrill) ||
                         hasCustomToken;
         
-        // Game ownership filtering - avec protection contre les undefined
+        // Game ownership filtering
         const myGamesMatch = !filters.myGames || (
           address && 
           Array.isArray(box.bets) && 
@@ -730,14 +726,15 @@ export default function App() {
             bet.participant.toLowerCase() === address.toLowerCase()
           )
         );
-    
-        // Status filtering - avec protection contre les undefined
-        const boxStatus = box.sportData?.status || '';
-        const isLive = boxStatus === 'live';
-        const statusMatch = (!filters.status.open && !filters.status.live && !filters.status.closed) || 
-                           (filters.status.closed && !!box.isSettled) ||
-                           (filters.status.live && isLive) ||
-                           (filters.status.open && !box.isSettled && !isLive);
+      
+        // Status filtering basé uniquement sur le temps restant
+        const noStatusFilter = !filters.status.open && !filters.status.closed;
+        const scheduledTime = box.sportData?.scheduled ? new Date(box.sportData.scheduled).getTime() : 0;
+        const isBoxOpen = scheduledTime > Date.now() && !box.isSettled;
+        
+        const statusMatch = noStatusFilter || 
+                         (filters.status.closed && (box.isSettled || scheduledTime <= Date.now())) ||
+                         (filters.status.open && isBoxOpen);
     
         return sportMatch && tokenMatch && myGamesMatch && statusMatch;
       } catch (error) {
@@ -906,18 +903,6 @@ export default function App() {
                   <label className="inline-flex items-center ml-4">
                     <input
                       type="checkbox"
-                      checked={filters.status.live}
-                      onChange={(e) => setFilters(prev => ({
-                        ...prev,
-                        status: { ...prev.status, live: e.target.checked }
-                      }))}
-                      className="form-checkbox h-4 w-4 text-yellow-600 rounded border-gray-300"
-                    />
-                    <span className="ml-2">🟡 Live</span>
-                  </label>
-                  <label className="inline-flex items-center ml-4">
-                    <input
-                      type="checkbox"
                       checked={filters.status.closed}
                       onChange={(e) => setFilters(prev => ({
                         ...prev,
@@ -1041,10 +1026,15 @@ export default function App() {
 
                           <div className="box-footer">
                             <div className="status-container">
-                              <span className={`status-badge ${box.isSettled ? 'settled' : 
-                                box.sportData?.status === 'live' ? 'live' : 'active'}`}>
-                                {box.isSettled ? '🔴 Settled' : 
-                                box.sportData?.status === 'live' ? '🟡 Live' : '🟢 Active'}
+                              <span className={`status-badge ${
+                                box.isSettled || new Date(box.sportData?.scheduled || '').getTime() <= Date.now() 
+                                  ? 'settled' 
+                                  : 'active'
+                              }`}>
+                                {box.isSettled || new Date(box.sportData?.scheduled || '').getTime() <= Date.now() 
+                                  ? '🔴 Closed' 
+                                  : '🟢 Open'
+                                }
                               </span>
                               <span className="status-badge">
                                 {box.isSettled ? '🤖 ✅' : '🤖 ⏳'}
