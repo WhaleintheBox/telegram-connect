@@ -63,6 +63,7 @@ interface Box {
   sportId: string;
   bets: Bet[];
   isSettled: boolean;
+  outcome?: boolean; // Ajouter cette ligne
   totalAmount: string;
   tokenData: TokenData;
   lastUpdated: string;
@@ -420,6 +421,52 @@ export default function App() {
   
     // Dans le BettingSection, quand !isActive
     if (!isActive) {
+      // Vérifier si le match est en direct
+      if (box.sportData?.status?.toLowerCase().includes('live')) {
+        return (
+          <div className="flex gap-2 px-4 pt-2 pb-4">
+            <div className="w-full py-3 text-center bg-yellow-50 text-yellow-800 font-semibold rounded-xl">
+              🎥 Game is Live
+            </div>
+          </div>
+        );
+      }
+    
+      // Vérifier si la box est résolue
+      if (box.isSettled) {
+        const userBet = box.bets.find(bet => 
+          bet.participant.toLowerCase() === address?.toLowerCase()
+        );
+        const hasWon = userBet && userBet.prediction === box.outcome;
+    
+        return (
+          <div className="flex gap-2 px-4 pt-2 pb-4">
+            <button
+              onClick={() => {}} // Implémenter la logique de claim plus tard
+              disabled={!hasWon}
+              className={`w-full py-3 font-bold rounded-xl transition-all
+                ${hasWon 
+                  ? 'bg-yellow-500 hover:bg-yellow-600 text-white cursor-pointer' 
+                  : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+            >
+              {hasWon ? '🏆 CLAIM REWARDS' : '❌ NO REWARDS TO CLAIM'}
+            </button>
+          </div>
+        );
+      }
+    
+      // Vérifier si le match est terminé mais non résolu
+      if (box.sportData?.scheduled && new Date(box.sportData.scheduled).getTime() <= Date.now()) {
+        return (
+          <div className="flex gap-2 px-4 pt-2 pb-4">
+            <div className="w-full py-3 text-center bg-blue-50 text-blue-800 font-semibold rounded-xl">
+              ⏳ WAITING FOR SETTLEMENT
+            </div>
+          </div>
+        );
+      }
+    
+      // Box ouverte - Afficher les boutons Hunt/Fish normaux
       return (
         <div className="flex gap-2 px-4 pt-2 pb-4">
           <button
