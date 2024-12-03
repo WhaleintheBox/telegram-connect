@@ -84,7 +84,7 @@ export function WriteContract(data: WriteContractProps) {
     <>
       <div className="container">
         <div className="header">
-          <img src="/images/logo.png" alt="Whale in the Box" className="header-logo" />
+          <img src="public/images/logo.png" alt="Whale in the Box" className="header-logo" />
         </div>
         
         <div className="transaction-info">
