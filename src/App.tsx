@@ -108,16 +108,16 @@ export default function App() {
   // Filter states
   const [filters, setFilters] = useState<Filters>({
     sports: {
-      SOCCER: false, F1: false, MMA: false, NFL: false, BASKETBALL: false
+      SOCCER: true, F1: true, MMA: true, NFL: true, BASKETBALL: true
     },
     tokens: {
-      ETH: false,
-      KRILL: false,
+      ETH: true,
+      KRILL: true,
       custom: ''
     },
     status: {
-      open: false,
-      closed: false
+      open: true,
+      closed: true
     },
     myGames: false
   });
@@ -697,21 +697,9 @@ export default function App() {
       if (!box || !box.sportData || !box.tokenData) return false;
       
       try {
-        // Si aucun filtre n'est sélectionné du tout, on montre toutes les boxes
-        const hasAnyFilter = Object.values(filters.sports).some(v => v) || 
-                           filters.tokens.ETH || 
-                           filters.tokens.KRILL || 
-                           filters.tokens.custom !== '' ||
-                           filters.status.open ||
-                           filters.status.closed ||
-                           filters.myGames;
-                           
-        if (!hasAnyFilter) return true;
-  
         // Sport filtering
-        const sportId = String(box.sportId || '');
-        const hasSportFilter = Object.values(filters.sports).some(v => v);
-        const sportMatch = !hasSportFilter || (sportId in filters.sports && filters.sports[sportId as keyof SportsType]);
+        const sportId = String(box.sportId || '').toLowerCase(); // Convertir en minuscules ici
+        const sportMatch = sportId in filters.sports && filters.sports[sportId as keyof SportsType];
         
         // Token filtering
         const isEth = !box.tokenData.address || box.tokenData.address === '0x0000000000000000000000000000000000000000';
@@ -721,11 +709,9 @@ export default function App() {
         const boxAddr = (box.tokenData.address || '').toLowerCase();
         const hasCustomToken = customAddr !== '' && boxAddr === customAddr;
   
-        const hasTokenFilter = filters.tokens.ETH || filters.tokens.KRILL || customAddr !== '';
-        const tokenMatch = !hasTokenFilter || 
-                        (filters.tokens.ETH && isEth) ||
-                        (filters.tokens.KRILL && isKrill) ||
-                        hasCustomToken;
+        const tokenMatch = (filters.tokens.ETH && isEth) ||
+                          (filters.tokens.KRILL && isKrill) ||
+                          (customAddr !== '' && hasCustomToken);
         
         // Game ownership filtering
         const myGamesMatch = !filters.myGames || (
@@ -738,14 +724,13 @@ export default function App() {
           )
         );
       
-        // Status filtering basé uniquement sur le temps restant
+        // Status filtering basé sur le temps restant
         const scheduledTime = box.sportData?.scheduled ? new Date(box.sportData.scheduled).getTime() : 0;
         const isBoxOpen = scheduledTime > Date.now() && !box.isSettled;
         const isBoxClosed = box.isSettled || scheduledTime <= Date.now();
         
-        const statusMatch = (!filters.status.open && !filters.status.closed) || 
-                         (filters.status.closed && isBoxClosed) ||
-                         (filters.status.open && isBoxOpen);
+        const statusMatch = (filters.status.open && isBoxOpen) ||
+                          (filters.status.closed && isBoxClosed);
   
         return sportMatch && tokenMatch && myGamesMatch && statusMatch;
         
