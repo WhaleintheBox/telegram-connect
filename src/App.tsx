@@ -551,7 +551,7 @@ export default function App() {
               {isProcessing 
                 ? '⏳ PROCESSING...'
                 : hasWon && parseFloat(winningsAmount) > 0
-                  ? `🏆 CLAIM ${parseFloat(winningsAmount).toFixed(4)} ${box.tokenData.symbol}`
+                  ? `🤑 CLAIM ${parseFloat(winningsAmount).toFixed(4)} ${box.tokenData.symbol}`
                   : '❌ NO REWARD TO CLAIM'
               }
             </button>
@@ -568,7 +568,7 @@ export default function App() {
               className="w-full py-3 font-bold rounded-xl transition-all bg-gray-200 text-gray-500 cursor-not-allowed"
             >
               <span className="inline-block animate-spin">⏳</span>
-              <span className="ml-2">WAITING FOR SETTLEMENT</span>
+              <span className="ml-2">WAITING FOR SETTLEMENT ⚠️</span>
             </button>
           </div>
         );

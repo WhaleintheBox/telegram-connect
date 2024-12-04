@@ -926,9 +926,9 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 50%; /* Force equal width */
-  flex: 1 1 0; /* Distribute space equally */
-  min-height: 56px;
+  width: 50%;
+  flex: 1 1 0;
+  min-height: 48px; /* Réduit de 56px à 48px */
   padding: 12px 16px;
   border: none;
   color: white;
