@@ -163,6 +163,9 @@ export default function App() {
   };
 
   const BettingSection = ({ box }: { box: Box }) => {
+    const { address } = useAccount();
+    const [winningsAmount, setWinningsAmount] = useState<string>('0');
+    const [hasUserClaimed, setHasUserClaimed] = useState(false);
     const isEthBet = !box.tokenData.address || box.tokenData.address === '0x0000000000000000000000000000000000000000';
     const isActive = box === activeBetBox;
     const [tokenBalance, setTokenBalance] = useState<string>('0');
@@ -350,6 +353,55 @@ export default function App() {
       }
     }, [customAmount, tokenAllowance, box.tokenData.address]);
   
+    useEffect(() => {
+      const checkWinnings = async () => {
+        if (!window.ethereum || !address || !box.isSettled) return;
+        try {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const boxContract = new ethers.Contract(box.address, BOX_ABI, provider);
+          
+          const winnings = await boxContract.getWinningsToClaim(address);
+          setWinningsAmount(ethers.formatEther(winnings));
+          
+          const claimedAmount = await boxContract.getTotalWinningsClaimed(address);
+          setHasUserClaimed(claimedAmount > 0);
+          
+        } catch (error) {
+          console.error('Error checking winnings:', error);
+        }
+      };
+      
+      checkWinnings();
+    }, [address, box.address, box.isSettled]);
+
+    const handleClaim = async () => {
+      if (!window.ethereum || !address) return;
+      setIsProcessing(true);
+      
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
+        
+        const tx = await boxContract.claimWinnings();
+        await tx.wait();
+        
+        setHasUserClaimed(true);
+        setWinningsAmount('0');
+        
+      } catch (error: any) { // Spécifier le type 'any' pour l'erreur
+        console.error('Error claiming winnings:', error);
+        const errorMessage = error.message || "Transaction failed";
+        if (errorMessage.includes("user rejected")) {
+          alert("Transaction was rejected by your wallet");
+        } else {
+          alert(errorMessage);
+        }
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+  
     const handleBet = async () => {
       if (!window.ethereum || !customAmount || !address) return;
       setIsProcessing(true);
@@ -419,9 +471,8 @@ export default function App() {
       await betTx.wait();
     };
   
-    // Dans le BettingSection, quand !isActive
     if (!isActive) {
-      // Vérifier si le match est en direct
+      // Si le match est en direct
       if (box.sportData?.status?.toLowerCase().includes('live')) {
         return (
           <div className="flex gap-2 px-4 pt-2 pb-4">
@@ -434,6 +485,17 @@ export default function App() {
     
       // Vérifier si la box est résolue
       if (box.isSettled) {
+        // Si l'utilisateur a déjà réclamé ses gains
+        if (hasUserClaimed) {
+          return (
+            <div className="flex gap-2 px-4 pt-2 pb-4">
+              <div className="w-full py-3 text-center bg-gray-100 text-gray-500 font-semibold rounded-xl">
+                ✅ REWARDS CLAIMED
+              </div>
+            </div>
+          );
+        }
+    
         const userBet = box.bets.find(bet => 
           bet.participant.toLowerCase() === address?.toLowerCase()
         );
@@ -442,14 +504,19 @@ export default function App() {
         return (
           <div className="flex gap-2 px-4 pt-2 pb-4">
             <button
-              onClick={() => {}} // Implémenter la logique de claim plus tard
-              disabled={!hasWon}
+              onClick={hasWon && parseFloat(winningsAmount) > 0 ? handleClaim : undefined}
+              disabled={!hasWon || parseFloat(winningsAmount) <= 0 || isProcessing}
               className={`w-full py-3 font-bold rounded-xl transition-all
-                ${hasWon 
+                ${hasWon && parseFloat(winningsAmount) > 0
                   ? 'bg-yellow-500 hover:bg-yellow-600 text-white cursor-pointer' 
                   : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
             >
-              {hasWon ? '🏆 CLAIM REWARDS' : '❌ NO REWARDS TO CLAIM'}
+              {isProcessing 
+                ? '⏳ PROCESSING...'
+                : hasWon && parseFloat(winningsAmount) > 0
+                  ? `🏆 CLAIM ${parseFloat(winningsAmount).toFixed(4)} ${box.tokenData.symbol}`
+                  : '❌ NO REWARDS TO CLAIM'
+              }
             </button>
           </div>
         );
