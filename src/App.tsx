@@ -13,6 +13,8 @@ type SportsType = {
   [key in 'SOCCER' | 'F1' | 'MMA' | 'NFL' | 'BASKETBALL']: boolean;
 };
 
+type SortOption = 'latest' | 'trending' | 'new';
+
 type TokensType = {
   ETH: boolean;
   KRILL: boolean;
@@ -97,7 +99,9 @@ interface ApiResponse {
 
 export default function App() {
   const { isConnected, address } = useAccount();
-  
+  const [sortOption, setSortOption] = useState<SortOption>('latest');
+
+
   // Core states
   const [boxes, setBoxes] = useState<Box[]>([]);
   const [stats, setStats] = useState<Stats>({
@@ -947,9 +951,9 @@ export default function App() {
   const getFilteredBoxes = (boxes: Box[]) => {
     if (!Array.isArray(boxes)) return [];
     
-    return boxes.filter(box => {
+    let filteredBoxes = boxes.filter(box => {
       if (!box || !box.sportData || !box.tokenData) return false;
-      
+
       try {
         // Sport filtering
         const sportId = String(box.sportId || '').toUpperCase();
@@ -991,6 +995,21 @@ export default function App() {
       } catch (error) {
         console.error('Error filtering box:', box, error);
         return false;
+      }
+    });
+    return filteredBoxes.sort((a, b) => {
+      switch (sortOption) {
+        case 'latest':
+          return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
+        case 'trending':
+          const volumeA = a.bets.reduce((sum, bet) => sum + BigInt(bet.amount), BigInt(0));
+          const volumeB = b.bets.reduce((sum, bet) => sum + BigInt(bet.amount), BigInt(0));
+          return Number(volumeB - volumeA);
+        case 'new':
+          return new Date(b.metadata?.createdAt || 0).getTime() - 
+                 new Date(a.metadata?.createdAt || 0).getTime();
+        default:
+          return 0;
       }
     });
   };
@@ -1054,6 +1073,27 @@ export default function App() {
                 <span className="stat-value">${Number(stats.otherTokensVolume).toFixed(2)}</span>
               </div>
             </div>
+          </div>
+
+          <div className="sort-buttons">
+            <button
+              onClick={() => setSortOption('latest')}
+              className={`sort-button ${sortOption === 'latest' ? 'active' : ''}`}
+            >
+              Latest Updates ⏱️
+            </button>
+            <button
+              onClick={() => setSortOption('trending')}
+              className={`sort-button ${sortOption === 'trending' ? 'active' : ''}`}
+            >
+              Trending 🔥
+            </button>
+            <button
+              onClick={() => setSortOption('new')}
+              className={`sort-button ${sortOption === 'new' ? 'active' : ''}`}
+            >
+              Just Added 🎯
+            </button>
           </div>
 
           {/* Filter Section */}
