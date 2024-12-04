@@ -563,10 +563,13 @@ export default function App() {
       if (box.sportData?.scheduled && new Date(box.sportData.scheduled).getTime() <= Date.now()) {
         return (
           <div className="flex gap-2 px-4 pt-2 pb-4">
-            <div className="w-full py-3 text-center bg-blue-50 text-blue-800 font-semibold rounded-xl">
+            <button 
+              disabled
+              className="w-full py-3 font-bold rounded-xl transition-all bg-gray-200 text-gray-500 cursor-not-allowed"
+            >
               <span className="inline-block animate-spin">⏳</span>
-              <span className="ml-2">⚠️ WAITING FOR SETTLEMENT ⚠️</span>
-            </div>
+              <span className="ml-2">WAITING FOR SETTLEMENT</span>
+            </button>
           </div>
         );
       }
