@@ -495,7 +495,7 @@ export default function App() {
                 : hasUserClaimed
                   ? '✅ REFUND CLAIMED'
                   : parseFloat(winningsAmount) > 0
-                    ? `💰 CLAIM ${parseFloat(winningsAmount).toFixed(4)} ${box.tokenData.symbol}`
+                    ? `🤑 CLAIM ${parseFloat(winningsAmount).toFixed(4)} ${box.tokenData.symbol}`
                     : '💰 CLAIM REFUND'
               }
             </button>
@@ -527,7 +527,7 @@ export default function App() {
           return (
             <div className="flex gap-2 px-4 pt-2 pb-4">
               <div className="w-full py-3 text-center bg-gray-100 text-gray-500 font-semibold rounded-xl">
-                ✅ REWARDS CLAIMED
+                ✅ REWARD CLAIMED
               </div>
             </div>
           );
@@ -552,7 +552,7 @@ export default function App() {
                 ? '⏳ PROCESSING...'
                 : hasWon && parseFloat(winningsAmount) > 0
                   ? `🏆 CLAIM ${parseFloat(winningsAmount).toFixed(4)} ${box.tokenData.symbol}`
-                  : '❌ NO REWARDS TO CLAIM'
+                  : '❌ NO REWARD TO CLAIM'
               }
             </button>
           </div>
@@ -564,7 +564,8 @@ export default function App() {
         return (
           <div className="flex gap-2 px-4 pt-2 pb-4">
             <div className="w-full py-3 text-center bg-blue-50 text-blue-800 font-semibold rounded-xl">
-              ⏳ WAITING FOR SETTLEMENT
+              <span className="inline-block animate-spin">⏳</span>
+              <span className="ml-2">⚠️ WAITING FOR SETTLEMENT ⚠️</span>
             </div>
           </div>
         );
