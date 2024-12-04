@@ -1075,41 +1075,6 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex justify-between items-center px-4 py-3">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setSortOption('latest')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  sortOption === 'latest'
-                    ? 'bg-blue-500 text-white shadow-lg'
-                    : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-                }`}
-              >
-                Latest Updates ⏱️
-              </button>
-              <button
-                onClick={() => setSortOption('trending')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  sortOption === 'trending'
-                    ? 'bg-orange-500 text-white shadow-lg'
-                    : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-                }`}
-              >
-                Trending 📈
-              </button>
-              <button
-                onClick={() => setSortOption('new')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  sortOption === 'new'
-                    ? 'bg-violet-500 text-white shadow-lg'
-                    : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-                }`}
-              >
-                Newest 🆕
-              </button>
-            </div>
-          </div>
-
           {/* Filter Section */}
           <div className="filter-container">
             <div className="filter-bar">
@@ -1220,9 +1185,30 @@ export default function App() {
           </div>
 
           <div className="boxes-container">
-              {isLoading ? (
-                <div className="loading">Loading boxes...</div>
-              ) : (
+            {isLoading ? (
+              <div className="loading">Loading boxes...</div>
+            ) : (
+              <>
+                <div className="sort-buttons">
+                  <button
+                    onClick={() => setSortOption('latest')}
+                    className={`sort-button ${sortOption === 'latest' ? 'active' : ''}`}
+                  >
+                    Latest Updates ⏱️
+                  </button>
+                  <button
+                    onClick={() => setSortOption('trending')}
+                    className={`sort-button ${sortOption === 'trending' ? 'active' : ''}`}
+                  >
+                    Trending 🔥
+                  </button>
+                  <button
+                    onClick={() => setSortOption('new')}
+                    className={`sort-button ${sortOption === 'new' ? 'active' : ''}`}
+                  >
+                    Just Added 🎯
+                  </button>
+                </div>
                 <div className="boxes-grid">
                   {getFilteredBoxes(boxes).map((box) => {
                     const hunterPercentage = calculateHunterPercentage(box.bets);
@@ -1372,9 +1358,10 @@ export default function App() {
                     );
                   })}
                 </div>
-              )}
-            </div>
-          </>
+              </>
+            )}
+          </div>
+        </>
         )}
 
         {/* Transaction Components */}

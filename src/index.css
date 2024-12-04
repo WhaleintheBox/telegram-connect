@@ -1080,3 +1080,33 @@ button:disabled {
   background-color: #fee2e2;
   border-color: #fca5a5;
 }
+
+.sort-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.sort-button {
+  background: white !important;
+  border: 1px solid #e4e4e7 !important;
+  color: #64748b !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  height: auto !important;
+  line-height: 20px !important;
+  transition: all 0.2s ease;
+}
+
+.sort-button.active {
+  background: #EEF2FF !important;
+  border-color: #818CF8 !important;
+  color: #4F46E5 !important;
+}
+
+.sort-button:hover:not(.active) {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
