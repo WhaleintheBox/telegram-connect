@@ -1169,14 +1169,12 @@ export default function App() {
                             </div>
                           </div>
 
-                          {!box.isSettled && 
-                          !box.sportData?.status?.toLowerCase().includes('live') && 
-                          new Date(box.sportData?.scheduled || '').getTime() > Date.now() && (
-                            isConnected ? <BettingSection box={box} /> : (
-                              <div className="connect-notice p-4 text-center bg-gray-50 rounded-lg">
-                                Connect wallet to place bets
-                              </div>
-                            )
+                          {isConnected ? (
+                            <BettingSection box={box} />
+                          ) : (
+                            <div className="connect-notice p-4 text-center bg-gray-50 rounded-lg">
+                              Connect wallet to place bets
+                            </div>
                           )}
                           
                           {box.initialEvents && box.initialEvents.length > 0 && (
