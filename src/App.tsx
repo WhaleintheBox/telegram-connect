@@ -70,6 +70,7 @@ interface Box {
   imageData?: string;
   initialEvents: Array<{who: string; prediction: string}>;
   timeRemaining?: number;
+  isCancelled: boolean;
   metadata?: {
     createdAt: string;
     updatedAt: string;
@@ -355,7 +356,8 @@ export default function App() {
   
     useEffect(() => {
       const checkWinnings = async () => {
-        if (!window.ethereum || !address || !box.isSettled) return;
+        // Check aussi quand la box est cancelled
+        if (!window.ethereum || !address || (!box.isSettled && !box.isCancelled)) return;
         try {
           const provider = new ethers.BrowserProvider(window.ethereum);
           const boxContract = new ethers.Contract(box.address, BOX_ABI, provider);
@@ -372,8 +374,8 @@ export default function App() {
       };
       
       checkWinnings();
-    }, [address, box.address, box.isSettled]);
-
+    }, [address, box.address, box.isSettled, box.isCancelled]); // Add box.isCancelled to dependencies
+    
     const handleClaim = async () => {
       if (!window.ethereum || !address) return;
       setIsProcessing(true);
@@ -470,6 +472,41 @@ export default function App() {
       setCurrentTxHash(betTx.hash);
       await betTx.wait();
     };
+
+    if (box.isCancelled) {
+      // Vérifier si l'utilisateur a participé à cette box
+      const userBet = box.bets.find(bet => 
+        bet.participant.toLowerCase() === address?.toLowerCase()
+      );
+      
+      return (
+        <div className="flex gap-2 px-4 pt-2 pb-4">
+          {userBet ? (
+            <button
+              onClick={handleClaim}
+              disabled={isProcessing || hasUserClaimed}
+              className={`w-full py-3 font-bold rounded-xl transition-all
+                ${!hasUserClaimed
+                  ? 'bg-red-500 hover:bg-red-600 text-white cursor-pointer' 
+                  : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+            >
+              {isProcessing 
+                ? '⏳ PROCESSING...'
+                : hasUserClaimed
+                  ? '✅ REFUND CLAIMED'
+                  : parseFloat(winningsAmount) > 0
+                    ? `💰 CLAIM ${parseFloat(winningsAmount).toFixed(4)} ${box.tokenData.symbol}`
+                    : '💰 CLAIM REFUND'
+              }
+            </button>
+          ) : (
+            <div className="w-full py-3 text-center bg-red-50 text-red-800 font-semibold rounded-xl">
+              ❌ Box Cancelled
+            </div>
+          )}
+        </div>
+      );
+    }
   
     if (!isActive) {
       // Si le match est en direct
@@ -1251,20 +1288,24 @@ export default function App() {
                           <div className="box-footer">
                             <div className="status-container">
                               <span className={`status-badge ${
-                                box.isSettled || new Date(box.sportData?.scheduled || '').getTime() <= Date.now() 
-                                  ? 'settled' 
-                                  : 'active'
+                                box.isCancelled 
+                                  ? 'cancelled'
+                                  : box.isSettled || new Date(box.sportData?.scheduled || '').getTime() <= Date.now() 
+                                    ? 'settled' 
+                                    : 'active'
                               }`}>
-                                {box.isSettled || new Date(box.sportData?.scheduled || '').getTime() <= Date.now() 
-                                  ? '🔴 Closed' 
-                                  : '🟢 Open'
+                                {box.isCancelled 
+                                  ? '⚠️ Cancelled'
+                                  : box.isSettled || new Date(box.sportData?.scheduled || '').getTime() <= Date.now() 
+                                    ? '🔴 Closed' 
+                                    : '🟢 Open'
                                 }
                               </span>
                               <span className="status-badge">
-                                {box.isSettled ? '🤖 ✅' : '🤖 ⏳'}
+                                {box.isSettled ? '🤖 ✅' : box.isCancelled ? '🤖 ❌' : '🤖 ⏳'}
                               </span>
                               <span className="status-badge">
-                                {box.isSettled ? '⚡ ✅' : '⚡ ⏳'}
+                                {box.isSettled ? '⚡ ✅' : box.isCancelled ? '⚡ ❌' : '⚡ ⏳'}
                               </span>
                             </div>
                           </div>

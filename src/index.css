@@ -1065,3 +1065,18 @@ button:disabled {
   transform: none;
   box-shadow: none;
 }
+.status-badge.cancelled { 
+  background: #fee2e2; 
+  color: #991b1b; 
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Ajouter un style spécifique pour les boxes annulées */
+.box-card.cancelled {
+  border-color: #fca5a5;
+}
+
+.box-card.cancelled .total-amount-highlight {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+}
