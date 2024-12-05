@@ -493,12 +493,15 @@ button:disabled {
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.9);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(10px);
   opacity: 0;
   visibility: hidden;
   transition: all 0.2s ease-in-out;
   padding: 1.5rem;
   overflow-y: auto;
   z-index: 50;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .box-image-container:hover .event-details-popup {
@@ -533,6 +536,54 @@ button:disabled {
 
 
 
+/* Amélioration des éléments de fond */
+.bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Amélioration de la typographie */
+.text-white {
+  color: rgba(255, 255, 255, 0.95) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.text-gray-400 {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Amélioration des titres */
+.text-lg.font-bold {
+  letter-spacing: 0.025em;
+}
+
+/* Amélioration des scores */
+.text-2xl.font-bold {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Amélioration des status badges */
+.rounded-full {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Animation plus fluide pour l'apparition */
+.box-image-container:hover .event-details-popup {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 @media (max-width: 768px) {
   .prediction-bar {
