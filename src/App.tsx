@@ -958,8 +958,6 @@ export default function App() {
     return (hunters / bets.length) * 100;
   };
 
-
-  // Token change handlers
   const handleTokenChange = (tokenType: 'ETH' | 'KRILL', checked: boolean) => {
     setFilters((prev: Filters) => ({
       ...prev,
@@ -1077,7 +1075,6 @@ export default function App() {
         .catch(setSchemaError);
     }
   }, []);
-
 
   return (
     <>
