@@ -4,6 +4,7 @@ import { WriteContract, WriteContractData } from './components/WriteContract';
 import { SignMessage, SignMessageProps } from './components/SignMessage';
 import { Account } from './components/Account';
 import { Connect } from './components/Connect';
+import EventDetailsPopup from './components/EventDetailsPopup';
 import { getSchemaError, sendEvent } from './utils';
 import { formatEther } from 'viem';
 import { ethers } from 'ethers';
@@ -45,6 +46,37 @@ interface SportData {
   tournament?: string;
   scheduled?: string;
   status?: string;
+  formattedStatus?: string;
+  timeUntilStart?: number;
+  // Ajouts
+  home_score?: number;
+  away_score?: number;
+  venue?: string;
+  location?: string;
+  fighter1?: string;
+  fighter2?: string;
+  season?: string;
+  round?: string;
+  week?: number | string;
+  circuit?: {
+    name?: string;
+    length?: string;
+    laps?: number;
+    lap_record?: string;
+  };
+  location_details?: {
+    city?: string;
+    country?: string;
+  };
+  weather?: {
+    temperature?: number;
+    description?: string;
+  };
+  sprint?: boolean;
+  weight_class?: string;
+  rounds?: number;
+  is_main?: boolean;
+  method?: string;
 }
 
 interface TokenData {
@@ -1216,12 +1248,13 @@ export default function App() {
                     return (
                       <div key={box.address} className="box-card">
                         {box.imageData && (
-                          <div className="box-image-container">
+                          <div className="box-image-container group relative">
                             <img 
                               src={`data:image/png;base64,${box.imageData}`}
                               alt={`${box.sportId} preview`}
                               className="box-image"
                             />
+                            <EventDetailsPopup box={box} />
                           </div>
                         )}
                         
