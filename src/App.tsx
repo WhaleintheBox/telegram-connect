@@ -40,43 +40,48 @@ const SPORT_EMOJIS: Record<keyof SportsType, string> = {
   SOCCER: '⚽', F1: '🏎️', MMA: '🥊', NFL: '🏈', BASKETBALL: '🏀'
 };
 
-interface SportData {
+interface SportDataType {
+  tournament?: string;
+  status?: string;
+  scheduled?: string;
+  venue?: string;
+  match_id?: string;
+  // Teams (Soccer, NBA, NFL)
   home_team?: string;
   away_team?: string;
-  tournament?: string;
-  scheduled?: string;
-  status?: string;
-  formattedStatus?: string;
-  timeUntilStart?: number;
-  // Ajouts
   home_score?: number;
   away_score?: number;
-  venue?: string;
-  location?: string;
-  fighter1?: string;
-  fighter2?: string;
-  season?: string;
-  round?: string;
-  week?: number | string;
+  // F1 specific
   circuit?: {
-    name?: string;
-    length?: string;
-    laps?: number;
-    lap_record?: string;
+      name?: string;
+      length?: string;
+      laps?: number;
+      lap_record?: string;
   };
   location_details?: {
-    city?: string;
-    country?: string;
+      city?: string;
+      country?: string;
   };
-  weather?: {
-    temperature?: number;
-    description?: string;
-  };
+  season?: string;
+  round?: string;
   sprint?: boolean;
+  weather?: {
+      temperature?: number;
+      description?: string;
+  };
+  // MMA specific
+  fighter1?: string;
+  fighter2?: string;
   weight_class?: string;
   rounds?: number;
   is_main?: boolean;
   method?: string;
+  // NFL specific
+  week?: number | string;
+  location?: string;
+  // Additional properties
+  formattedStatus?: string;  // Ajouté
+  timeUntilStart?: number;   // Ajouté si nécessaire
 }
 
 interface TokenData {
@@ -110,7 +115,7 @@ interface Box {
     updatedAt: string;
     version: string;
   };
-  sportData: SportData & {
+  sportData: SportDataType & {  // <-- Maintenant c'est SportDataType
     formattedStatus?: string;
     timeUntilStart?: number;
   };
