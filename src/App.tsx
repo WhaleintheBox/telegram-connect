@@ -1248,13 +1248,13 @@ export default function App() {
                     return (
                       <div key={box.address} className="box-card">
                         {box.imageData && (
-                          <div className="box-image-container group relative">
+                          <div className="box-image-container group">
                             <img 
                               src={`data:image/png;base64,${box.imageData}`}
                               alt={`${box.sportId} preview`}
                               className="box-image"
                             />
-                            <div className="opacity-0 group-hover:opacity-100">
+                            <div className="event-details-popup">
                               <EventDetailsPopup 
                                 box={{
                                   sportId: box.sportId,
