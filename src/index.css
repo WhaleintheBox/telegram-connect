@@ -603,28 +603,123 @@ button:disabled {
   background-color: #ffffff;
   border-radius: 12px;
   border: 1px solid #e4e4e7;
-  padding: 24px;
+  padding: 12px;
   margin: 16px;
   width: auto;
   max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  overflow: hidden;
 }
 
 /* Filter Bar Styles */
 
 .filter-label {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: #64748b;
-  min-width: 100px;
+  flex-shrink: 0;
 }
 
 .filter-options {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+
+/* Style des checkboxes et labels */
+.filter-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: #f8fafc;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #0f172a;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.filter-options label:hover {
+  background-color: #f1f5f9;
+}
+
+/* Style pour l'input de token personnalisé */
+.filter-options input[type="text"] {
+  padding: 6px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  width: 160px;
+  background-color: #ffffff;
+}
+
+.filter-options input[type="text"]:focus {
+  outline: none;
+  border-color: #818cf8;
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.1);
+}
+
+/* Style des checkboxes */
+.filter-options input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 2px solid #cbd5e1;
+  cursor: pointer;
+}
+
+/* Media queries pour le responsive */
+@media screen and (max-width: 768px) {
+  .filter-container {
+    padding: 8px;
+    margin: 12px;
+  }
+
+  .filter-bar {
+    gap: 16px;
+  }
+
+  .filter-group {
+    gap: 8px;
+  }
+
+  .filter-label {
+    font-size: 13px;
+  }
+
+  .filter-options label {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  .filter-options input[type="text"] {
+    width: 120px;
+  }
+}
+
+/* Style actif pour les filtres sélectionnés */
+.filter-options input[type="checkbox"]:checked + span {
+  color: #4f46e5;
+  font-weight: 500;
+}
+
+/* Gradient pour indiquer qu'il y a plus de contenu à droite */
+.filter-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 32px;
+  background: linear-gradient(to right, transparent, #ffffff);
+  pointer-events: none;
+  opacity: 0.8;
 }
 
 /* Box Card Styles */
@@ -974,18 +1069,28 @@ button:disabled {
   color: #4F46E5;
 }
 
-/* Mise à jour du conteneur de filtres */
-.filter-container .filter-bar {
+.filter-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
   align-items: center;
+  gap: 24px;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  white-space: nowrap;
+  padding-bottom: 4px; /* Espace pour le scroll */
 }
 
+/* Masquer la scrollbar pour Chrome/Safari/Opera */
+.filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Groupe de filtres */
 .filter-group {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0; /* Empêche la compression des éléments */
 }
 
 .betting-actions {
