@@ -831,146 +831,57 @@ button:disabled {
   border-bottom: none;
 }
 
-/* Base styles pour le popup */
+/* Base styles for event details popup */
 .event-details-popup {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.98));
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, 
+      rgba(15, 23, 42, 0.98) 0%,
+      rgba(15, 23, 42, 0.95) 100%
+  );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   opacity: 0;
   visibility: hidden;
-  transition: all 0.3s ease-in-out;
-  padding: 2rem;
+  transition: all 0.3s ease;
+  padding: 1.5rem;
   overflow-y: auto;
+  border-radius: 0.75rem;
   z-index: 50;
 }
 
-/* Style de base pour les cartes dans le popup */
+/* Appearance animation */
+.box-image-container:hover .event-details-popup {
+  opacity: 1;
+  visibility: visible;
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+      opacity: 0;
+      transform: translateY(10px);
+  }
+  to {
+      opacity: 1;
+      transform: translateY(0);
+  }
+}
+
+/* Stats cards styling */
 .event-details-popup .bg-white\/5 {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.1);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .event-details-popup .bg-white\/5:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Amélioration de la typographie */
-.event-details-popup .text-white {
-  color: rgba(255, 255, 255, 0.95);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  letter-spacing: 0.01em;
-}
-
-.event-details-popup .text-white\/60 {
-  color: rgba(255, 255, 255, 0.6);
-  text-shadow: none;
-}
-
-.event-details-popup .text-white\/90 {
-  color: rgba(255, 255, 255, 0.9);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-/* Styles pour les titres */
-.event-details-popup h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  letter-spacing: -0.01em;
-}
-
-.event-details-popup h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-/* Style pour les cartes de stats */
-.event-details-popup .stats-card {
-  padding: 1.25rem;
-  border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Amélioration du graphique */
-.event-details-popup .betting-chart {
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  margin: 1.5rem 0;
-}
-
-/* Style pour les badges de statut */
-.event-details-popup .status-badge {
-  padding: 0.5rem 1rem;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Animation d'entrée */
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.box-image-container:hover .event-details-popup {
-  opacity: 1;
-  visibility: visible;
-  animation: slideInUp 0.3s ease-out forwards;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .event-details-popup {
-    padding: 1rem;
-  }
-  
-  .event-details-popup .grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-}
-
-/* Layout containers */
-.event-details-popup .content-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-
-.event-details-popup .score-display {
-  font-size: 2.5rem;
-  font-weight: 700;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-}
-
-/* Scroll personnalisé */
+/* Custom scrollbar */
 .event-details-popup {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
@@ -987,6 +898,60 @@ button:disabled {
 .event-details-popup::-webkit-scrollbar-thumb {
   background-color: rgba(255, 255, 255, 0.2);
   border-radius: 3px;
+}
+
+/* Typography enhancements */
+.event-details-popup h2 {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  letter-spacing: -0.025em;
+}
+
+.event-details-popup .text-white {
+  color: #fff !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+}
+
+.event-details-popup .text-white\/60,
+.event-details-popup .text-gray-400 {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Status badge enhancements */
+.event-details-popup .bg-emerald-500\/20 {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.event-details-popup .text-emerald-400 {
+  color: rgb(52, 211, 153) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Specific styles for the betting chart */
+.event-details-popup .betting-chart {
+  background: rgba(59, 130, 246, 0.05);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  margin: 1rem 0;
+}
+
+/* Sprint race and main event badges */
+.event-details-popup .bg-yellow-500\/20 {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.25);
+}
+
+.event-details-popup .text-yellow-400 {
+  color: rgb(250, 204, 21) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Media queries for responsiveness */
+@media (max-width: 768px) {
+  .event-details-popup {
+      padding: 1rem;
+  }
 }
 
 
@@ -1372,3 +1337,20 @@ button:disabled {
 }
 
 
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(147, 197, 253, 0.2) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(147, 197, 253, 0.2);
+  border-radius: 3px;
+}
