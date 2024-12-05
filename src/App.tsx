@@ -1254,16 +1254,18 @@ export default function App() {
                               alt={`${box.sportId} preview`}
                               className="box-image"
                             />
-                            <EventDetailsPopup 
-                              box={{
-                                sportId: box.sportId,
-                                sportData: {
-                                  ...box.sportData,
-                                  status: box.sportData?.status || '',
-                                  formattedStatus: box.sportData?.formattedStatus || ''
-                                }
-                              }} 
-                            />
+                            <div className="opacity-0 group-hover:opacity-100">
+                              <EventDetailsPopup 
+                                box={{
+                                  sportId: box.sportId,
+                                  sportData: {
+                                    ...box.sportData,
+                                    status: box.sportData?.status || '',
+                                    formattedStatus: box.sportData?.formattedStatus || ''
+                                  }
+                                }} 
+                              />
+                            </div>
                           </div>
                         )}
                         

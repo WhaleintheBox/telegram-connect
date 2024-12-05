@@ -466,10 +466,11 @@ button:disabled {
 
 
 .box-image-container {
+  position: relative;
   width: 100%;
   height: 200px;
   overflow: hidden;
-  position: relative;
+  border-radius: 12px 12px 0 0;
 }
 
 .box-image {
@@ -479,9 +480,36 @@ button:disabled {
   transition: transform 0.3s ease;
 }
 
-.box-card:hover .box-image {
+.box-image-container:hover .box-image {
   transform: scale(1.05);
 }
+
+/* Group hover effect */
+.group {
+  position: relative;
+}
+
+/* Transition pour le hover */
+.opacity-0 {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.group-hover\:opacity-100 {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.group:hover .group-hover\:opacity-100 {
+  opacity: 1;
+}
+
+/* Style pour le backdrop blur */
+.backdrop-blur-sm {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+
 
 
 @media (max-width: 768px) {
@@ -1111,26 +1139,8 @@ button:disabled {
   border-color: #e2e8f0 !important;
 }
 
-.box-image-container {
-  position: relative; /* Déjà présent mais important */
-  width: 100%;
-  height: 200px;
-  overflow: hidden;
-  cursor: pointer;
-}
 
-/* Styles pour l'apparition du popup */
-.box-image-container .box-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
 
-/* Effet de zoom sur l'image au hover */
-.box-image-container:hover .box-image {
-  transform: scale(1.05);
-}
 
 /* Animation et style du popup */
 .event-details-popup {
