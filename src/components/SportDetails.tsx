@@ -27,10 +27,12 @@ interface NormalizedStatus {
 const normalizeStatus = (status: any): NormalizedStatus => {
     if (!status) return { long: 'Unknown', short: 'UNK' };
     
-    if (typeof status === 'object' && status.long && status.short) {
-        return status;
+    // If status is already in the correct format, return it
+    if (typeof status === 'object' && 'long' in status && 'short' in status) {
+        return status as NormalizedStatus;
     }
 
+    // Convert to string and normalize
     const statusStr = String(status).toUpperCase();
     const statusMap: Record<string, NormalizedStatus> = {
         'LIVE': { long: 'Live', short: 'LIVE' },
@@ -401,6 +403,77 @@ export const NFLDetails: React.FC<SportDetailsProps> = ({
                     </div>
                 </div>
             </div>
+        </div>
+    );
+};
+
+export const BasketballDetails: React.FC<SportDetailsProps> = ({ 
+    sportData, 
+    TeamScore, 
+    StatsCard, 
+    BettingChart 
+}) => {
+    // Ensure status is treated as string or object with required shape
+    const status = React.useMemo(() => {
+        if (!sportData?.status) return normalizeStatus('Unknown');
+        if (typeof sportData.status === 'object' && 'long' in sportData.status && 'short' in sportData.status) {
+            return sportData.status;
+        }
+        return normalizeStatus(String(sportData.status));
+    }, [sportData?.status]);
+
+    return (
+        <div className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+                <StatusBadge status={status} />
+            </div>
+
+            <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
+                <div className="grid grid-cols-3 items-center">
+                    <div className="text-center">
+                        <p className="text-white font-bold mb-3 text-xl">{sportData?.home_team}</p>
+                        <TeamScore score={sportData?.home_score} />
+                    </div>
+                    <div className="text-center">
+                        <div className="px-4 py-2 bg-white/10 rounded-full">
+                            <span className="text-white/80 font-bold">VS</span>
+                        </div>
+                    </div>
+                    <div className="text-center">
+                        <p className="text-white font-bold mb-3 text-xl">{sportData?.away_team}</p>
+                        <TeamScore score={sportData?.away_score} />
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <StatsCard 
+                    icon={MapPin} 
+                    label="Venue" 
+                    value={sportData?.venue || 'TBA'} 
+                />
+                <StatsCard 
+                    icon={Calendar} 
+                    label="Tournament" 
+                    value={sportData?.tournament || 'N/A'} 
+                />
+                <StatsCard 
+                    icon={Users} 
+                    label="Unique Bettors" 
+                    value={sportData?.uniqueBettors || 0} 
+                />
+                <StatsCard 
+                    icon={TrendingUp} 
+                    label="Avg Bet Size" 
+                    value={`${sportData?.averageBetSize || 0} ETH`} 
+                />
+            </div>
+
+            <BettingChart />
+
+            {sportData?.recentActivity && sportData.recentActivity.length > 0 && (
+                <RecentActivity activities={sportData.recentActivity} />
+            )}
         </div>
     );
 };
