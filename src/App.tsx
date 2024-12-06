@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAccount } from 'wagmi';
 import { WriteContract, WriteContractData } from './components/WriteContract';
 import { SignMessage, SignMessageProps } from './components/SignMessage';
@@ -1087,6 +1087,27 @@ export default function App() {
     }
   };
 
+  const CACHE_KEY = 'witbot_boxes_cache';
+
+  const loadCacheFromStorage = () => {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      return cached ? JSON.parse(cached) : {};
+    } catch (e) {
+      console.error('Error loading cache:', e);
+      return {};
+    }
+  };
+
+  const saveCacheToStorage = (cache: { [key: string]: Box }) => {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+    } catch (e) {
+      console.error('Error saving cache:', e);
+    }
+  };
+  const boxesCache = useRef<{ [key: string]: Box }>(loadCacheFromStorage());
+
   const fetchBoxes = async (): Promise<void> => {
     try {
       const response = await fetch('https://witbbot-638008614172.us-central1.run.app/boxes');
@@ -1094,9 +1115,30 @@ export default function App() {
       
       if (data.success && Array.isArray(data.boxes)) {
         const cutoffDate = new Date('2023-11-20');
-        const filteredBoxes = data.boxes
-          .filter(box => new Date(box.lastUpdated) >= cutoffDate)
-          .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
+        
+        // Mettre à jour le cache avec les nouvelles données
+        data.boxes.forEach(box => {
+          if (new Date(box.lastUpdated) >= cutoffDate) {
+            const existingBox = boxesCache.current[box.address];
+            if (existingBox) {
+              // Mettre à jour uniquement si les données sont plus récentes
+              if (new Date(box.lastUpdated) > new Date(existingBox.lastUpdated)) {
+                boxesCache.current[box.address] = box;
+              }
+            } else {
+              boxesCache.current[box.address] = box;
+            }
+          }
+        });
+  
+        // Sauvegarder le cache
+        saveCacheToStorage(boxesCache.current);
+  
+        // Convertir le cache en tableau et trier
+        const filteredBoxes: Box[] = Object.values(boxesCache.current)
+          .sort((a: Box, b: Box) => 
+            new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
+          );
         
         setBoxes(filteredBoxes);
         setStats(calculateStats(filteredBoxes));
@@ -1107,6 +1149,13 @@ export default function App() {
       setIsLoading(false);
     }
   };
+
+  // Clean-up function pour le cache lors du démontage du composant
+  useEffect(() => {
+    return () => {
+      boxesCache.current = {};
+    };
+  }, []);
 
   const formatAddress = (address: string): string => 
     `${address.slice(0, 6)}...${address.slice(-4)}`;
