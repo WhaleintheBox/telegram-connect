@@ -40,6 +40,132 @@ const SPORT_EMOJIS: Record<keyof SportsType, string> = {
   SOCCER: '⚽', F1: '🏎️', MMA: '🥊', NFL: '🏈', BASKETBALL: '🏀'
 };
 
+// Types communs
+export interface Status {
+  long: string;
+  short: string;
+}
+
+// Constantes de statut normalisées
+const STATUS_MAP = {
+  SOCCER: {
+    'TBD': { long: 'To Be Determined', short: 'TBD' },
+    'NS': { long: 'Not Started', short: 'NS' },
+    'LIVE': { long: 'Live', short: 'LIVE' },
+    'HT': { long: 'Halftime', short: 'HT' },
+    'FT': { long: 'Finished', short: 'FT' },
+    'AET': { long: 'Finished After Extra Time', short: 'AET' },
+    'PEN': { long: 'Finished After Penalties', short: 'PEN' },
+    'SUSP': { long: 'Suspended', short: 'SUSP' },
+    'INT': { long: 'Interrupted', short: 'INT' },
+    'PST': { long: 'Postponed', short: 'PST' },
+    'CANC': { long: 'Cancelled', short: 'CANC' }
+  },
+  BASKETBALL: {
+    'NS': { long: 'Not Started', short: 'NS' },
+    'LIVE': { long: 'Live', short: 'LIVE' },
+    'HT': { long: 'Halftime', short: 'HT' },
+    'FT': { long: 'Finished', short: 'FT' },
+    'SUSP': { long: 'Suspended', short: 'SUSP' },
+    'INT': { long: 'Interrupted', short: 'INT' },
+    'PST': { long: 'Postponed', short: 'PST' },
+    'CANC': { long: 'Cancelled', short: 'CANC' }
+  },
+  NFL: {
+    'SCHEDULED': { long: 'Scheduled', short: 'SCH' },
+    'INPROGRESS': { long: 'Live', short: 'LIVE' },
+    'HALFTIME': { long: 'Halftime', short: 'HT' },
+    'FINAL': { long: 'Finished', short: 'FIN' },
+    'SUSPENDED': { long: 'Suspended', short: 'SUSP' },
+    'POSTPONED': { long: 'Postponed', short: 'PST' },
+    'CANCELLED': { long: 'Cancelled', short: 'CANC' }
+  },
+  MMA: {
+    'SCHEDULED': { long: 'Scheduled', short: 'SCH' },
+    'STARTED': { long: 'Live', short: 'LIVE' },
+    'FINISHED': { long: 'Finished', short: 'FIN' },
+    'CANCELLED': { long: 'Cancelled', short: 'CANC' }
+  },
+  F1: {
+    'UPCOMING': { long: 'Scheduled', short: 'SCH' },
+    'INPROGRESS': { long: 'Live', short: 'LIVE' },
+    'FINISHED': { long: 'Finished', short: 'FIN' },
+    'CANCELLED': { long: 'Cancelled', short: 'CANC' },
+    'POSTPONED': { long: 'Postponed', short: 'PST' }
+  }
+} as const;
+
+// Fonction utilitaire pour normaliser le status
+export const normalizeStatus = (status: any, sport: keyof typeof STATUS_MAP = 'SOCCER'): Status => {
+  if (!status) {
+    return { long: 'Unknown', short: 'UNK' };
+  }
+
+  // Si le status est déjà au bon format
+  if (typeof status === 'object' && 'long' in status && 'short' in status) {
+    return status as Status;
+  }
+
+  const statusStr = String(status).toUpperCase();
+  const sportMap = STATUS_MAP[sport];
+  
+  // Recherche dans la map du sport
+  const mappedStatus = sportMap[statusStr as keyof typeof sportMap];
+  if (mappedStatus) {
+    return mappedStatus;
+  }
+
+  // Status non reconnu
+  return {
+    long: String(status),
+    short: String(status).substring(0, 3)
+  };
+};
+
+// Hook personnalisé pour la gestion des statuts
+export const useEventStatus = (sportData?: { status?: any, scheduled?: string }) => {
+  const getEventStatus = () => {
+    if (!sportData) return normalizeStatus(null);
+
+    const now = new Date();
+    const scheduled = sportData.scheduled ? new Date(sportData.scheduled) : null;
+
+    // Si l'événement n'a pas encore commencé
+    if (scheduled && scheduled > now) {
+      return { long: 'Scheduled', short: 'SCH' };
+    }
+
+    return normalizeStatus(sportData.status);
+  };
+
+  return getEventStatus();
+};
+
+// Composant pour l'affichage du statut
+export const StatusBadge: React.FC<{ status: Status }> = ({ status }) => {
+  const getStatusStyle = () => {
+    switch (status.short) {
+      case 'LIVE':
+        return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'FIN':
+      case 'FT':
+      case 'AET':
+      case 'PEN':
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+      case 'CANC':
+        return 'bg-red-500/20 text-red-400 border-red-500/30';
+      default:
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+    }
+  };
+
+  return (
+    <div className={`px-3 py-1 rounded-full text-sm font-medium inline-flex items-center gap-2 border ${getStatusStyle()}`}>
+      {status.short === 'LIVE' ? '🔴' : '⚪'} {status.long}
+    </div>
+  );
+};
+
 interface SportDataType {
   tournament?: string;
   status?: {  // Modifier le type de status
@@ -565,8 +691,7 @@ export default function App() {
   
     if (!isActive) {
       // Si le match est en direct - Modifier pour utiliser la nouvelle structure de status
-      if (box.sportData?.status?.short === 'LIVE' || 
-          String(box.sportData?.status?.long || '').toLowerCase().includes('live')) {
+      if (box.sportData?.status?.short === 'LIVE') {
         return (
           <div className="flex gap-2 px-4 pt-2 pb-4">
             <div className="w-full py-3 text-center bg-yellow-50 text-yellow-800 font-semibold rounded-xl">
@@ -577,8 +702,8 @@ export default function App() {
       }
     
       // Vérifier si la box est résolue
-      if (box.isSettled || box.sportData?.status?.short === 'FIN' || 
-        String(box.sportData?.status?.long || '').toLowerCase().includes('finish')) {
+      if (box.isSettled || 
+        ['FT', 'AET', 'PEN', 'FIN'].includes(box.sportData?.status?.short || '')) {
         if (hasUserClaimed) {
           return (
             <div className="flex gap-2 px-4 pt-2 pb-4">
@@ -634,8 +759,7 @@ export default function App() {
       }
 
         // Ne montrer les boutons Hunt/Fish que si la box est vraiment ouverte
-      const isBoxOpen = box.sportData?.status?.short === 'SCH' || 
-                        box.sportData?.status?.short === 'NS' || 
+      const isBoxOpen = ['SCH', 'NS'].includes(box.sportData?.status?.short || '') || 
                         String(box.sportData?.status?.long || '').toLowerCase().includes('scheduled');
 
       if (!isBoxOpen) {
@@ -1291,19 +1415,17 @@ export default function App() {
                               className="box-image"
                             />
                             <div className="event-details-popup">
-                              <EventDetailsPopup 
-                                box={{
-                                  sportId: box.sportId,
-                                  sportData: {
-                                    ...box.sportData,
-                                    status: {
-                                      long: String(box.sportData?.status || 'Unknown'),
-                                      short: String(box.sportData?.status || 'UNK').substring(0, 3)
-                                    },
-                                    formattedStatus: box.sportData?.formattedStatus || ''
-                                  }
-                                }} 
-                              />                          
+
+                            <EventDetailsPopup 
+                              box={{
+                                sportId: box.sportId,
+                                sportData: {
+                                  ...box.sportData,
+                                  status: box.sportData?.status || { long: 'Unknown', short: 'UNK' },
+                                  formattedStatus: box.sportData?.formattedStatus || ''
+                                }
+                              }} 
+                            />                       
                             </div>
                           </div>
                         )}

@@ -49,7 +49,7 @@ const normalizeStatus = (status: any): NormalizedStatus => {
     return statusMap[statusStr] || { long: String(status), short: 'UNK' };
 };
 
-const StatusBadge: React.FC<{ status: NormalizedStatus }> = ({ status }) => (
+export const StatusBadge: React.FC<{ status: NormalizedStatus }> = ({ status }) => (
     <div className={`px-3 py-1 rounded-full text-sm font-medium inline-flex items-center gap-2
         ${status.short === 'LIVE' ? 'bg-green-500/20 text-green-400' :
         status.short === 'FIN' ? 'bg-gray-500/20 text-gray-400' :

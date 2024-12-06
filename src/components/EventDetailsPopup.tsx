@@ -1,6 +1,7 @@
 import React from 'react';
 import { LineChart, XAxis, YAxis, Tooltip, Line, ResponsiveContainer } from 'recharts';
 import { SoccerDetails, F1Details, MMADetails, NFLDetails, BasketballDetails } from './SportDetails';
+import { Status, useEventStatus } from '../App';  
 
 interface BettingHistory {
 timestamp: string;
@@ -104,17 +105,34 @@ const EventDetailsPopup: React.FC<{ box: BoxType }> = ({ box }) => {
     const sportData = box.sportData || {};
     const bettingHistory = mockBettingHistory(24);
 
-    // Ajout du useMemo pour status uniquement
-    const status = React.useMemo(() => {
-        const rawStatus = sportData?.status;
-        if (typeof rawStatus === 'object' && rawStatus.long && rawStatus.short) {
-            return rawStatus;
-        }
-        return {
-            long: String(rawStatus || 'Unknown'),
-            short: String(rawStatus || 'UNK').substring(0, 3)
+    // Utiliser useEventStatus au lieu de useMemo
+    const status = useEventStatus(sportData);
+
+    // StatusBadge component optimisé pour l'EventDetailsPopup
+    const StatusBadge = ({ status }: { status: Status }) => {
+        const getStatusStyle = () => {
+            switch (status.short) {
+                case 'LIVE':
+                    return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+                case 'FIN':
+                case 'FT':
+                case 'AET':
+                case 'PEN':
+                    return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+                case 'CANC':
+                    return 'bg-red-500/20 text-red-400 border-red-500/30';
+                default:
+                    return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+            }
         };
-    }, [sportData?.status]);
+
+        return (
+            <span className={`px-4 py-2 rounded-full text-sm font-medium inline-flex items-center gap-2 border ${getStatusStyle()}`}>
+                {status.short === 'LIVE' ? '🔴' : '⚪'} {status.long}
+            </span>
+        );
+    };
+
 
     const TeamScore = ({ score }: { score?: number }) => {
         if (score === undefined) return null;
@@ -182,16 +200,12 @@ const EventDetailsPopup: React.FC<{ box: BoxType }> = ({ box }) => {
         <div className="absolute inset-0 bg-gradient-to-b from-blue-900/95 to-blue-950/98 backdrop-blur-md p-6 rounded-lg overflow-y-auto">
             <div className="h-full flex flex-col max-w-4xl mx-auto">
                 <div className="border-b border-blue-500/20 pb-4 mb-6">
-                <div className="flex justify-between items-start mb-3">
-                    <h2 className="text-blue-100 font-bold text-2xl">
-                        {sportData.tournament || 'Event Details'}
-                    </h2>
-                    {status && (
-                        <span className="bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-full text-sm font-medium border border-emerald-500/30">
-                            {status.long}
-                        </span>
-                    )}
-                </div>
+                    <div className="flex justify-between items-start mb-3">
+                        <h2 className="text-blue-100 font-bold text-2xl">
+                            {sportData.tournament || 'Event Details'}
+                        </h2>
+                        <StatusBadge status={status} />
+                    </div>
                     <p className="text-blue-200/80 text-base">
                         {formatDate(sportData.scheduled)}
                     </p>
