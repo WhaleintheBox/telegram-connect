@@ -1049,6 +1049,7 @@ export default function App() {
     });
   };
 
+
   useEffect(() => {
     fetchBoxes();
     const interval = setInterval(fetchBoxes, 30000);
@@ -1262,11 +1263,14 @@ export default function App() {
                                   sportId: box.sportId,
                                   sportData: {
                                     ...box.sportData,
-                                    status: box.sportData?.status || '',
+                                    status: {
+                                      long: box.sportData?.status || 'Unknown',
+                                      short: String(box.sportData?.status || 'UNK').substring(0, 3)
+                                    },
                                     formattedStatus: box.sportData?.formattedStatus || ''
                                   }
                                 }} 
-                              />
+                              />                          
                             </div>
                           </div>
                         )}

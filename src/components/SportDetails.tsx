@@ -96,6 +96,8 @@ const RecentActivity: React.FC<{ activities: ActivityItem[] }> = ({ activities }
     </div>
 );
 
+
+
 export const SoccerDetails: React.FC<SportDetailsProps> = ({ 
     sportData, 
     TeamScore, 

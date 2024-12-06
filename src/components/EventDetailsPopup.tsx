@@ -10,7 +10,10 @@ fisherTotal: number;
 
 export interface SportDataType {
     tournament?: string;
-    status?: string;
+    status?: {  // Modifier le type de status
+        long: string;
+        short: string;
+    };
     formattedStatus?: string;
     scheduled?: string;
     venue?: string;
@@ -20,6 +23,10 @@ export interface SportDataType {
     away_team?: string;
     home_score?: number;
     away_score?: number;
+    scores?: {  // Ajouter la structure scores
+        current: number;
+        total: number;
+    };
     // F1 specific
     circuit?: {
         name?: string;
@@ -77,6 +84,7 @@ const formatDate = (dateStr: string | undefined): string => {
     }).format(new Date(dateStr));
 };
 
+
 const mockBettingHistory = (hours: number) => {
     const data = [];
     const now = new Date();
@@ -92,9 +100,21 @@ const mockBettingHistory = (hours: number) => {
 };
 
 const EventDetailsPopup: React.FC<{ box: BoxType }> = ({ box }) => {
-    const sportId = (box.sportId || '').toLowerCase();
+    const sportId = String(box.sportId || '').toLowerCase();
     const sportData = box.sportData || {};
     const bettingHistory = mockBettingHistory(24);
+
+    // Ajout du useMemo pour status uniquement
+    const status = React.useMemo(() => {
+        const rawStatus = sportData?.status;
+        if (typeof rawStatus === 'object' && rawStatus.long && rawStatus.short) {
+            return rawStatus;
+        }
+        return {
+            long: String(rawStatus || 'Unknown'),
+            short: String(rawStatus || 'UNK').substring(0, 3)
+        };
+    }, [sportData?.status]);
 
     const TeamScore = ({ score }: { score?: number }) => {
         if (score === undefined) return null;
@@ -162,16 +182,16 @@ const EventDetailsPopup: React.FC<{ box: BoxType }> = ({ box }) => {
         <div className="absolute inset-0 bg-gradient-to-b from-blue-900/95 to-blue-950/98 backdrop-blur-md p-6 rounded-lg overflow-y-auto">
             <div className="h-full flex flex-col max-w-4xl mx-auto">
                 <div className="border-b border-blue-500/20 pb-4 mb-6">
-                    <div className="flex justify-between items-start mb-3">
-                        <h2 className="text-blue-100 font-bold text-2xl">
-                            {sportData.tournament || 'Event Details'}
-                        </h2>
-                        {sportData.status && (
-                            <span className="bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-full text-sm font-medium border border-emerald-500/30">
-                                {sportData.status}
-                            </span>
-                        )}
-                    </div>
+                <div className="flex justify-between items-start mb-3">
+                    <h2 className="text-blue-100 font-bold text-2xl">
+                        {sportData.tournament || 'Event Details'}
+                    </h2>
+                    {status && (
+                        <span className="bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-full text-sm font-medium border border-emerald-500/30">
+                            {status.long}
+                        </span>
+                    )}
+                </div>
                     <p className="text-blue-200/80 text-base">
                         {formatDate(sportData.scheduled)}
                     </p>
