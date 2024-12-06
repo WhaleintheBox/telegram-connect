@@ -24,9 +24,9 @@ export interface SportDataType {
     away_team?: string;
     home_score?: number;
     away_score?: number;
-    scores?: {  // Ajouter la structure scores
-        current: number;
-        total: number;
+    scores?: {
+        home?: { current: number; total: number };
+        away?: { current: number; total: number };
     };
     // F1 specific
     circuit?: {
@@ -134,8 +134,22 @@ const EventDetailsPopup: React.FC<{ box: BoxType }> = ({ box }) => {
     };
 
 
-    const TeamScore = ({ score }: { score?: number }) => {
+    const TeamScore = ({ score }: { score?: number | { current: number; total: number } }) => {
         if (score === undefined) return null;
+        
+        // Si le score est un objet avec current et total
+        if (typeof score === 'object' && 'current' in score) {
+            return (
+                <div className="relative">
+                    <p className="text-4xl font-bold bg-gradient-to-b from-blue-300 to-blue-500 bg-clip-text text-transparent">
+                        {score.total}
+                    </p>
+                    <div className="absolute inset-0 backdrop-blur-sm -z-10" />
+                </div>
+            );
+        }
+        
+        // Si le score est un simple nombre
         return (
             <div className="relative">
                 <p className="text-4xl font-bold bg-gradient-to-b from-blue-300 to-blue-500 bg-clip-text text-transparent">

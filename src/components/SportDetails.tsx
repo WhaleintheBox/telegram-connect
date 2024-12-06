@@ -4,7 +4,12 @@ import { SportDataType } from './EventDetailsPopup';
 
 interface SportDetailsProps {
     sportData: SportDataType;
-    TeamScore: React.FC<{ score?: number }>;
+    TeamScore: React.FC<{ 
+        score?: number | { 
+            current: number; 
+            total: number 
+        } 
+    }>;
     StatsCard: React.FC<{ 
         icon: React.FC<any>;
         label: string;

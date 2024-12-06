@@ -181,9 +181,9 @@ interface SportDataType {
   away_team?: string;
   home_score?: number;
   away_score?: number;
-  scores?: {  // Ajouter la structure scores
-      current: number;
-      total: number;
+  scores?: {
+      home?: { current: number; total: number };
+      away?: { current: number; total: number };
   };
   // F1 specific
   circuit?: {
