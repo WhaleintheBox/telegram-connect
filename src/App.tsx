@@ -42,7 +42,11 @@ const SPORT_EMOJIS: Record<keyof SportsType, string> = {
 
 interface SportDataType {
   tournament?: string;
-  status?: string;
+  status?: {  // Modifier le type de status
+      long: string;
+      short: string;
+  };
+  formattedStatus?: string;
   scheduled?: string;
   venue?: string;
   match_id?: string;
@@ -51,6 +55,10 @@ interface SportDataType {
   away_team?: string;
   home_score?: number;
   away_score?: number;
+  scores?: {  // Ajouter la structure scores
+      current: number;
+      total: number;
+  };
   // F1 specific
   circuit?: {
       name?: string;
@@ -79,9 +87,15 @@ interface SportDataType {
   // NFL specific
   week?: number | string;
   location?: string;
-  // Additional properties
-  formattedStatus?: string;  // Ajouté
-  timeUntilStart?: number;   // Ajouté si nécessaire
+  totalBets?: number;
+  uniqueBettors?: number;
+  averageBetSize?: number;
+  largestBet?: number;
+  recentActivity?: Array<{
+      type: 'hunt' | 'fish';
+      amount: number;
+      timestamp: string;
+  }>;
 }
 
 interface TokenData {
@@ -550,8 +564,9 @@ export default function App() {
     }
   
     if (!isActive) {
-      // Si le match est en direct
-      if (box.sportData?.status?.toLowerCase().includes('live')) {
+      // Si le match est en direct - Modifier pour utiliser la nouvelle structure de status
+      if (box.sportData?.status?.short === 'LIVE' || 
+          String(box.sportData?.status?.long || '').toLowerCase().includes('live')) {
         return (
           <div className="flex gap-2 px-4 pt-2 pb-4">
             <div className="w-full py-3 text-center bg-yellow-50 text-yellow-800 font-semibold rounded-xl">
@@ -562,8 +577,8 @@ export default function App() {
       }
     
       // Vérifier si la box est résolue
-      if (box.isSettled) {
-        // Si l'utilisateur a déjà réclamé ses gains
+      if (box.isSettled || box.sportData?.status?.short === 'FIN' || 
+        String(box.sportData?.status?.long || '').toLowerCase().includes('finish')) {
         if (hasUserClaimed) {
           return (
             <div className="flex gap-2 px-4 pt-2 pb-4">
@@ -601,7 +616,10 @@ export default function App() {
       }
     
       // Vérifier si le match est terminé mais non résolu
-      if (box.sportData?.scheduled && new Date(box.sportData.scheduled).getTime() <= Date.now()) {
+      const isScheduled = box.sportData?.scheduled && new Date(box.sportData.scheduled).getTime() <= Date.now();
+      const isFinished = ['FT', 'AET', 'PEN', 'FIN'].includes(box.sportData?.status?.short || '');
+      
+      if (isScheduled || isFinished) {
         return (
           <div className="flex gap-2 px-4 pt-2 pb-4">
             <button 
@@ -614,7 +632,22 @@ export default function App() {
           </div>
         );
       }
-    
+
+        // Ne montrer les boutons Hunt/Fish que si la box est vraiment ouverte
+      const isBoxOpen = box.sportData?.status?.short === 'SCH' || 
+                        box.sportData?.status?.short === 'NS' || 
+                        String(box.sportData?.status?.long || '').toLowerCase().includes('scheduled');
+
+      if (!isBoxOpen) {
+        return (
+          <div className="flex gap-2 px-4 pt-2 pb-4">
+            <div className="w-full py-3 text-center bg-gray-100 text-gray-500 font-semibold rounded-xl">
+              ⚠️ Box Unavailable
+            </div>
+          </div>
+        );
+      }
+
       // Box ouverte - Afficher les boutons Hunt/Fish normaux
       return (
         <div className="flex gap-2 px-4 pt-2 pb-4">
@@ -1264,7 +1297,7 @@ export default function App() {
                                   sportData: {
                                     ...box.sportData,
                                     status: {
-                                      long: box.sportData?.status || 'Unknown',
+                                      long: String(box.sportData?.status || 'Unknown'),
                                       short: String(box.sportData?.status || 'UNK').substring(0, 3)
                                     },
                                     formattedStatus: box.sportData?.formattedStatus || ''
