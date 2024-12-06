@@ -134,11 +134,12 @@ const EventDetailsPopup: React.FC<{ box: BoxType }> = ({ box }) => {
     };
 
 
-    const TeamScore = ({ score }: { score?: number | { current: number; total: number } }) => {
-        if (score === undefined) return null;
+    const TeamScore = ({ score }: { score?: number | { current: number; total: number } | null }) => {
+        // Si le score est null ou undefined, retourner null
+        if (!score) return null;
         
-        // Si le score est un objet avec current et total
-        if (typeof score === 'object' && 'current' in score) {
+        // Si le score est un objet et n'est pas null, on peut vérifier s'il a la propriété current
+        if (typeof score === 'object') {
             return (
                 <div className="relative">
                     <p className="text-4xl font-bold bg-gradient-to-b from-blue-300 to-blue-500 bg-clip-text text-transparent">
@@ -149,7 +150,7 @@ const EventDetailsPopup: React.FC<{ box: BoxType }> = ({ box }) => {
             );
         }
         
-        // Si le score est un simple nombre
+        // Si c'est un nombre simple
         return (
             <div className="relative">
                 <p className="text-4xl font-bold bg-gradient-to-b from-blue-300 to-blue-500 bg-clip-text text-transparent">
