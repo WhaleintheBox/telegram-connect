@@ -7,7 +7,7 @@ interface AccountProps {
   onToggleMyGames: () => void;
 }
 
-export function Account({ botName, myGames, onToggleMyGames }: AccountProps) {
+export function Account({ myGames, onToggleMyGames }: AccountProps) {
   const { address, connector } = useAccount();
   const { disconnect } = useDisconnect();
   const { data: ensName } = useEnsName({ address });
@@ -49,7 +49,7 @@ export function Account({ botName, myGames, onToggleMyGames }: AccountProps) {
           
           {/* Bouton retour vers Telegram */}
           <a
-            href={`https://t.me/${botName}`}
+            href={`https://t.me/WhaleintheBot`}
             target="_blank"
             rel="noopener noreferrer"
           >
