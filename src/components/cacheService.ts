@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';  // Retirer useEffect car non utilisé
+import React from 'react';  // Ajout de l'import React explicite
+const { useState, useCallback, useEffect } = React;  // Utilisation de la déstructuration depuis React
 
 interface CacheMetadata {
     chunks: number;
@@ -6,16 +7,16 @@ interface CacheMetadata {
     version: string;
 }
 
-interface Bet {
-    participant: string;
-    prediction: boolean;
-    amount: string;
-}
-
 interface TokenData {
     symbol: string;
     amount: string;
     address: string | null;
+}
+
+interface Bet {
+    participant: string;
+    prediction: boolean;
+    amount: string;
 }
 
 interface SportDataType {
@@ -70,42 +71,26 @@ interface Box {
     }>;
 }
 
-
 const CACHE_KEY = 'witbot_boxes_cache';
-const CHUNK_SIZE = 100 * 1024; //100KB
-const MAX_CACHE_ITEMS = 50; // 50 items
+const METADATA_KEY = `${CACHE_KEY}_meta`;
+const CHUNK_SIZE = 100 * 1024;
+const MAX_CACHE_ITEMS = 50;
+const CACHE_VERSION = '1.0';
 
 export const enhancedStorageHandler = {
-    async compress(data: Box) {
-        const { 
-            imageData, // Supprimé car trop volumineux
-            recentActivity, 
-            bets,
-            ...essentialData 
-        } = data;
+    async compress(data: Box): Promise<Box> {
+        try {
+            const { 
+                imageData,
+                recentActivity, 
+                bets,
+                ...essentialData 
+            } = data;
 
-        // Garde seulement les 3 activités les plus récentes
-        const compressedActivity = recentActivity?.slice(0, 3);
-        
-        // Garde seulement les 5 derniers paris
-        const compressedBets = bets.slice(-5);
+            const compressedActivity = recentActivity?.slice(0, 3);
+            const compressedBets = bets.slice(-5);
 
-        // Supprime les données non essentielles de sportData
-        const { 
-            tournament,
-            status,
-            scheduled,
-            home_team,
-            away_team,
-            home_score,
-            away_score
-        } = data.sportData;
-
-        return {
-            ...essentialData,
-            bets: compressedBets,
-            recentActivity: compressedActivity,
-            sportData: {
+            const { 
                 tournament,
                 status,
                 scheduled,
@@ -113,41 +98,52 @@ export const enhancedStorageHandler = {
                 away_team,
                 home_score,
                 away_score
-            }
-        };
-    },
+            } = data.sportData;
 
-    async compressBatch(boxes: { [key: string]: Box }) {
-        const compressed: { [key: string]: Box } = {};
-        for (const [key, value] of Object.entries(boxes)) {
-            compressed[key] = await this.compress(value);
+            return {
+                ...essentialData,
+                bets: compressedBets,
+                recentActivity: compressedActivity,
+                sportData: {
+                    tournament,
+                    status,
+                    scheduled,
+                    home_team,
+                    away_team,
+                    home_score,
+                    away_score
+                }
+            };
+        } catch (error) {
+            console.error('Error compressing box data:', error);
+            return data;
         }
-        return compressed;
     },
 
-    pruneCache(cache: { [key: string]: Box }) {
-        const entries = Object.entries(cache);
-        if (entries.length <= MAX_CACHE_ITEMS) return cache;
+    pruneCache(cache: { [key: string]: Box }): { [key: string]: Box } {
+        try {
+            const entries = Object.entries(cache);
+            if (entries.length <= MAX_CACHE_ITEMS) return cache;
 
-        // Garde uniquement les entrées les plus récentes
-        const sortedEntries = entries
-            .sort((a, b) => 
-                new Date(b[1].lastUpdated).getTime() - 
-                new Date(a[1].lastUpdated).getTime()
-            )
-            .slice(0, MAX_CACHE_ITEMS);
+            const sortedEntries = entries
+                .sort((a, b) => 
+                    new Date(b[1].lastUpdated).getTime() - 
+                    new Date(a[1].lastUpdated).getTime()
+                )
+                .slice(0, MAX_CACHE_ITEMS);
 
-        return Object.fromEntries(sortedEntries);
+            return Object.fromEntries(sortedEntries);
+        } catch (error) {
+            console.error('Error pruning cache:', error);
+            return cache;
+        }
     },
 
     async saveToStorage(cache: { [key: string]: Box }) {
         try {
-            // Nettoie d'abord le cache existant
             this.clearPreviousCache();
-
-            const prunedCache = this.pruneCache(cache);
             
-            // Compresse chaque box individuellement
+            const prunedCache = this.pruneCache(cache);
             const compressedBoxes = await Promise.all(
                 Object.entries(prunedCache).map(async ([key, box]) => {
                     const compressed = await this.compress(box);
@@ -158,24 +154,24 @@ export const enhancedStorageHandler = {
             const compressedCache = Object.fromEntries(compressedBoxes);
             const dataStr = JSON.stringify(compressedCache);
 
-            // Si les données sont encore trop grandes, les divise en chunks
             if (dataStr.length > CHUNK_SIZE) {
                 const chunks = Math.ceil(dataStr.length / CHUNK_SIZE);
-                
-                // Stocke les métadonnées
-                localStorage.setItem(`${CACHE_KEY}_meta`, JSON.stringify({
+                const metadata = {
                     chunks,
                     lastUpdated: new Date().toISOString(),
-                    version: '1.0'
-                }));
+                    version: CACHE_VERSION
+                };
 
-                // Stocke les chunks
+                localStorage.setItem(METADATA_KEY, JSON.stringify(metadata));
+
                 for (let i = 0; i < chunks; i++) {
                     const chunk = dataStr.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+                    const chunkKey = `${CACHE_KEY}_${i}`;
                     try {
-                        localStorage.setItem(`${CACHE_KEY}_${i}`, chunk);
+                        localStorage.setItem(chunkKey, chunk);
                     } catch (e) {
-                        console.warn(`Failed to save chunk ${i}, skipping...`);
+                        console.warn(`Failed to save chunk ${i}`, e);
+                        this.handleStorageError();
                         break;
                     }
                 }
@@ -183,24 +179,33 @@ export const enhancedStorageHandler = {
                 localStorage.setItem(CACHE_KEY, dataStr);
             }
         } catch (error) {
-            console.warn('Cache storage error:', error);
+            console.error('Cache storage error:', error);
             this.handleStorageError();
         }
     },
 
     clearPreviousCache() {
-        const keys = Object.keys(localStorage);
-        keys.forEach(key => {
-            if (key.startsWith(CACHE_KEY)) {
-                localStorage.removeItem(key);
-            }
-        });
+        try {
+            const keys = Object.keys(localStorage);
+            keys.forEach(key => {
+                if (key.startsWith(CACHE_KEY)) {
+                    localStorage.removeItem(key);
+                }
+            });
+        } catch (error) {
+            console.error('Error clearing cache:', error);
+        }
     },
 
     handleStorageError() {
         try {
             localStorage.clear();
             localStorage.setItem(CACHE_KEY, JSON.stringify({}));
+            localStorage.setItem(METADATA_KEY, JSON.stringify({
+                chunks: 0,
+                lastUpdated: new Date().toISOString(),
+                version: CACHE_VERSION
+            }));
         } catch (e) {
             console.error('Failed to recover storage:', e);
         }
@@ -208,14 +213,23 @@ export const enhancedStorageHandler = {
 
     loadFromStorage(): { [key: string]: Box } {
         try {
-            const metadataStr = localStorage.getItem(`${CACHE_KEY}_metadata`);
+            const metadataStr = localStorage.getItem(METADATA_KEY);
             if (metadataStr) {
                 const metadata: CacheMetadata = JSON.parse(metadataStr);
+                if (metadata.version !== CACHE_VERSION) {
+                    this.clearPreviousCache();
+                    return {};
+                }
+
                 let dataStr = '';
-                
                 for (let i = 0; i < metadata.chunks; i++) {
                     const chunk = localStorage.getItem(`${CACHE_KEY}_${i}`);
-                    if (chunk) dataStr += chunk;
+                    if (!chunk) {
+                        console.warn(`Missing chunk ${i}, cache may be corrupted`);
+                        this.clearPreviousCache();
+                        return {};
+                    }
+                    dataStr += chunk;
                 }
                 
                 return JSON.parse(dataStr);
@@ -224,27 +238,49 @@ export const enhancedStorageHandler = {
             const data = localStorage.getItem(CACHE_KEY);
             return data ? JSON.parse(data) : {};
         } catch (error) {
-            console.warn('Cache loading error:', error);
+            console.error('Cache loading error:', error);
+            this.handleStorageError();
             return {};
         }
     }
 };
 
 export function useCache() {
-    const [state, setState] = useState<{ [key: string]: Box }>(
-        enhancedStorageHandler.loadFromStorage()
-    );
-    const [updatedBoxes, setUpdatedBoxes] = useState(new Set<string>());
+    const [state, setState] = useState<{ [key: string]: Box }>({});
+    const [updatedBoxes, setUpdatedBoxes] = useState<Set<string>>(new Set());
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+
+    // Utilisation de useEffect pour l'initialisation
+    useEffect(() => {
+        const initializeCache = () => {
+            try {
+                const cachedData = enhancedStorageHandler.loadFromStorage();
+                setState(cachedData);
+            } catch (error) {
+                console.error('Error loading initial cache:', error);
+                setState({});
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        initializeCache();
+    }, []);
 
     const updateCache = useCallback(async (newData: { [key: string]: Box }) => {
-        setState(newData);
-        await enhancedStorageHandler.saveToStorage(newData);
+        try {
+            setState(newData);
+            await enhancedStorageHandler.saveToStorage(newData);
+        } catch (error) {
+            console.error('Error updating cache:', error);
+        }
     }, []);
 
     return {
         cacheData: state,
         updateCache,
         updatedBoxes,
-        setUpdatedBoxes
+        setUpdatedBoxes,
+        isLoading
     };
 }

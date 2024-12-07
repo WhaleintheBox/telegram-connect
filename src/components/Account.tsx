@@ -1,7 +1,13 @@
 import { useAccount, useDisconnect, useEnsAvatar, useEnsName } from 'wagmi';
 import KrillClaimButton from './KrillClaimButton';
 
-export function Account(props: { botName: string }) {
+interface AccountProps {
+  botName: string;
+  myGames: boolean;
+  onToggleMyGames: () => void;
+}
+
+export function Account({ botName, myGames, onToggleMyGames }: AccountProps) {
   const { address, connector } = useAccount();
   const { disconnect } = useDisconnect();
   const { data: ensName } = useEnsName({ address });
@@ -10,42 +16,50 @@ export function Account(props: { botName: string }) {
   const formattedAddress = formatAddress(address);
 
   return (
-    <div className="container">
-      <div className="row">
-        <div className="inline">
+    <div className="account-container">
+      <div className="account-row">
+        <div className="account-info">
           {ensAvatar ? (
             <img alt="ENS Avatar" className="avatar" src={ensAvatar} />
           ) : (
             <div className="avatar" />
           )}
-          <div className="stack">
+          <div className="account-details">
             {address && (
-              <div className="text">
+              <div className="account-address">
                 {ensName ? `${ensName} (${formattedAddress})` : formattedAddress}
               </div>
             )}
-            <div className="subtext">
+            <div className="account-network">
               Connected to {connector?.name}
             </div>
           </div>
         </div>
-        <div className="accountButtons">
+        <div className="account-actions">
+          {/* Bouton My Games */}
+          <button
+            onClick={onToggleMyGames}
+            className={`my-games-button ${myGames ? 'active' : ''}`}
+          >
+            🎮 My Games
+          </button>
+
           {/* Bouton de claim KRILL */}
           <KrillClaimButton />
           
           {/* Bouton retour vers Telegram */}
           <a
-            href={`https://t.me/${props.botName}`}
+            href={`https://t.me/${botName}`}
             target="_blank"
             rel="noopener noreferrer"
           >
-            <button className="backButton">
+            <button className="back-button">
               Back to chat
             </button>
           </a>
           
           {/* Bouton de déconnexion */}
-          <button onClick={() => disconnect()} type="button">
+          <button onClick={() => disconnect()} className="disconnect-button">
             Disconnect
           </button>
         </div>

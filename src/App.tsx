@@ -12,7 +12,6 @@ import { ERC20_ABI, BOX_ABI } from './constants/contracts';
 import { useCache } from './components/cacheService';
 
 
-
 const { cacheData, updateCache, updatedBoxes, setUpdatedBoxes } = useCache();
 
 
@@ -1267,7 +1266,16 @@ export default function App() {
 
   return (
     <>
-      {isConnected && !schemaError && <Account botName={botName} />}
+      {isConnected && !schemaError && (
+        <Account 
+          botName={botName} 
+          myGames={filters.myGames} 
+          onToggleMyGames={() => setFilters(prev => ({
+            ...prev,
+            myGames: !prev.myGames
+          }))} 
+        />
+      )}
       {!isConnected && !schemaError && <Connect />}
 
       {(!transactionData && !signMessageData) && (
