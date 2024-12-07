@@ -7,12 +7,16 @@ const KRILL_CONTRACT = "0x33E5b643C05a3B00F71a066FefA4F59eF6BE27fc";
 const KrillClaimButton = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
-
-  const handleClaim = async () => {
+  
+  const handleClaim = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    
     if (!window.ethereum) {
       alert('Please install MetaMask!');
       return;
     }
+
+    if (isProcessing) return;
 
     setIsProcessing(true);
     try {
@@ -20,19 +24,25 @@ const KrillClaimButton = () => {
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(KRILL_CONTRACT, KRILL_ABI, signer);
 
-      const tx = await contract.airdrop();
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const tx = await contract.airdrop({
+        gasLimit: 100000
+      });
       setTxHash(tx.hash);
       await tx.wait();
       
       alert('🎉 Successfully claimed KRILL!');
     } catch (error: any) {
-      if (error.message.includes('AirdropIntervalNotReached')) {
+      console.error('Full claim error:', error);
+
+      if (error.message?.includes('AirdropIntervalNotReached')) {
         alert('Please wait before claiming again');
-      } else if (error.message.includes('user rejected')) {
+      } else if (error.message?.includes('user rejected')) {
         alert('Transaction was rejected');
       } else {
         console.error('Claim error:', error);
-        alert('Failed to claim KRILL');
+        alert('Failed to claim KRILL: ' + (error.message || 'Unknown error'));
       }
     } finally {
       setIsProcessing(false);
@@ -47,18 +57,10 @@ const KrillClaimButton = () => {
         className="p-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-200 disabled:opacity-50"
         title="Claim KRILL"
       >
-        <div className="relative">
-          {/* Box Emoji with Animation */}
+        <div className="relative flex items-center justify-center">
           <span className="text-xl transform inline-block hover:scale-110 transition-transform">
-            🎁
+            {isProcessing ? '⏳' : '🎁'}
           </span>
-          
-          {/* Processing Indicator */}
-          {isProcessing && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-full h-full border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-          )}
         </div>
       </button>
       
