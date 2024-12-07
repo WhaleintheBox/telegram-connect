@@ -9,7 +9,7 @@ import { formatEther } from 'viem';
 import { ethers } from 'ethers';
 import { ERC20_ABI, BOX_ABI } from './constants/contracts';
 import { useCache } from './components/cacheService';
-import { useState, useEffect, useCallback } from 'react';  // Ajout de useCallback
+import { useState, useEffect } from 'react'; 
 
 
 
@@ -1092,7 +1092,7 @@ export default function App() {
     }
   };
 
-  const fetchBoxes = useCallback(async () => {
+  const fetchBoxes = async () => {
     try {
       const response = await fetch('https://witbbot-638008614172.us-central1.run.app/boxes');
       const data = await response.json() as ApiResponse;
@@ -1134,13 +1134,7 @@ export default function App() {
     } finally {
       setIsLoading(false);
     }
-  }, [cacheData, updateCache, setUpdatedBoxes]); // Ajoutez les dépendances ici
-
-  useEffect(() => {
-    fetchBoxes();
-    const interval = setInterval(fetchBoxes, 30000);
-    return () => clearInterval(interval);
-  }, [fetchBoxes]); 
+  }; 
 
   const formatAddress = (address: string): string => 
     `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -1239,7 +1233,6 @@ export default function App() {
       }
     });
   };
-
 
 
   useEffect(() => {
