@@ -1503,45 +1503,27 @@ export default function App() {
                                 <span className="text-lg">🔮 Predictions</span>
                               </div>
                               <div className="space-y-3">
-                                {box.initialEvents.slice(0, 4).map((event, index) => {
-                                  const parts = event.prediction.split(' | ').map(p => p.trim());
-                                  // If no split parts or missing data, handle gracefully
-                                  const what = parts[0] || 'No prediction';
-                                  const when = parts[1] || 'Undefined timing';
-                                  
-                                  return (
-                                    <div 
-                                      key={index}
-                                      className="bg-white rounded-lg p-3 border border-gray-100 hover:shadow-md transition-shadow"
-                                    >
-                                      {/* Who section */}
-                                      <div className="flex items-center gap-2 mb-2 text-blue-600 font-medium">
-                                        <span className="text-sm">🧞‍♂️</span>
-                                        <span className="text-sm truncate" title={event.who}>
-                                          {event.who}
-                                        </span>
-                                      </div>
-                                      
-                                      {/* What section */}
-                                      <div className="flex items-start gap-2 mb-2 pl-4">
-                                        <span className="text-xs text-gray-500 font-medium w-14">WHAT:</span>
-                                        <span className="text-sm text-gray-800 font-medium flex-1">
-                                          {what}
-                                        </span>
-                                      </div>
-                                      
-                                      {/* When section - Only display if valid timing */}
-                                      {when && when !== 'Undefined timing' && (
-                                        <div className="flex items-start gap-2 pl-4">
-                                          <span className="text-xs text-gray-500 font-medium w-14">WHEN:</span>
-                                          <span className="text-sm text-gray-600">
-                                            {when}
-                                          </span>
-                                        </div>
-                                      )}
+                                {box.initialEvents.slice(0, 4).map((event, index) => (
+                                  <div 
+                                    key={index}
+                                    className="bg-white rounded-lg p-3 border border-gray-100 hover:shadow-md transition-shadow"
+                                  >
+                                    {/* Who section */}
+                                    <div className="flex items-center gap-2 mb-2 text-blue-600 font-medium">
+                                      <span className="text-sm">🧞‍♂️</span>
+                                      <span className="text-sm truncate" title={event.who}>
+                                        {event.who}
+                                      </span>
                                     </div>
-                                  );
-                                })}
+                                    
+                                    {/* Prediction content */}
+                                    <div className="flex items-start gap-2 pl-4">
+                                      <span className="text-sm text-gray-800 font-medium flex-1">
+                                        {event.prediction}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           )}
