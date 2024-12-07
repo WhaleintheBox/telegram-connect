@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';  // Retirer useRef
 import { useAccount } from 'wagmi';
 import { WriteContract, WriteContractData } from './components/WriteContract';
 import { SignMessage, SignMessageProps } from './components/SignMessage';
@@ -9,6 +9,13 @@ import { getSchemaError, sendEvent } from './utils';
 import { formatEther } from 'viem';
 import { ethers } from 'ethers';
 import { ERC20_ABI, BOX_ABI } from './constants/contracts';
+import { useCache } from './components/cacheService';
+
+
+
+const { cacheData, updateCache, updatedBoxes, setUpdatedBoxes } = useCache();
+
+
 
 type SportsType = {
   [key in 'SOCCER' | 'F1' | 'MMA' | 'NFL' | 'BASKETBALL']: boolean;
@@ -1087,87 +1094,50 @@ export default function App() {
     }
   };
 
-  const loadCacheFromStorage = () => {
+  const fetchBoxes = async () => {
     try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      return cached ? JSON.parse(cached) : {};
-    } catch (e) {
-      console.error('Error loading cache:', e);
-      return {};
-    }
-  };
-
-  const saveCacheToStorage = (cache: { [key: string]: Box }) => {
-    try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
-    } catch (e) {
-      console.error('Error saving cache:', e);
-    }
-  };
-
-  const CACHE_KEY = 'witbot_boxes_cache';
-  const boxesCache = useRef<{ [key: string]: Box }>(loadCacheFromStorage());
-  const [updatedBoxes, setUpdatedBoxes] = useState<Set<string>>(new Set());
-
-
-  
-  // Version mise à jour de fetchBoxes
-  const fetchBoxes = async (): Promise<void> => {
-    try {
-      const response = await fetch('https://witbbot-638008614172.us-central1.run.app/boxes');
-      const data = await response.json() as ApiResponse;
-      
-      if (data.success && Array.isArray(data.boxes)) {
-        const cutoffDate = new Date('2023-11-20');
-        const newUpdatedBoxes = new Set<string>();
+        const response = await fetch('https://witbbot-638008614172.us-central1.run.app/boxes');
+        const data = await response.json() as ApiResponse;
         
-        // Mettre à jour le cache et détecter les changements
-        data.boxes.forEach(box => {
-          if (new Date(box.lastUpdated) >= cutoffDate) {
-            const existingBox = boxesCache.current[box.address];
-            if (existingBox) {
-              // Vérifier si la box a été mise à jour
-              if (new Date(box.lastUpdated) > new Date(existingBox.lastUpdated)) {
-                newUpdatedBoxes.add(box.address);
-                boxesCache.current[box.address] = box;
-              }
-            } else {
-              boxesCache.current[box.address] = box;
-            }
-          }
-        });
-  
-        // Mettre à jour l'état des boxes modifiées
-        setUpdatedBoxes(newUpdatedBoxes);
-        
-        // Supprimer l'animation après 2 secondes
-        setTimeout(() => {
-          setUpdatedBoxes(new Set());
-        }, 2000);
-  
-        saveCacheToStorage(boxesCache.current);
-  
-        const filteredBoxes: Box[] = Object.values(boxesCache.current)
-          .sort((a: Box, b: Box) => 
-            new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
-          );
-        
-        setBoxes(filteredBoxes);
-        setStats(calculateStats(filteredBoxes));
-      }
+        if (data.success && Array.isArray(data.boxes)) {
+            const cutoffDate = new Date('2024-11-20');
+            const newUpdatedBoxes = new Set<string>();
+            const newCacheData = { ...cacheData };
+            
+            data.boxes.forEach(box => {
+                if (new Date(box.lastUpdated) >= cutoffDate) {
+                    const existingBox = newCacheData[box.address];
+                    if (existingBox) {
+                        if (new Date(box.lastUpdated) > new Date(existingBox.lastUpdated)) {
+                            newUpdatedBoxes.add(box.address);
+                            newCacheData[box.address] = box;
+                        }
+                    } else {
+                        newCacheData[box.address] = box;
+                    }
+                }
+            });
+            
+            setUpdatedBoxes(newUpdatedBoxes);
+            await updateCache(newCacheData);
+            
+            setTimeout(() => {
+                setUpdatedBoxes(new Set());
+            }, 2000);
+            
+            const filteredBoxes = Object.values(newCacheData)
+                .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
+            
+            setBoxes(filteredBoxes);
+            setStats(calculateStats(filteredBoxes));
+        }
     } catch (error) {
-      console.error('Error fetching boxes:', error);
+        console.error('Error fetching boxes:', error);
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
   };
-  
-  // Clean-up du cache
-  useEffect(() => {
-    return () => {
-      boxesCache.current = {};
-    };
-  }, []);
+
 
   const formatAddress = (address: string): string => 
     `${address.slice(0, 6)}...${address.slice(-4)}`;

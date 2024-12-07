@@ -135,31 +135,41 @@ const EventDetailsPopup: React.FC<{ box: BoxType }> = ({ box }) => {
 
 
     const TeamScore = ({ score }: { score?: number | { current: number; total: number } | null }) => {
-        // Si le score est null ou undefined, retourner null
-        if (!score) return null;
-        
-        // Si le score est un objet et n'est pas null, on peut vérifier s'il a la propriété current
-        if (typeof score === 'object') {
+        // Si le score est null ou undefined, retourner un placeholder
+        if (!score) {
             return (
                 <div className="relative">
                     <p className="text-4xl font-bold bg-gradient-to-b from-blue-300 to-blue-500 bg-clip-text text-transparent">
-                        {score.total}
+                        0
                     </p>
                     <div className="absolute inset-0 backdrop-blur-sm -z-10" />
                 </div>
             );
         }
         
-        // Si c'est un nombre simple
+        // Si le score est un nombre
+        if (typeof score === 'number') {
+            return (
+                <div className="relative">
+                    <p className="text-4xl font-bold bg-gradient-to-b from-blue-300 to-blue-500 bg-clip-text text-transparent">
+                        {score}
+                    </p>
+                    <div className="absolute inset-0 backdrop-blur-sm -z-10" />
+                </div>
+            );
+        }
+        
+        // Si le score est un objet
         return (
             <div className="relative">
                 <p className="text-4xl font-bold bg-gradient-to-b from-blue-300 to-blue-500 bg-clip-text text-transparent">
-                    {score}
+                    {score.current}
                 </p>
                 <div className="absolute inset-0 backdrop-blur-sm -z-10" />
             </div>
         );
     };
+    
 
     const StatsCard = ({ icon: Icon, label, value }: { icon: any, label: string, value: string | number }) => (
         <div className="bg-blue-900/20 backdrop-blur-sm p-4 rounded-xl border border-blue-500/20 hover:-translate-y-1 transition-all duration-200">
