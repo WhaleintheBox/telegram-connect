@@ -759,10 +759,10 @@ export default function App() {
       }
 
         // Ne montrer les boutons Hunt/Fish que si la box est vraiment ouverte
-        const isBoxOpen = box.sportData?.status?.short === 'SCH' || 
-                          box.sportData?.status?.short === 'NS' || 
-                          box.sportData?.status?.short === 'TBD' ||  // Ajouter TBD
-                          !box.isSettled && !box.isCancelled && new Date(box.sportData?.scheduled || '').getTime() > Date.now();
+      const isBoxOpen = box.sportData?.status?.short === 'SCH' || 
+                        box.sportData?.status?.short === 'NS' || 
+                        box.sportData?.status?.short === 'TBD' ||  // Ajouter TBD
+                        !box.isSettled && !box.isCancelled && new Date(box.sportData?.scheduled || '').getTime() > Date.now();
 
       if (!isBoxOpen) {
         return (
