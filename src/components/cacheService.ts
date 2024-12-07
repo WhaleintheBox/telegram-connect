@@ -72,13 +72,49 @@ interface Box {
 
 
 const CACHE_KEY = 'witbot_boxes_cache';
-const CHUNK_SIZE = 512 * 1024; // 512KB chunks
-const MAX_CACHE_ITEMS = 100;
+const CHUNK_SIZE = 100 * 1024; //100KB
+const MAX_CACHE_ITEMS = 50; // 50 items
 
 export const enhancedStorageHandler = {
     async compress(data: Box) {
-        const { imageData, recentActivity, ...essentialData } = data;
-        return essentialData;
+        const { 
+            imageData, // Supprimé car trop volumineux
+            recentActivity, 
+            bets,
+            ...essentialData 
+        } = data;
+
+        // Garde seulement les 3 activités les plus récentes
+        const compressedActivity = recentActivity?.slice(0, 3);
+        
+        // Garde seulement les 5 derniers paris
+        const compressedBets = bets.slice(-5);
+
+        // Supprime les données non essentielles de sportData
+        const { 
+            tournament,
+            status,
+            scheduled,
+            home_team,
+            away_team,
+            home_score,
+            away_score
+        } = data.sportData;
+
+        return {
+            ...essentialData,
+            bets: compressedBets,
+            recentActivity: compressedActivity,
+            sportData: {
+                tournament,
+                status,
+                scheduled,
+                home_team,
+                away_team,
+                home_score,
+                away_score
+            }
+        };
     },
 
     async compressBatch(boxes: { [key: string]: Box }) {
@@ -93,36 +129,55 @@ export const enhancedStorageHandler = {
         const entries = Object.entries(cache);
         if (entries.length <= MAX_CACHE_ITEMS) return cache;
 
+        // Garde uniquement les entrées les plus récentes
         const sortedEntries = entries
             .sort((a, b) => 
                 new Date(b[1].lastUpdated).getTime() - 
                 new Date(a[1].lastUpdated).getTime()
-            );
+            )
+            .slice(0, MAX_CACHE_ITEMS);
 
-        return Object.fromEntries(sortedEntries.slice(0, MAX_CACHE_ITEMS));
+        return Object.fromEntries(sortedEntries);
     },
 
     async saveToStorage(cache: { [key: string]: Box }) {
         try {
-            const prunedCache = this.pruneCache(cache);
-            const compressedData = await this.compressBatch(prunedCache);
-            const dataStr = JSON.stringify(compressedData);
-
+            // Nettoie d'abord le cache existant
             this.clearPreviousCache();
 
+            const prunedCache = this.pruneCache(cache);
+            
+            // Compresse chaque box individuellement
+            const compressedBoxes = await Promise.all(
+                Object.entries(prunedCache).map(async ([key, box]) => {
+                    const compressed = await this.compress(box);
+                    return [key, compressed];
+                })
+            );
+
+            const compressedCache = Object.fromEntries(compressedBoxes);
+            const dataStr = JSON.stringify(compressedCache);
+
+            // Si les données sont encore trop grandes, les divise en chunks
             if (dataStr.length > CHUNK_SIZE) {
                 const chunks = Math.ceil(dataStr.length / CHUNK_SIZE);
-                const metadata: CacheMetadata = {
+                
+                // Stocke les métadonnées
+                localStorage.setItem(`${CACHE_KEY}_meta`, JSON.stringify({
                     chunks,
                     lastUpdated: new Date().toISOString(),
                     version: '1.0'
-                };
+                }));
 
-                localStorage.setItem(`${CACHE_KEY}_metadata`, JSON.stringify(metadata));
-
+                // Stocke les chunks
                 for (let i = 0; i < chunks; i++) {
                     const chunk = dataStr.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-                    localStorage.setItem(`${CACHE_KEY}_${i}`, chunk);
+                    try {
+                        localStorage.setItem(`${CACHE_KEY}_${i}`, chunk);
+                    } catch (e) {
+                        console.warn(`Failed to save chunk ${i}, skipping...`);
+                        break;
+                    }
                 }
             } else {
                 localStorage.setItem(CACHE_KEY, dataStr);
