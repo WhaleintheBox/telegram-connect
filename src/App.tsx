@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';  // Retirer useRef
 import { useAccount } from 'wagmi';
 import { WriteContract, WriteContractData } from './components/WriteContract';
 import { SignMessage, SignMessageProps } from './components/SignMessage';
@@ -10,9 +9,9 @@ import { formatEther } from 'viem';
 import { ethers } from 'ethers';
 import { ERC20_ABI, BOX_ABI } from './constants/contracts';
 import { useCache } from './components/cacheService';
+import { useState, useEffect, useCallback } from 'react';  // Ajout de useCallback
 
 
-const { cacheData, updateCache, updatedBoxes, setUpdatedBoxes } = useCache();
 
 
 
@@ -283,6 +282,7 @@ interface ApiResponse {
 export default function App() {
   const { isConnected, address } = useAccount();
   const [sortOption, setSortOption] = useState<SortOption>('latest');
+  const { cacheData, updateCache, updatedBoxes, setUpdatedBoxes, isLoading: cacheLoading } = useCache();
 
 
   // Core states
@@ -1093,50 +1093,55 @@ export default function App() {
     }
   };
 
-  const fetchBoxes = async () => {
+  const fetchBoxes = useCallback(async () => {
     try {
-        const response = await fetch('https://witbbot-638008614172.us-central1.run.app/boxes');
-        const data = await response.json() as ApiResponse;
+      const response = await fetch('https://witbbot-638008614172.us-central1.run.app/boxes');
+      const data = await response.json() as ApiResponse;
+      
+      if (data.success && Array.isArray(data.boxes)) {
+        const cutoffDate = new Date('2024-11-20');
+        const newUpdatedBoxes = new Set<string>();
+        const newCacheData = { ...cacheData };
         
-        if (data.success && Array.isArray(data.boxes)) {
-            const cutoffDate = new Date('2024-11-20');
-            const newUpdatedBoxes = new Set<string>();
-            const newCacheData = { ...cacheData };
-            
-            data.boxes.forEach(box => {
-                if (new Date(box.lastUpdated) >= cutoffDate) {
-                    const existingBox = newCacheData[box.address];
-                    if (existingBox) {
-                        if (new Date(box.lastUpdated) > new Date(existingBox.lastUpdated)) {
-                            newUpdatedBoxes.add(box.address);
-                            newCacheData[box.address] = box;
-                        }
-                    } else {
-                        newCacheData[box.address] = box;
-                    }
-                }
-            });
-            
-            setUpdatedBoxes(newUpdatedBoxes);
-            await updateCache(newCacheData);
-            
-            setTimeout(() => {
-                setUpdatedBoxes(new Set());
-            }, 2000);
-            
-            const filteredBoxes = Object.values(newCacheData)
-                .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
-            
-            setBoxes(filteredBoxes);
-            setStats(calculateStats(filteredBoxes));
-        }
+        data.boxes.forEach(box => {
+          if (new Date(box.lastUpdated) >= cutoffDate) {
+            const existingBox = newCacheData[box.address];
+            if (existingBox) {
+              if (new Date(box.lastUpdated) > new Date(existingBox.lastUpdated)) {
+                newUpdatedBoxes.add(box.address);
+                newCacheData[box.address] = box;
+              }
+            } else {
+              newCacheData[box.address] = box;
+            }
+          }
+        });
+        
+        setUpdatedBoxes(newUpdatedBoxes);
+        await updateCache(newCacheData);
+        
+        setTimeout(() => {
+          setUpdatedBoxes(new Set());
+        }, 2000);
+        
+        const filteredBoxes = Object.values(newCacheData)
+          .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
+        
+        setBoxes(filteredBoxes);
+        setStats(calculateStats(filteredBoxes));
+      }
     } catch (error) {
-        console.error('Error fetching boxes:', error);
+      console.error('Error fetching boxes:', error);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
-  };
+  }, [cacheData, updateCache, setUpdatedBoxes]); // Ajoutez les dépendances ici
 
+  useEffect(() => {
+    fetchBoxes();
+    const interval = setInterval(fetchBoxes, 30000);
+    return () => clearInterval(interval);
+  }, [fetchBoxes]); 
 
   const formatAddress = (address: string): string => 
     `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -1416,7 +1421,7 @@ export default function App() {
           </div>
 
           <div className="boxes-container">
-            {isLoading ? (
+            {(isLoading || cacheLoading) ? (
               <div className="loading">Loading boxes...</div>
             ) : (
               <>
