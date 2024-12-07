@@ -1087,8 +1087,6 @@ export default function App() {
     }
   };
 
-  const CACHE_KEY = 'witbot_boxes_cache';
-
   const loadCacheFromStorage = () => {
     try {
       const cached = localStorage.getItem(CACHE_KEY);
@@ -1106,8 +1104,14 @@ export default function App() {
       console.error('Error saving cache:', e);
     }
   };
-  const boxesCache = useRef<{ [key: string]: Box }>(loadCacheFromStorage());
 
+  const CACHE_KEY = 'witbot_boxes_cache';
+  const boxesCache = useRef<{ [key: string]: Box }>(loadCacheFromStorage());
+  const [updatedBoxes, setUpdatedBoxes] = useState<Set<string>>(new Set());
+
+
+  
+  // Version mise à jour de fetchBoxes
   const fetchBoxes = async (): Promise<void> => {
     try {
       const response = await fetch('https://witbbot-638008614172.us-central1.run.app/boxes');
@@ -1115,14 +1119,16 @@ export default function App() {
       
       if (data.success && Array.isArray(data.boxes)) {
         const cutoffDate = new Date('2023-11-20');
+        const newUpdatedBoxes = new Set<string>();
         
-        // Mettre à jour le cache avec les nouvelles données
+        // Mettre à jour le cache et détecter les changements
         data.boxes.forEach(box => {
           if (new Date(box.lastUpdated) >= cutoffDate) {
             const existingBox = boxesCache.current[box.address];
             if (existingBox) {
-              // Mettre à jour uniquement si les données sont plus récentes
+              // Vérifier si la box a été mise à jour
               if (new Date(box.lastUpdated) > new Date(existingBox.lastUpdated)) {
+                newUpdatedBoxes.add(box.address);
                 boxesCache.current[box.address] = box;
               }
             } else {
@@ -1131,10 +1137,16 @@ export default function App() {
           }
         });
   
-        // Sauvegarder le cache
+        // Mettre à jour l'état des boxes modifiées
+        setUpdatedBoxes(newUpdatedBoxes);
+        
+        // Supprimer l'animation après 2 secondes
+        setTimeout(() => {
+          setUpdatedBoxes(new Set());
+        }, 2000);
+  
         saveCacheToStorage(boxesCache.current);
   
-        // Convertir le cache en tableau et trier
         const filteredBoxes: Box[] = Object.values(boxesCache.current)
           .sort((a: Box, b: Box) => 
             new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
@@ -1149,8 +1161,8 @@ export default function App() {
       setIsLoading(false);
     }
   };
-
-  // Clean-up function pour le cache lors du démontage du composant
+  
+  // Clean-up du cache
   useEffect(() => {
     return () => {
       boxesCache.current = {};
@@ -1172,8 +1184,6 @@ export default function App() {
       tokens: {
         ...prev.tokens,
         [tokenType]: checked,
-        // Ne pas réinitialiser l'autre token quand on en sélectionne un
-        // Permettre la sélection multiple
       }
     }));
   };
@@ -1455,9 +1465,13 @@ export default function App() {
                 <div className="boxes-grid">
                   {getFilteredBoxes(boxes).map((box) => {
                     const hunterPercentage = calculateHunterPercentage(box.bets);
+                    const isUpdated = updatedBoxes.has(box.address);
                     
                     return (
-                      <div key={box.address} className="box-card">
+                      <div 
+                        key={box.address} 
+                        className={`box-card ${isUpdated ? 'box-updated' : ''}`}
+                      >
                         {box.imageData && (
                           <div className="box-image-container group">
                             <img 
@@ -1466,21 +1480,17 @@ export default function App() {
                               className="box-image"
                             />
                             <div className="event-details-popup">
-
-                            <EventDetailsPopup 
-                              box={{
+                              <EventDetailsPopup box={{
                                 sportId: box.sportId,
                                 sportData: {
                                   ...box.sportData,
                                   status: box.sportData?.status || { long: 'Unknown', short: 'UNK' },
                                   formattedStatus: box.sportData?.formattedStatus || ''
                                 }
-                              }} 
-                            />                       
+                              }} />                       
                             </div>
                           </div>
                         )}
-                        
                         <div className="box-content">
                           <div className="box-header">
                             <span className="box-sport">
@@ -1563,7 +1573,7 @@ export default function App() {
                             </div>
                           )}
 
-                          <div className="prediction-bar">
+                          <div className={`prediction-bar ${isUpdated ? 'progress-updated' : ''}`}>
                             <div className="bar-container">
                               <div 
                                 className="hunters-bar"
