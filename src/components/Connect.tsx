@@ -1,9 +1,8 @@
 import * as React from 'react';
-import { Connector, useConnect } from 'wagmi';
+import { Connector, useConnect, useAccount } from 'wagmi';
 
 // Constants
 const CHAIN_ID = 8453; // Base chain
-const SUPPORTED_WALLETS = ['metamask', 'walletconnect', 'coinbase'];
 
 // Types
 type ConnectorButtonProps = {
@@ -24,14 +23,9 @@ const detectMobile = (): boolean => {
   }
 };
 
-const isValidConnector = (connector: Connector): boolean => {
-  return SUPPORTED_WALLETS.some(wallet => 
-    connector.name.toLowerCase().includes(wallet)
-  );
-};
-
 export function Connect() {
   const { connectors, connect, error: connectError } = useConnect();
+  const { isConnected } = useAccount();
 
   // Memoized device detection
   const isMobile = React.useMemo(detectMobile, []);
@@ -55,10 +49,6 @@ export function Connect() {
 
   const handleConnect = React.useCallback(async (connector: Connector) => {
     try {
-      if (!isValidConnector(connector)) {
-        throw new Error('Unsupported wallet connector');
-      }
-
       const isInjected = connector.name.toLowerCase().includes('injected');
       
       if (isMobile && !isMetaMaskMobile && isInjected) {
@@ -70,7 +60,7 @@ export function Connect() {
           await connect({ 
             connector: walletConnectConnector,
             chainId: CHAIN_ID 
-          } as any); // Type assertion pour résoudre l'erreur chainId
+          } as any);
           return;
         }
       }
@@ -78,21 +68,21 @@ export function Connect() {
       await connect({ 
         connector,
         chainId: CHAIN_ID 
-      } as any); // Type assertion pour résoudre l'erreur chainId
+      } as any);
     } catch (error) {
       console.error('Connection attempt failed:', error);
     }
   }, [connect, connectors, isMobile, isMetaMaskMobile]);
 
-  const filteredConnectors = React.useMemo(() => 
-    connectors.filter(isValidConnector),
-    [connectors]
-  );
+  // Ne pas afficher les boutons de connexion si déjà connecté
+  if (isConnected) {
+    return null;
+  }
 
   return (
     <div className="container">
       <div className="set">
-        {filteredConnectors.map((connector) => (
+        {connectors.map((connector) => (
           <ConnectorButton
             key={connector.uid}
             connector={connector}
@@ -173,13 +163,11 @@ function ConnectorButton({ connector, onClick }: ConnectorButtonProps) {
   );
 }
 
-const getConnectorIcon = (connectorName: string): string => {
+function getConnectorIcon(connectorName: string) {
   const name = connectorName.toLowerCase();
-  const icons: Record<string, string> = {
-    metamask: '🦊',
-    walletconnect: '🔗',
-    coinbase: '💰'
-  };
-  
-  return icons[name] || '👛';
-};
+  if (name.includes('metamask')) return '🦊';
+  if (name.includes('walletconnect')) return '🔗';
+  if (name.includes('coinbase')) return '💰';
+  if (name.includes('phantom')) return '👻';
+  return '👛';
+}
