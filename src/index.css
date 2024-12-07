@@ -237,7 +237,83 @@ button:disabled {
   margin-right: auto;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 }
+.account-container {
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e4e4e7;
+  padding: 16px 24px;
+  margin: 16px auto;
+  width: auto;
+  max-width: 1200px;
+}
 
+.account-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.account-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.account-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.account-address {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.account-network {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.account-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Style des boutons dans Account */
+.account-actions button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.my-games-button {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+.my-games-button.active {
+  background: #EEF2FF !important;
+  border-color: #818CF8 !important;
+  color: #4F46E5 !important;
+}
+
+.back-button {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+.disconnect-button {
+  background: #fee2e2 !important;
+  border: 1px solid #fca5a5 !important;
+  color: #dc2626 !important;
+}
 .header {
   display: flex;
   justify-content: center;
@@ -1737,3 +1813,19 @@ button:disabled {
   border-radius: 3px;
 }
 
+@media screen and (max-width: 768px) {
+  .account-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .account-actions {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .account-actions button {
+    flex: 1;
+    min-width: 120px;
+  }
+}
