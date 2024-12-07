@@ -49,14 +49,20 @@ export function Connect() {
 
   const handleConnect = React.useCallback(async (connector: Connector) => {
     try {
+      // Détecter si on est sur mobile et si c'est MetaMask
       const isInjected = connector.name.toLowerCase().includes('injected');
+      const isMetaMask = connector.name.toLowerCase().includes('metamask');
       
-      if (isMobile && !isMetaMaskMobile && isInjected) {
+      // Sur mobile, utiliser WalletConnect pour MetaMask si l'extension n'est pas présente
+      if (isMobile && (isInjected || isMetaMask) && !window.ethereum) {
         const walletConnectConnector = connectors.find(c => 
           c.name.toLowerCase().includes('walletconnect')
         );
         
         if (walletConnectConnector) {
+          // Forcer le rafraîchissement de l'état du provider avant la connexion
+          await walletConnectConnector.getProvider();
+          
           await connect({ 
             connector: walletConnectConnector,
             chainId: CHAIN_ID 
@@ -65,6 +71,7 @@ export function Connect() {
         }
       }
       
+      // Pour toute autre connexion
       await connect({ 
         connector,
         chainId: CHAIN_ID 
@@ -72,7 +79,7 @@ export function Connect() {
     } catch (error) {
       console.error('Connection attempt failed:', error);
     }
-  }, [connect, connectors, isMobile, isMetaMaskMobile]);
+  }, [connect, connectors, isMobile]);
 
   // Ne pas afficher les boutons de connexion si déjà connecté
   if (isConnected) {
@@ -93,8 +100,8 @@ export function Connect() {
 
       {isMobile && !isMetaMaskMobile && (
         <div className="mt-4 text-sm text-center text-gray-600">
-          💡 Tip: Pour une meilleure expérience sur mobile, utilisez WalletConnect 
-          ou ouvrez ce site dans une dApp browser comme MetaMask.
+          💡 Tip: For the best mobile experience, use WalletConnect 
+          or open this site in a dApp browser like MetaMask.
         </div>
       )}
     </div>
