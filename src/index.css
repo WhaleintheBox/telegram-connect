@@ -289,16 +289,28 @@ button:disabled {
 .account-actions button {
   height: 40px;
   padding: 0 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   white-space: nowrap;
-  transition: all 0.2s ease;
+  min-width: 120px;
 }
 
+.button-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.my-games-button,
+.back-button,
+.disconnect-button {
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  flex: 1;
+}
 .my-games-button {
   background: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;

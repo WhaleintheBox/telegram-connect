@@ -49,29 +49,41 @@ export function Connect() {
 
   const handleConnect = React.useCallback(async (connector: Connector) => {
     try {
-      // Détecter si on est sur mobile et si c'est MetaMask
+      // Ajouter un délai pour la stabilité
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       const isInjected = connector.name.toLowerCase().includes('injected');
       const isMetaMask = connector.name.toLowerCase().includes('metamask');
       
-      // Sur mobile, utiliser WalletConnect pour MetaMask si l'extension n'est pas présente
-      if (isMobile && (isInjected || isMetaMask) && !window.ethereum) {
+      // Gestion spéciale pour MetaMask mobile
+      if (isMobile && (isInjected || isMetaMask)) {
         const walletConnectConnector = connectors.find(c => 
           c.name.toLowerCase().includes('walletconnect')
         );
         
         if (walletConnectConnector) {
-          // Forcer le rafraîchissement de l'état du provider avant la connexion
-          await walletConnectConnector.getProvider();
-          
-          await connect({ 
-            connector: walletConnectConnector,
-            chainId: CHAIN_ID 
-          } as any);
-          return;
+          try {
+            // Initialiser explicitement le provider WalletConnect
+            const provider = await walletConnectConnector.getProvider();
+            if (!provider) throw new Error('No WalletConnect provider');
+            
+            // Tenter la connexion avec WalletConnect
+            await connect({ 
+              connector: walletConnectConnector,
+              chainId: CHAIN_ID 
+            } as any);
+            return;
+          } catch (wcError) {
+            console.error('WalletConnect error:', wcError);
+            // Si WalletConnect échoue, on essaie la connexion normale
+          }
         }
       }
       
-      // Pour toute autre connexion
+      // Connexion standard
+      const provider = await connector.getProvider();
+      if (!provider) throw new Error('No provider available');
+  
       await connect({ 
         connector,
         chainId: CHAIN_ID 

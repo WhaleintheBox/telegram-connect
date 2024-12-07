@@ -304,7 +304,6 @@ export default function App() {
   const [callbackError, setCallbackError] = useState<any>();
   const [uid, setUid] = useState<string | undefined>();
   const [operationType, setOperationType] = useState<string>("");
-  const [botName, setBotName] = useState<string>("");
 
   // Filter states
   const [filters, setFilters] = useState<Filters>({
@@ -1250,7 +1249,6 @@ export default function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setBotName(params.get("botName") || "");
     setUid(params.get("uid") || "");
     setCallbackEndpoint(params.get("callback") || "");
     const actionType = params.get("type") === "signature" ? "signature" : "transaction";
@@ -1273,7 +1271,6 @@ export default function App() {
     <>
       {isConnected && !schemaError && (
         <Account 
-          botName={botName} 
           myGames={filters.myGames} 
           onToggleMyGames={() => setFilters(prev => ({
             ...prev,
