@@ -1140,7 +1140,7 @@ export default function App() {
     fetchBoxes();
     const interval = setInterval(fetchBoxes, 30000);
     return () => clearInterval(interval);
-  },); 
+  }, []);
 
   const formatAddress = (address: string): string => 
     `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -1239,7 +1239,6 @@ export default function App() {
       }
     });
   };
-
 
 
   useEffect(() => {
