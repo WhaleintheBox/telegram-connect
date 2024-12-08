@@ -1240,11 +1240,7 @@ export default function App() {
     });
   };
 
-  useEffect(() => {
-    fetchBoxes();
-    const interval = setInterval(fetchBoxes, 30000);
-    return () => clearInterval(interval);
-  }, []);
+
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
