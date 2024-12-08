@@ -1792,20 +1792,9 @@ button:disabled {
   }
 }
 
-/* Ajouter à la fin du fichier CSS */
-.btn-claim {
-  transition: all 0.2s ease-in-out;
-}
+/* Amélioration du bouton Claim */
 
-.btn-claim:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
 
-.btn-claim:disabled {
-  transform: none;
-  box-shadow: none;
-}
 .status-badge.cancelled { 
   background: #fee2e2; 
   color: #991b1b; 
@@ -1871,3 +1860,41 @@ button:disabled {
   border-radius: 3px;
 }
 
+.btn-claim {
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+  background-color: #007bff; /* Bleu vif */
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  display: inline-block;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-claim:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+  background-color: #0056b3; /* Bleu foncé */
+}
+
+.btn-claim:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.5); /* Anneau de mise au point */
+}
+
+.btn-claim:active {
+  transform: translateY(1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.btn-claim:disabled {
+  background-color: #cccccc; /* Gris désactivé */
+  color: #666666;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
