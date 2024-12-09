@@ -239,13 +239,6 @@ button:disabled {
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 }
 
-/* Header avec logo */
-.header-logo {
-  height: 60px;
-  width: auto;
-  object-fit: contain;
-  margin: 0 auto;
-}
 
 .account-container {
   background-color: #ffffff;
@@ -306,21 +299,17 @@ button:disabled {
 
 /* Ajustements mobile */
 @media screen and (max-width: 768px) {
-  /* Container et logo */
-  .header-logo {
-    height: 40px;
-    position: absolute;
-    top: 16px;
-    left: 16px;
+  .header {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
   }
 
-  .container {
-    padding: 16px;
-    margin: 8px;
+  .header-logo {
+    height: 40px;
   }
 
   .account-container {
-    margin-top: 72px; /* Espace pour le logo */
+    margin-top: 16px;
     padding: 12px;
     margin-left: 8px;
     margin-right: 8px;
@@ -366,12 +355,6 @@ button:disabled {
 
 /* Ajustements pour très petits écrans */
 @media screen and (max-width: 480px) {
-  .header-logo {
-    height: 32px;
-    top: 12px;
-    left: 12px;
-  }
-
   .account-container {
     margin-top: 56px;
     padding: 10px;
@@ -385,6 +368,16 @@ button:disabled {
     height: 32px;
     font-size: 11px;
     padding: 0 8px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .header-logo {
+    height: 32px;
+  }
+  
+  .account-container {
+    padding: 10px;
   }
 }
 
@@ -465,17 +458,20 @@ button:disabled {
   }
 }
 .header {
+  position: relative;
+  width: 100%;
   display: flex;
   justify-content: center;
   margin-bottom: 24px;
   padding-bottom: 24px;
-  border-bottom: 1px solid #e4e4e7;
 }
 
+/* Logo styling */
 .header-logo {
   height: 60px;
   width: auto;
   object-fit: contain;
+  margin: 0 auto;
 }
 
 .row {
