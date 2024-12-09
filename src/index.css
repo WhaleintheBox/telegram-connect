@@ -1512,12 +1512,15 @@ button:disabled {
   font-weight: 600;
   color: #475569;
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .prediction-item {
   font-size: 13px;
   color: #64748B;
-  padding: 6px 0;
+  padding: 8px 0;
   border-bottom: 1px dashed #E2E8F0;
 }
 
@@ -2151,7 +2154,8 @@ button:disabled {
   /* Section des prédictions */
   .predictions-section {
     padding: 10px;
-    margin: 12px 0;
+    margin: 10px 0;
+    border-radius: 6px;
   }
 
   .predictions-section h4 {
@@ -2159,9 +2163,25 @@ button:disabled {
     margin-bottom: 6px;
   }
 
+  /* Style des items de prédiction */
   .prediction-item {
     font-size: 11px;
-    padding: 4px 0;
+    padding: 6px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .prediction-item .predictor-address {
+    color: #4F46E5;
+    font-weight: 500;
+    font-size: 10px;
+  }
+
+  /* Style du contenu de la prédiction */
+  .prediction-item .prediction-content {
+    color: #64748B;
+    line-height: 1.3;
   }
 
   /* Infos de la box */
@@ -2221,7 +2241,19 @@ button:disabled {
   .amount-value {
     font-size: 12px;
   }
+  .predictions-section {
+    padding: 8px;
+    margin: 8px 0;
+  }
 
+  .prediction-item {
+    padding: 4px 0;
+  }
+
+  /* Limiter le nombre de prédictions affichées sur les petits écrans */
+  .prediction-item:nth-child(n+4) {
+    display: none;
+  }
   .prediction-bar {
     padding: 8px;
   }
