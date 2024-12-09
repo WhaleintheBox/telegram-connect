@@ -591,11 +591,61 @@ button:disabled {
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 }
 
+/* Modification de la grille des boxes */
 .boxes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Layout desktop inchangé */
   gap: 1.5rem;
   padding: 1rem 0;
+}
+
+/* Ajustement pour mobile: 2 boxes par ligne */
+@media screen and (max-width: 768px) {
+  .boxes-grid {
+    grid-template-columns: repeat(2, 1fr); /* 2 colonnes sur mobile */
+    gap: 0.75rem; /* Réduire l'espace entre les boxes */
+    padding: 0.5rem 0;
+  }
+
+  /* Ajuster la taille minimale des boxes */
+  .box-card {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Ajuster la taille des images */
+  .box-image-container {
+    height: 150px; /* Réduire la hauteur des images */
+  }
+
+  /* Ajuster le contenu des boxes */
+  .box-content {
+    padding: 12px;
+  }
+
+  /* Ajuster la taille du texte */
+  .box-teams {
+    font-size: 14px;
+  }
+
+  .box-tournament {
+    font-size: 12px;
+  }
+
+  .amount-value {
+    font-size: 14px;
+  }
+}
+
+/* Ajustement supplémentaire pour très petits écrans */
+@media screen and (max-width: 480px) {
+  .boxes-grid {
+    gap: 0.5rem;
+  }
+
+  .box-image-container {
+    height: 120px;
+  }
 }
 
 
