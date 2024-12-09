@@ -225,6 +225,23 @@ button:disabled {
   color: #1e40af;
 }
 
+.header {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+}
+
+/* Logo styling */
+.header-logo {
+  height: 60px;
+  width: auto;
+  object-fit: contain;
+  margin: 0 auto;
+}
+
 /* Account info et header */
 .container {
   background-color: #ffffff;
@@ -296,6 +313,8 @@ button:disabled {
   white-space: nowrap;
   min-width: 120px;
 }
+
+
 
 /* Ajustements mobile */
 @media screen and (max-width: 768px) {
@@ -457,22 +476,7 @@ button:disabled {
     margin: 12px;
   }
 }
-.header {
-  position: relative;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  margin-bottom: 24px;
-  padding-bottom: 24px;
-}
 
-/* Logo styling */
-.header-logo {
-  height: 60px;
-  width: auto;
-  object-fit: contain;
-  margin: 0 auto;
-}
 
 .row {
   align-items: center;
@@ -2016,6 +2020,8 @@ button:disabled {
   height: auto !important;
   line-height: 20px !important;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  flex: 1;
 }
 
 .sort-button.active {
@@ -2027,6 +2033,35 @@ button:disabled {
 .sort-button:hover:not(.active) {
   background: #f8fafc !important;
   border-color: #e2e8f0 !important;
+}
+
+/* Ajustements mobile */
+@media screen and (max-width: 768px) {
+  .sort-buttons {
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .sort-button {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+    line-height: 16px !important;
+    min-width: 0;
+    text-align: center;
+  }
+}
+
+/* Ajustements pour très petits écrans */
+@media screen and (max-width: 480px) {
+  .sort-buttons {
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+
+  .sort-button {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+  }
 }
 
 
