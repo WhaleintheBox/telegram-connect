@@ -1948,3 +1948,146 @@ button:disabled {
   transform: none;
   box-shadow: none;
 }
+
+/* Ajustements généraux pour mobile */
+@media screen and (max-width: 768px) {
+  /* Container principal */
+  .boxes-container {
+    padding: 12px;
+    margin: 8px;
+  }
+
+  /* En-tête de la carte */
+  .box-header {
+    margin-bottom: 8px;
+  }
+
+  .box-sport {
+    font-size: 12px;
+  }
+
+  .box-time {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+
+  /* Équipes et tournoi */
+  .box-teams {
+    font-size: 13px;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+
+  .box-tournament {
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+
+  /* Total Amount */
+  .total-amount-highlight {
+    padding: 6px;
+    margin: 8px 0;
+  }
+
+  .amount-label {
+    font-size: 10px;
+    margin-bottom: 2px;
+  }
+
+  .amount-value {
+    font-size: 13px;
+  }
+
+  /* Barre de prédiction */
+  .prediction-bar {
+    margin: 12px 0;
+    padding: 10px;
+  }
+
+  .bar-container {
+    height: 8px;
+    margin: 6px 0;
+  }
+
+  .bar-labels {
+    font-size: 11px;
+  }
+
+  /* Section des prédictions */
+  .predictions-section {
+    padding: 10px;
+    margin: 12px 0;
+  }
+
+  .predictions-section h4 {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .prediction-item {
+    font-size: 11px;
+    padding: 4px 0;
+  }
+
+  /* Infos de la box */
+  .box-info {
+    padding: 8px 0;
+    margin-top: 8px;
+  }
+
+  .box-address {
+    font-size: 11px;
+  }
+
+  .box-amount {
+    font-size: 12px;
+  }
+
+  /* Badges de statut */
+  .status-container {
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .status-badge {
+    padding: 3px 6px;
+    font-size: 11px;
+  }
+
+  /* Boutons Hunt/Fish */
+  .hunt-button,
+  .fish-button {
+    min-height: 40px;
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+
+  /* Quick amount buttons */
+  .quick-amount-button {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 11px !important;
+  }
+}
+
+/* Ajustements pour très petits écrans */
+@media screen and (max-width: 480px) {
+  .boxes-grid {
+    gap: 8px;
+  }
+
+  .box-card {
+    border-radius: 8px;
+  }
+
+  .box-content {
+    padding: 10px;
+  }
+
+  .amount-value {
+    font-size: 12px;
+  }
+
+  .prediction-bar {
+    padding: 8px;
+  }
+}
