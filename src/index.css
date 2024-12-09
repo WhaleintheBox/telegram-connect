@@ -238,6 +238,15 @@ button:disabled {
   margin-right: auto;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 }
+
+/* Header avec logo */
+.header-logo {
+  height: 60px;
+  width: auto;
+  object-fit: contain;
+  margin: 0 auto;
+}
+
 .account-container {
   background-color: #ffffff;
   border-radius: 12px;
@@ -285,7 +294,6 @@ button:disabled {
   gap: 8px;
 }
 
-/* Style des boutons dans Account */
 .account-actions button {
   height: 40px;
   padding: 0 16px;
@@ -294,6 +302,90 @@ button:disabled {
   justify-content: center;
   white-space: nowrap;
   min-width: 120px;
+}
+
+/* Ajustements mobile */
+@media screen and (max-width: 768px) {
+  /* Container et logo */
+  .header-logo {
+    height: 40px;
+    position: absolute;
+    top: 16px;
+    left: 16px;
+  }
+
+  .container {
+    padding: 16px;
+    margin: 8px;
+  }
+
+  .account-container {
+    margin-top: 72px; /* Espace pour le logo */
+    padding: 12px;
+    margin-left: 8px;
+    margin-right: 8px;
+  }
+
+  .account-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .account-info {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .account-details {
+    gap: 2px;
+  }
+
+  .account-address {
+    font-size: 14px;
+  }
+
+  .account-network {
+    font-size: 12px;
+  }
+
+  .account-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .account-actions button {
+    flex: 1;
+    min-width: auto;
+    padding: 0 12px;
+    height: 36px;
+    font-size: 12px;
+  }
+}
+
+/* Ajustements pour très petits écrans */
+@media screen and (max-width: 480px) {
+  .header-logo {
+    height: 32px;
+    top: 12px;
+    left: 12px;
+  }
+
+  .account-container {
+    margin-top: 56px;
+    padding: 10px;
+  }
+
+  .account-address {
+    font-size: 13px;
+  }
+
+  .account-actions button {
+    height: 32px;
+    font-size: 11px;
+    padding: 0 8px;
+  }
 }
 
 .button-content {
@@ -1840,10 +1932,7 @@ button:disabled {
     margin: 8px;
     padding: 16px;
   }
-  
-  .header-logo {
-    height: 40px;
-  }
+
   
   .detail-row {
     padding: 6px 0;
