@@ -40,39 +40,43 @@ export function Connect() {
     }
   }, [connectError]);
 
+  // Modifions le handleConnect pour utiliser le SDK
   const handleConnect = React.useCallback(async (connector: any) => {
     try {
       setConnectionInProgress(connector.id);
       const connectorName = connector.name.toLowerCase();
-  
+
       if (isMobile && connectorName.includes('metamask')) {
         if (hasMetaMaskProvider) {
-          // Si on est dans l'app MetaMask, connexion directe
           await connect({ connector });
         } else {
-          // Si on est dans un navigateur mobile
           try {
-            // Essayer d'abord le SDK
-            const accounts = await sdk?.connect();
-            console.log("SDK connected:", accounts);
+            // Utiliser le SDK d'abord
+            const result = await sdk?.connect();
+            console.log('SDK connection result:', result);
             
-            if (accounts && accounts.length > 0) {
+            // Si le SDK échoue, utiliser le deep linking
+            if (!result) {
+              const currentUrl = window.location.href;
+              const encodedUrl = encodeURIComponent(currentUrl);
+              
+              if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                window.location.href = `metamask://browse/${encodedUrl}`;
+              } else {
+                window.location.href = `metamask-mobile://browse/${encodedUrl}`;
+                setTimeout(() => {
+                  window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+                }, 1000);
+              }
+            } else {
               await connect({ connector });
             }
           } catch (error) {
-            console.error('MetaMask SDK connection error:', error);
-            
-            // Construire le lien de deep linking avec retour
-            const dappUrl = window.location.origin + window.location.pathname;
-            const encodedUrl = encodeURIComponent(dappUrl);
-            
-            // Utiliser metamask://  au lieu de https://metamask.app.link/
-            window.location.href = `metamask://dapp/${encodedUrl}`;
+            console.error('MetaMask connection error:', error);
           }
           return;
         }
       } else {
-        // Pour les autres connecteurs (WalletConnect)
         await connect({ connector });
       }
     } catch (error) {
