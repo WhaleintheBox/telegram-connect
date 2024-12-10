@@ -1,10 +1,9 @@
 import * as React from 'react';
-import { Connector, useConnect, useAccount } from 'wagmi';
+import { useConnect, useAccount } from 'wagmi';
 import { useSDK } from '@metamask/sdk-react';
 
-// Types
 type ConnectorButtonProps = {
-  connector: Connector;
+  name: string;
   onClick: () => void;
   isPending?: boolean;
 };
@@ -22,16 +21,11 @@ export function Connect() {
     );
   }, []);
 
-  const isIOS = React.useMemo(() => {
-    return /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  }, []);
-
   const hasMetaMaskProvider = React.useMemo(() => {
     if (typeof window === 'undefined') return false;
     return Boolean(window.ethereum?.isMetaMask);
   }, []);
 
-  // Error handling
   React.useEffect(() => {
     if (connectError) {
       console.error('Connection error:', connectError);
@@ -40,69 +34,44 @@ export function Connect() {
       const errorMessage = connectError.message || 'Connection failed';
       if (errorMessage.includes('user rejected')) {
         alert('Connection rejected. Please try again.');
-      } else if (errorMessage.includes('network')) {
-        alert('Network error. Please check your connection and try again.');
-      } else if (errorMessage.includes('timeout')) {
-        alert('Connection timed out. Please try again.');
       } else {
         alert('Connection failed. Please try again or use a different wallet.');
       }
     }
   }, [connectError]);
 
-  const handleConnect = React.useCallback(async (connector: Connector) => {
+  const handleConnect = React.useCallback(async (connector: any) => {
     try {
-      setConnectionInProgress(connector.uid);
+      setConnectionInProgress(connector.id);
       const connectorName = connector.name.toLowerCase();
 
       if (isMobile && connectorName.includes('metamask')) {
-        if (hasMetaMaskProvider) {
-          // Si nous sommes dans l'app MetaMask
-          await connect({ connector });
-        } else {
-          // Si nous sommes dans un navigateur mobile
+        if (!hasMetaMaskProvider) {
           try {
-            // Essayer d'abord le SDK MetaMask
-            await sdk?.connect();
-            await connect({ connector });
+            console.log("Attempting SDK connect");
+            const accounts = await sdk?.connect();
+            console.log("SDK connected:", accounts);
+            
+            if (accounts && accounts.length > 0) {
+              await connect({ connector });
+            }
           } catch (error) {
             console.error('MetaMask SDK connection error:', error);
-            
-            // Fallback sur le deep linking
-            const host = window.location.host;
-            const pathname = window.location.pathname;
-            
-            const universalLink = `https://metamask.app.link/dapp/${host}${pathname}`;
-            const protocolLink = `metamask://dapp/${host}${pathname}`;
-
-            if (isIOS) {
-              // Sur iOS, utiliser le lien universel
-              window.location.href = universalLink;
-            } else {
-              // Sur Android, essayer le protocole puis fallback sur le lien universel
-              try {
-                window.location.href = protocolLink;
-                // Fallback sur le lien universel après un court délai
-                setTimeout(() => {
-                  window.location.href = universalLink;
-                }, 1500);
-              } catch {
-                window.location.href = universalLink;
-              }
-            }
+            // Fallback to universal link
+            const universalLink = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+            window.location.href = universalLink;
           }
           return;
         }
-      } else {
-        // Pour les autres connecteurs (WalletConnect, etc.)
-        await connect({ connector });
       }
+
+      await connect({ connector });
     } catch (error) {
       console.error('Connection attempt failed:', error);
     } finally {
       setConnectionInProgress(null);
     }
-  }, [connect, isMobile, hasMetaMaskProvider, sdk, isIOS]);
+  }, [connect, isMobile, hasMetaMaskProvider, sdk]);
 
   if (isConnected) {
     return null;
@@ -121,10 +90,10 @@ export function Connect() {
       <div className="max-w-md mx-auto space-y-4">
         {availableConnectors.map((connector) => (
           <ConnectorButton
-            key={connector.uid}
-            connector={connector}
+            key={connector.id}
+            name={connector.name}
             onClick={() => handleConnect(connector)}
-            isPending={connectionInProgress === connector.uid || status === 'pending'}
+            isPending={connectionInProgress === connector.id || status === 'pending'}
           />
         ))}
       </div>
@@ -151,38 +120,15 @@ export function Connect() {
   );
 }
 
-function ConnectorButton({ connector, onClick, isPending }: ConnectorButtonProps) {
-  const [ready, setReady] = React.useState(false);
-
-  React.useEffect(() => {
-    let mounted = true;
-
-    async function checkProvider() {
-      try {
-        const provider = await connector.getProvider();
-        if (mounted) {
-          setReady(Boolean(provider));
-        }
-      } catch (err) {
-        console.error('Provider check failed:', err);
-        if (mounted) {
-          setReady(false);
-        }
-      }
-    }
-
-    checkProvider();
-    return () => { mounted = false; };
-  }, [connector]);
-
+function ConnectorButton({ name, onClick, isPending }: ConnectorButtonProps) {
   return (
     <button
-      disabled={!ready || isPending}
       onClick={(e) => {
         e.preventDefault();
-        if (!ready || isPending) return;
+        if (isPending) return;
         onClick();
       }}
+      disabled={isPending}
       type="button"
       className={`
         w-full h-14 bg-gradient-to-r from-blue-500 to-blue-600 
@@ -196,10 +142,10 @@ function ConnectorButton({ connector, onClick, isPending }: ConnectorButtonProps
         {isPending ? (
           <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
         ) : (
-          getConnectorIcon(connector.name)
+          getConnectorIcon(name)
         )}
         <span className="text-lg">
-          {isPending ? 'Connecting...' : `Connect with ${connector.name}`}
+          {isPending ? 'Connecting...' : `Connect with ${name}`}
         </span>
       </div>
     </button>

@@ -13,8 +13,9 @@
     "@reown/appkit": "^1.5.3",
     "@reown/appkit-adapter-ethers": "^1.5.3",
     "@reown/appkit-adapter-wagmi": "^1.5.3",
-    "@tanstack/react-query": "^5.0.0-beta.35",
+    "@tanstack/react-query": "^5.62.7",
     "@uiw/react-json-view": "^2.0.0-alpha.30",
+    "@wagmi/connectors": "^5.5.3",
     "@wagmi/core": "^2.15.2",
     "@walletconnect/ethereum-provider": "^2.17.2",
     "@web3-react/walletconnect-connector": "^6.2.13",
@@ -23,8 +24,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "recharts": "^2.14.1",
-    "viem": "^2.21.53",
-    "wagmi": "^2.13.2",
+    "viem": "^2.21.54",
+    "wagmi": "^2.13.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {

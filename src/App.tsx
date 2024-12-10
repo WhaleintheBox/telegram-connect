@@ -10,8 +10,12 @@ import { ethers } from 'ethers';
 import { ERC20_ABI, BOX_ABI } from './constants/contracts';
 import { useCache } from './components/cacheService';
 import { useState, useEffect, useCallback } from 'react';  // Ajout de useCallback
+import { MetaMaskProvider } from '@metamask/sdk-react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { WagmiProvider } from 'wagmi';
+import { config } from './wagmi';
 
-
+const queryClient = new QueryClient();
 
 
 
@@ -1263,6 +1267,32 @@ export default function App() {
   }, []);
 
   return (
+    <WagmiProvider config={config}>
+    <QueryClientProvider client={queryClient}>
+      <MetaMaskProvider
+        debug={true}
+        sdkOptions={{
+          checkInstallationImmediately: true, // Important pour la détection mobile
+          dappMetadata: {
+            name: "Whale in the Box",
+            url: window.location.origin, // Utilisez origin au lieu de host
+            iconUrl: "votre-url-icone-directe"
+          },
+          preferDesktop: false,
+          useDeeplink: true, // Important pour le deep linking mobile
+          modals: {      // Important pour gérer les redirections
+            otp: ({ onDisconnect }) => {
+              return {
+                mount: () => {},
+                unmount: () => {
+                  if (onDisconnect) onDisconnect();
+                },
+                updateOTPValue: () => {}
+              };
+            }
+          }
+        }}
+      >
     <>
       {isConnected && !schemaError && (
         <Account 
@@ -1640,6 +1670,9 @@ export default function App() {
             <pre>{JSON.stringify(callbackError, null, 2)}</pre>
           </div>
         )}
-      </>
-    );
+        </>
+      </MetaMaskProvider>
+    </QueryClientProvider>
+  </WagmiProvider>
+  );
 }
