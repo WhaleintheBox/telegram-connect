@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Connector, useConnect, useAccount } from 'wagmi';
 
 // Constants
-const CHAIN_ID = 8453; // Base chain
+const CHAIN_ID = 8453;
 const METAMASK_DEEP_LINK = 'https://metamask.app.link/dapp/';
 const CONNECTION_TIMEOUT = 30000;
 
@@ -13,59 +13,22 @@ type ConnectorButtonProps = {
   isPending?: boolean;
 };
 
-// Utils
-const detectMobile = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  
-  try {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    );
-  } catch {
-    return false;
-  }
-};
-
-const getMetaMaskProvider = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  
-  try {
-    const provider = window.ethereum;
-    return Boolean(provider?.isMetaMask);
-  } catch {
-    return false;
-  }
-};
-
 export function Connect() {
   const { connectors, connect, error: connectError, status } = useConnect();
   const { isConnected } = useAccount();
   const [connectionInProgress, setConnectionInProgress] = React.useState<string | null>(null);
-  const [lastAttemptedConnector, setLastAttemptedConnector] = React.useState<string | null>(null);
 
-  const isMobile = React.useMemo(detectMobile, []);
-  const hasMetaMaskProvider = React.useMemo(getMetaMaskProvider, []);
+  const isMobile = React.useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+  }, []);
 
-  // Auto-connect after MetaMask redirection
-  React.useEffect(() => {
-    const attemptAutoConnect = async () => {
-      if (hasMetaMaskProvider && !isConnected && lastAttemptedConnector) {
-        const connector = connectors.find(c => c.uid === lastAttemptedConnector);
-        if (connector) {
-          try {
-            await connect({ 
-              connector,
-              chainId: CHAIN_ID 
-            });
-          } catch (error: unknown) {
-            console.error('Auto-connect failed:', error);
-          }
-        }
-      }
-    };
-
-    attemptAutoConnect();
-  }, [hasMetaMaskProvider, isConnected, lastAttemptedConnector, connectors, connect]);
+  const hasMetaMaskProvider = React.useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return Boolean(window.ethereum?.isMetaMask);
+  }, []);
 
   // Error handling
   React.useEffect(() => {
@@ -89,68 +52,41 @@ export function Connect() {
   const handleConnect = React.useCallback(async (connector: Connector) => {
     try {
       setConnectionInProgress(connector.uid);
-      setLastAttemptedConnector(connector.uid);
-      
       const connectorName = connector.name.toLowerCase();
-      
-      // MetaMask Mobile handling
-      if (isMobile && (connectorName.includes('metamask') || connectorName.includes('injected'))) {
+
+      // Handle MetaMask mobile case
+      if (isMobile && connectorName.includes('metamask')) {
         if (!hasMetaMaskProvider) {
           const currentUrl = window.location.href;
           const encodedUrl = encodeURIComponent(currentUrl);
           const deepLink = `${METAMASK_DEEP_LINK}${encodedUrl}`;
-          
-          // Store the connector info for auto-connect after redirect
-          localStorage.setItem('lastConnector', connector.uid);
-          
-          // Redirect to MetaMask
           window.location.href = deepLink;
           return;
         }
       }
 
-      // WalletConnect handling on mobile
-      if (isMobile && !hasMetaMaskProvider && connectorName.includes('injected')) {
-        const walletConnectConnector = connectors.find(c => 
-          c.name.toLowerCase().includes('walletconnect')
-        );
-        
-        if (walletConnectConnector) {
-          const connectPromise = connect({ 
-            connector: walletConnectConnector,
-            chainId: CHAIN_ID 
-          });
-          
-          await Promise.race([
-            connectPromise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), CONNECTION_TIMEOUT))
-          ]);
-          
-          return;
-        }
-      }
-
-      // Standard connection
+      // Handle regular connection with timeout
       await Promise.race([
-        connect({ connector, chainId: CHAIN_ID }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), CONNECTION_TIMEOUT))
+        connect({ 
+          connector,
+          chainId: CHAIN_ID 
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Connection timeout')), CONNECTION_TIMEOUT)
+        )
       ]);
 
     } catch (error: unknown) {
-      console.error('Connection attempt failed:', error);
-      throw error;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Connection attempt failed:', errorMessage);
+
+      if (!errorMessage.includes('timeout')) {
+        throw error;
+      }
     } finally {
       setConnectionInProgress(null);
     }
-  }, [connect, connectors, isMobile, hasMetaMaskProvider]);
-
-  // Clean up on unmount
-  React.useEffect(() => {
-    return () => {
-      setConnectionInProgress(null);
-      setLastAttemptedConnector(null);
-    };
-  }, []);
+  }, [connect, isMobile, hasMetaMaskProvider]);
 
   if (isConnected) {
     return null;
@@ -158,7 +94,6 @@ export function Connect() {
 
   const availableConnectors = connectors.filter(connector => {
     const name = connector.name.toLowerCase();
-    // Filter out MetaMask on mobile when not available
     if (isMobile && !hasMetaMaskProvider && name.includes('metamask')) {
       return false;
     }
@@ -202,7 +137,7 @@ export function Connect() {
 
 function ConnectorButton({ connector, onClick, isPending }: ConnectorButtonProps) {
   const [ready, setReady] = React.useState(false);
-  
+
   React.useEffect(() => {
     let mounted = true;
 
@@ -219,12 +154,9 @@ function ConnectorButton({ connector, onClick, isPending }: ConnectorButtonProps
         }
       }
     }
-    
+
     checkProvider();
-    
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [connector]);
 
   return (
