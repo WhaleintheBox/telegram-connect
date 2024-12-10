@@ -3,11 +3,13 @@ import { Connector, useConnect, useAccount } from 'wagmi';
 
 // Constants
 const CHAIN_ID = 8453; // Base chain
+const METAMASK_MOBILE_APP_URL = 'https://metamask.app.link/dapp/';
 
 // Types
 type ConnectorButtonProps = {
   connector: Connector;
   onClick: () => void;
+  isPending?: boolean;
 };
 
 // Utils
@@ -23,106 +25,140 @@ const detectMobile = (): boolean => {
   }
 };
 
+const getMetaMaskProvider = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  
+  try {
+    return Boolean(window.ethereum?.isMetaMask);
+  } catch {
+    return false;
+  }
+};
+
 export function Connect() {
-  const { connectors, connect, error: connectError } = useConnect();
+  const { connectors, connect, error: connectError, status } = useConnect();
   const { isConnected } = useAccount();
+  const [connectionInProgress, setConnectionInProgress] = React.useState<string | null>(null);
 
   // Memoized device detection
   const isMobile = React.useMemo(detectMobile, []);
+  const hasMetaMaskProvider = React.useMemo(getMetaMaskProvider, []);
   
-  const isMetaMaskMobile = React.useMemo(() => {
-    if (!isMobile || typeof window === 'undefined') return false;
-    
-    try {
-      return Boolean(window.ethereum?.isMetaMask);
-    } catch {
-      return false;
-    }
-  }, [isMobile]);
-
-  // Error handling
+  // Error handling with user feedback
   React.useEffect(() => {
     if (connectError) {
       console.error('Connection error:', connectError);
+      setConnectionInProgress(null);
+      
+      // Show user-friendly error message
+      const errorMessage = connectError.message || 'Connection failed';
+      if (errorMessage.includes('user rejected')) {
+        alert('Connection rejected. Please try again.');
+      } else if (errorMessage.includes('network')) {
+        alert('Network error. Please check your connection and try again.');
+      } else {
+        alert('Connection failed. Please try again or use a different wallet.');
+      }
     }
   }, [connectError]);
 
   const handleConnect = React.useCallback(async (connector: Connector) => {
     try {
-      // Ajouter un délai pour la stabilité
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      setConnectionInProgress(connector.uid);
+      const connectorName = connector.name.toLowerCase();
       
-      const isInjected = connector.name.toLowerCase().includes('injected');
-      const isMetaMask = connector.name.toLowerCase().includes('metamask');
+      // Handle MetaMask mobile case
+      if (isMobile && connectorName.includes('metamask')) {
+        if (!hasMetaMaskProvider) {
+          // Redirect to MetaMask mobile app
+          const dappUrl = window.location.href;
+          window.location.href = `${METAMASK_MOBILE_APP_URL}${dappUrl}`;
+          return;
+        }
+      }
       
-      // Gestion spéciale pour MetaMask mobile
-      if (isMobile && (isInjected || isMetaMask)) {
+      // Handle WalletConnect on mobile
+      if (isMobile && !hasMetaMaskProvider && connectorName.includes('injected')) {
         const walletConnectConnector = connectors.find(c => 
           c.name.toLowerCase().includes('walletconnect')
         );
         
         if (walletConnectConnector) {
-          try {
-            // Initialiser explicitement le provider WalletConnect
-            const provider = await walletConnectConnector.getProvider();
-            if (!provider) throw new Error('No WalletConnect provider');
-            
-            // Tenter la connexion avec WalletConnect
-            await connect({ 
-              connector: walletConnectConnector,
-              chainId: CHAIN_ID 
-            } as any);
-            return;
-          } catch (wcError) {
-            console.error('WalletConnect error:', wcError);
-            // Si WalletConnect échoue, on essaie la connexion normale
-          }
+          await connect({ 
+            connector: walletConnectConnector,
+            chainId: CHAIN_ID 
+          });
+          return;
         }
       }
-      
-      // Connexion standard
-      const provider = await connector.getProvider();
-      if (!provider) throw new Error('No provider available');
-  
-      await connect({ 
+
+      // Standard connection with timeout
+      const connectionPromise = connect({ 
         connector,
         chainId: CHAIN_ID 
-      } as any);
+      });
+      
+      // Add timeout for connection attempt
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Connection timeout')), 30000);
+      });
+      
+      await Promise.race([connectionPromise, timeoutPromise]);
+      
     } catch (error) {
       console.error('Connection attempt failed:', error);
+      throw error;
+    } finally {
+      setConnectionInProgress(null);
     }
-  }, [connect, connectors, isMobile]);
+  }, [connect, connectors, isMobile, hasMetaMaskProvider]);
 
-  // Ne pas afficher les boutons de connexion si déjà connecté
   if (isConnected) {
     return null;
   }
 
+  const availableConnectors = connectors.filter(connector => {
+    const name = connector.name.toLowerCase();
+    if (isMobile && !hasMetaMaskProvider && name.includes('metamask')) {
+      return false;
+    }
+    return true;
+  });
+
   return (
-    <div className="container">
-      <div className="set">
-        {connectors.map((connector) => (
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-md mx-auto space-y-4">
+        {availableConnectors.map((connector) => (
           <ConnectorButton
             key={connector.uid}
             connector={connector}
             onClick={() => handleConnect(connector)}
+            isPending={connectionInProgress === connector.uid || status === 'pending'}
           />
         ))}
       </div>
 
-      {isMobile && !isMetaMaskMobile && (
-        <div className="mt-4 text-sm text-center text-gray-600">
-          💡 Tip: For the best mobile experience, use WalletConnect 
-          or open this site in a dApp browser like MetaMask.
+      {isMobile && (
+        <div className="mt-6 text-sm text-center text-gray-600 bg-gray-50 p-4 rounded-lg">
+          {!hasMetaMaskProvider ? (
+            <>
+              💡 Tip: For the best experience, you can:
+              <ul className="mt-2 space-y-1">
+                <li>• Use WalletConnect to connect your existing wallet</li>
+                <li>• Install MetaMask mobile app and open this site in its browser</li>
+              </ul>
+            </>
+          ) : (
+            "💡 Connected through MetaMask mobile browser"
+          )}
         </div>
       )}
     </div>
   );
 }
 
-function ConnectorButton({ connector, onClick }: ConnectorButtonProps) {
+function ConnectorButton({ connector, onClick, isPending }: ConnectorButtonProps) {
   const [ready, setReady] = React.useState(false);
-  const [error, setError] = React.useState<Error | null>(null);
   
   React.useEffect(() => {
     let mounted = true;
@@ -132,12 +168,10 @@ function ConnectorButton({ connector, onClick }: ConnectorButtonProps) {
         const provider = await connector.getProvider();
         if (mounted) {
           setReady(Boolean(provider));
-          setError(null);
         }
       } catch (err) {
+        console.error('Provider check failed:', err);
         if (mounted) {
-          console.error('Provider check failed:', err);
-          setError(err instanceof Error ? err : new Error('Unknown error'));
           setReady(false);
         }
       }
@@ -150,32 +184,31 @@ function ConnectorButton({ connector, onClick }: ConnectorButtonProps) {
     };
   }, [connector]);
 
-  const handleClick = React.useCallback(async (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (!ready) return;
-    onClick();
-  }, [ready, onClick]);
-
-  if (error) {
-    return null;
-  }
-
   return (
     <button
-      disabled={!ready}
-      onClick={handleClick}
+      disabled={!ready || isPending}
+      onClick={(e) => {
+        e.preventDefault();
+        if (!ready || isPending) return;
+        onClick();
+      }}
       type="button"
-      className="w-full sm:w-1/3 h-14 bg-gradient-to-r from-blue-500 to-blue-600 
-                 text-white font-bold rounded-xl shadow-lg 
-                 hover:from-blue-600 hover:to-blue-700 
-                 hover:shadow-blue-200/50 hover:-translate-y-0.5 
-                 transform transition-all disabled:opacity-50 
-                 disabled:cursor-not-allowed disabled:hover:transform-none"
+      className={`
+        w-full h-14 bg-gradient-to-r from-blue-500 to-blue-600 
+        text-white font-bold rounded-xl shadow-lg 
+        transition-all transform
+        ${!isPending && 'hover:from-blue-600 hover:to-blue-700 hover:-translate-y-0.5 hover:shadow-blue-200/50'}
+        disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none
+      `}
     >
       <div className="flex items-center justify-center gap-3">
-        {getConnectorIcon(connector.name)}
+        {isPending ? (
+          <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+        ) : (
+          getConnectorIcon(connector.name)
+        )}
         <span className="text-lg">
-          {`Connect with ${connector.name}`}
+          {isPending ? 'Connecting...' : `Connect with ${connector.name}`}
         </span>
       </div>
     </button>
