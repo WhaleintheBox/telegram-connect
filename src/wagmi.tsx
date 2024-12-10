@@ -4,10 +4,8 @@ import { metaMask, walletConnect } from 'wagmi/connectors';
 
 const projectId = '1558da14b9f93fe89954b32c5e17e840';
 
-// URL de l'icône
-const dappIcon = 'https://drive.google.com/file/d/1G6xy7NiVXYgF00iezFJM3B_Id_FSTy2L/view';
+const dappIcon = 'https://votre-domaine.com/chemin-vers-icone.png';  // À remplacer par votre URL d'icône
 
-// Configuration de Base 
 const baseChain = {
   ...base,
   rpcUrls: {
@@ -33,14 +31,13 @@ export const config = createConfig({
     }),
     walletConnect({
       projectId,
-      showQrModal: true,
       metadata: {
         name: 'Whale in the Box',
         description: 'Our Decentralized Betting Platform',
         url: window.location.origin,
         icons: [dappIcon]
       },
-      relayUrl: 'wss://relay.walletconnect.org'
+      showQrModal: true
     })
   ],
   transports: {

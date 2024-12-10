@@ -62,7 +62,7 @@ export function Connect() {
             // Fallback vers la méthode de deep linking si le SDK échoue
             const currentUrl = window.location.href;
             const encodedUrl = encodeURIComponent(currentUrl);
-            const metamaskDeepLink = `https://metamask.app.link/dapp/${encodedUrl}`;
+            const metamaskDeepLink = `metamask://${encodedUrl}`;
             window.location.href = metamaskDeepLink;
           }
           return;
