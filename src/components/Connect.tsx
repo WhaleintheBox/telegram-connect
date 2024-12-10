@@ -44,11 +44,15 @@ export function Connect() {
     try {
       setConnectionInProgress(connector.id);
       const connectorName = connector.name.toLowerCase();
-
+  
       if (isMobile && connectorName.includes('metamask')) {
-        if (!hasMetaMaskProvider) {
+        if (hasMetaMaskProvider) {
+          // Si on est dans l'app MetaMask, connexion directe
+          await connect({ connector });
+        } else {
+          // Si on est dans un navigateur mobile
           try {
-            console.log("Attempting SDK connect");
+            // Essayer d'abord le SDK
             const accounts = await sdk?.connect();
             console.log("SDK connected:", accounts);
             
@@ -57,15 +61,20 @@ export function Connect() {
             }
           } catch (error) {
             console.error('MetaMask SDK connection error:', error);
-            // Fallback to universal link
-            const universalLink = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
-            window.location.href = universalLink;
+            
+            // Construire le lien de deep linking avec retour
+            const dappUrl = window.location.origin + window.location.pathname;
+            const encodedUrl = encodeURIComponent(dappUrl);
+            
+            // Utiliser metamask://  au lieu de https://metamask.app.link/
+            window.location.href = `metamask://dapp/${encodedUrl}`;
           }
           return;
         }
+      } else {
+        // Pour les autres connecteurs (WalletConnect)
+        await connect({ connector });
       }
-
-      await connect({ connector });
     } catch (error) {
       console.error('Connection attempt failed:', error);
     } finally {
@@ -79,8 +88,9 @@ export function Connect() {
 
   const availableConnectors = connectors.filter(connector => {
     const name = connector.name.toLowerCase();
-    if (isMobile && !hasMetaMaskProvider && name.includes('metamask')) {
-      return false;
+    // Ne montrer qu'un seul bouton MetaMask sur mobile
+    if (isMobile && name.includes('metamask')) {
+      return hasMetaMaskProvider;
     }
     return true;
   });
