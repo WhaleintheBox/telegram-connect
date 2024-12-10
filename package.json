@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@metamask/sdk-react": "^0.31.1",
     "@reown/appkit": "^1.5.3",
     "@reown/appkit-adapter-ethers": "^1.5.3",
     "@reown/appkit-adapter-wagmi": "^1.5.3",

@@ -1,10 +1,6 @@
 import * as React from 'react';
 import { Connector, useConnect, useAccount } from 'wagmi';
-
-// Constants
-const CHAIN_ID = 8453;
-const METAMASK_DEEP_LINK = 'https://metamask.app.link/dapp/';
-const CONNECTION_TIMEOUT = 30000;
+import { useSDK } from '@metamask/sdk-react';
 
 // Types
 type ConnectorButtonProps = {
@@ -14,6 +10,7 @@ type ConnectorButtonProps = {
 };
 
 export function Connect() {
+  const { sdk } = useSDK();
   const { connectors, connect, error: connectError, status } = useConnect();
   const { isConnected } = useAccount();
   const [connectionInProgress, setConnectionInProgress] = React.useState<string | null>(null);
@@ -54,39 +51,33 @@ export function Connect() {
       setConnectionInProgress(connector.uid);
       const connectorName = connector.name.toLowerCase();
 
-      // Handle MetaMask mobile case
       if (isMobile && connectorName.includes('metamask')) {
         if (!hasMetaMaskProvider) {
-          const currentUrl = window.location.href;
-          const encodedUrl = encodeURIComponent(currentUrl);
-          const deepLink = `${METAMASK_DEEP_LINK}${encodedUrl}`;
-          window.location.href = deepLink;
+          try {
+            // Utiliser le SDK MetaMask pour la connexion mobile
+            await sdk?.connect();
+            await connect({ connector });
+          } catch (error) {
+            console.error('MetaMask SDK connection error:', error);
+            // Fallback vers la méthode de deep linking si le SDK échoue
+            const currentUrl = window.location.href;
+            const encodedUrl = encodeURIComponent(currentUrl);
+            const metamaskDeepLink = `https://metamask.app.link/dapp/${encodedUrl}`;
+            window.location.href = metamaskDeepLink;
+          }
           return;
         }
       }
 
-      // Handle regular connection with timeout
-      await Promise.race([
-        connect({ 
-          connector,
-          chainId: CHAIN_ID 
-        }),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Connection timeout')), CONNECTION_TIMEOUT)
-        )
-      ]);
+      await connect({ connector });
 
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Connection attempt failed:', errorMessage);
-
-      if (!errorMessage.includes('timeout')) {
-        throw error;
-      }
+    } catch (error) {
+      console.error('Connection attempt failed:', error);
+      throw error;
     } finally {
       setConnectionInProgress(null);
     }
-  }, [connect, isMobile, hasMetaMaskProvider]);
+  }, [connect, isMobile, hasMetaMaskProvider, sdk]);
 
   if (isConnected) {
     return null;
@@ -94,6 +85,7 @@ export function Connect() {
 
   const availableConnectors = connectors.filter(connector => {
     const name = connector.name.toLowerCase();
+    // Sur mobile, montrer MetaMask seulement si l'app est installée
     if (isMobile && !hasMetaMaskProvider && name.includes('metamask')) {
       return false;
     }
