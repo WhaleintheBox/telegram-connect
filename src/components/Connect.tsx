@@ -3,7 +3,8 @@ import { Connector, useConnect, useAccount } from 'wagmi';
 
 // Constants
 const CHAIN_ID = 8453; // Base chain
-const METAMASK_MOBILE_APP_URL = 'https://metamask.app.link/dapp/';
+const METAMASK_DEEP_LINK = 'https://metamask.app.link/dapp/';
+const CONNECTION_TIMEOUT = 30000;
 
 // Types
 type ConnectorButtonProps = {
@@ -29,7 +30,8 @@ const getMetaMaskProvider = (): boolean => {
   if (typeof window === 'undefined') return false;
   
   try {
-    return Boolean(window.ethereum?.isMetaMask);
+    const provider = window.ethereum;
+    return Boolean(provider?.isMetaMask);
   } catch {
     return false;
   }
@@ -39,23 +41,45 @@ export function Connect() {
   const { connectors, connect, error: connectError, status } = useConnect();
   const { isConnected } = useAccount();
   const [connectionInProgress, setConnectionInProgress] = React.useState<string | null>(null);
+  const [lastAttemptedConnector, setLastAttemptedConnector] = React.useState<string | null>(null);
 
-  // Memoized device detection
   const isMobile = React.useMemo(detectMobile, []);
   const hasMetaMaskProvider = React.useMemo(getMetaMaskProvider, []);
-  
-  // Error handling with user feedback
+
+  // Auto-connect after MetaMask redirection
+  React.useEffect(() => {
+    const attemptAutoConnect = async () => {
+      if (hasMetaMaskProvider && !isConnected && lastAttemptedConnector) {
+        const connector = connectors.find(c => c.uid === lastAttemptedConnector);
+        if (connector) {
+          try {
+            await connect({ 
+              connector,
+              chainId: CHAIN_ID 
+            });
+          } catch (error: unknown) {
+            console.error('Auto-connect failed:', error);
+          }
+        }
+      }
+    };
+
+    attemptAutoConnect();
+  }, [hasMetaMaskProvider, isConnected, lastAttemptedConnector, connectors, connect]);
+
+  // Error handling
   React.useEffect(() => {
     if (connectError) {
       console.error('Connection error:', connectError);
       setConnectionInProgress(null);
       
-      // Show user-friendly error message
       const errorMessage = connectError.message || 'Connection failed';
       if (errorMessage.includes('user rejected')) {
         alert('Connection rejected. Please try again.');
       } else if (errorMessage.includes('network')) {
         alert('Network error. Please check your connection and try again.');
+      } else if (errorMessage.includes('timeout')) {
+        alert('Connection timed out. Please try again.');
       } else {
         alert('Connection failed. Please try again or use a different wallet.');
       }
@@ -65,47 +89,54 @@ export function Connect() {
   const handleConnect = React.useCallback(async (connector: Connector) => {
     try {
       setConnectionInProgress(connector.uid);
+      setLastAttemptedConnector(connector.uid);
+      
       const connectorName = connector.name.toLowerCase();
       
-      // Handle MetaMask mobile case
-      if (isMobile && connectorName.includes('metamask')) {
+      // MetaMask Mobile handling
+      if (isMobile && (connectorName.includes('metamask') || connectorName.includes('injected'))) {
         if (!hasMetaMaskProvider) {
-          // Redirect to MetaMask mobile app
-          const dappUrl = window.location.href;
-          window.location.href = `${METAMASK_MOBILE_APP_URL}${dappUrl}`;
+          const currentUrl = window.location.href;
+          const encodedUrl = encodeURIComponent(currentUrl);
+          const deepLink = `${METAMASK_DEEP_LINK}${encodedUrl}`;
+          
+          // Store the connector info for auto-connect after redirect
+          localStorage.setItem('lastConnector', connector.uid);
+          
+          // Redirect to MetaMask
+          window.location.href = deepLink;
           return;
         }
       }
-      
-      // Handle WalletConnect on mobile
+
+      // WalletConnect handling on mobile
       if (isMobile && !hasMetaMaskProvider && connectorName.includes('injected')) {
         const walletConnectConnector = connectors.find(c => 
           c.name.toLowerCase().includes('walletconnect')
         );
         
         if (walletConnectConnector) {
-          await connect({ 
+          const connectPromise = connect({ 
             connector: walletConnectConnector,
             chainId: CHAIN_ID 
           });
+          
+          await Promise.race([
+            connectPromise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), CONNECTION_TIMEOUT))
+          ]);
+          
           return;
         }
       }
 
-      // Standard connection with timeout
-      const connectionPromise = connect({ 
-        connector,
-        chainId: CHAIN_ID 
-      });
-      
-      // Add timeout for connection attempt
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Connection timeout')), 30000);
-      });
-      
-      await Promise.race([connectionPromise, timeoutPromise]);
-      
-    } catch (error) {
+      // Standard connection
+      await Promise.race([
+        connect({ connector, chainId: CHAIN_ID }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), CONNECTION_TIMEOUT))
+      ]);
+
+    } catch (error: unknown) {
       console.error('Connection attempt failed:', error);
       throw error;
     } finally {
@@ -113,12 +144,21 @@ export function Connect() {
     }
   }, [connect, connectors, isMobile, hasMetaMaskProvider]);
 
+  // Clean up on unmount
+  React.useEffect(() => {
+    return () => {
+      setConnectionInProgress(null);
+      setLastAttemptedConnector(null);
+    };
+  }, []);
+
   if (isConnected) {
     return null;
   }
 
   const availableConnectors = connectors.filter(connector => {
     const name = connector.name.toLowerCase();
+    // Filter out MetaMask on mobile when not available
     if (isMobile && !hasMetaMaskProvider && name.includes('metamask')) {
       return false;
     }
@@ -139,17 +179,20 @@ export function Connect() {
       </div>
 
       {isMobile && (
-        <div className="mt-6 text-sm text-center text-gray-600 bg-gray-50 p-4 rounded-lg">
+        <div className="mt-6 text-sm text-center text-gray-600 bg-gray-50 p-4 rounded-lg shadow-sm">
           {!hasMetaMaskProvider ? (
             <>
-              💡 Tip: For the best experience, you can:
-              <ul className="mt-2 space-y-1">
-                <li>• Use WalletConnect to connect your existing wallet</li>
-                <li>• Install MetaMask mobile app and open this site in its browser</li>
+              💡 Pro Tips:
+              <ul className="mt-2 space-y-1 text-left">
+                <li>• Use WalletConnect for easy connection with any wallet</li>
+                <li>• Install MetaMask mobile app for the best experience</li>
+                <li>• Make sure you're on the Base network</li>
               </ul>
             </>
           ) : (
-            "💡 Connected through MetaMask mobile browser"
+            <span className="flex items-center justify-center gap-2">
+              🦊 Using MetaMask mobile browser
+            </span>
           )}
         </div>
       )}

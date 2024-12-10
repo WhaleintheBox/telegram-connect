@@ -1,18 +1,21 @@
 import { useState } from 'react';
 import { ethers } from 'ethers';
 import { KRILL_ABI } from '../constants/contracts';
+import { useAccount, useWalletClient } from 'wagmi';
 
 const KRILL_CONTRACT = "0x33E5b643C05a3B00F71a066FefA4F59eF6BE27fc";
 
 const KrillClaimButton = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const { isConnected } = useAccount();
+  const { data: walletClient } = useWalletClient();
   
   const handleClaim = async (e: React.MouseEvent) => {
     e.preventDefault();
     
-    if (!window.ethereum) {
-      alert('Please install MetaMask!');
+    if (!isConnected || !walletClient) {
+      alert('Please connect your wallet first!');
       return;
     }
 
@@ -20,26 +23,38 @@ const KrillClaimButton = () => {
 
     setIsProcessing(true);
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      // Créer un provider ethers à partir du walletClient wagmi
+      const provider = new ethers.BrowserProvider(walletClient as any);
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(KRILL_CONTRACT, KRILL_ABI, signer);
 
+      // Petit délai pour la stabilité
       await new Promise(resolve => setTimeout(resolve, 500));
 
+      // Appel du contrat avec gestion du gas
       const tx = await contract.airdrop({
         gasLimit: 100000
       });
+      
       setTxHash(tx.hash);
+      
+      // Attendre la confirmation
       await tx.wait();
       
       alert('🎉 Successfully claimed KRILL!');
+      
     } catch (error: any) {
       console.error('Full claim error:', error);
 
+      // Gestion spécifique des erreurs
       if (error.message?.includes('AirdropIntervalNotReached')) {
         alert('Please wait before claiming again');
-      } else if (error.message?.includes('user rejected')) {
+      } else if (error.message?.includes('user rejected') || error.message?.includes('User denied')) {
         alert('Transaction was rejected');
+      } else if (error.message?.includes('insufficient funds')) {
+        alert('Insufficient funds for gas');
+      } else if (error.message?.includes('gas')) {
+        alert('Gas estimation failed. Please try again');
       } else {
         console.error('Claim error:', error);
         alert('Failed to claim KRILL: ' + (error.message || 'Unknown error'));
@@ -49,18 +64,30 @@ const KrillClaimButton = () => {
     }
   };
 
+  if (!isConnected) {
+    return null;
+  }
+
   return (
     <div className="relative inline-block">
       <button
         onClick={handleClaim}
         disabled={isProcessing}
-        className="p-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-200 disabled:opacity-50"
+        className={`
+          p-2 bg-blue-50 rounded-lg transition-all duration-200
+          ${!isProcessing && 'hover:bg-blue-100 hover:shadow-sm'}
+          disabled:opacity-50 disabled:cursor-not-allowed
+        `}
         title="Claim KRILL"
       >
         <div className="relative flex items-center justify-center">
-          <span className="text-xl transform inline-block hover:scale-110 transition-transform">
-            {isProcessing ? '⏳' : '🎁'}
-          </span>
+          {isProcessing ? (
+            <span className="text-xl animate-spin">⏳</span>
+          ) : (
+            <span className="text-xl transform inline-block hover:scale-110 transition-transform">
+              🎁
+            </span>
+          )}
         </div>
       </button>
       
