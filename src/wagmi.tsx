@@ -2,7 +2,7 @@ import { http, createConfig } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { injected, walletConnect } from 'wagmi/connectors';
 
-const projectId = '3fbb6bba6f1de962d911bb5b5c9dba88';
+const projectId = '1558da14b9f93fe89954b32c5e17e840';
 
 export const config = createConfig({
   chains: [base], // Focus uniquement sur Base
