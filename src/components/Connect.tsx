@@ -22,6 +22,10 @@ export function Connect() {
     );
   }, []);
 
+  const isIOS = React.useMemo(() => {
+    return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }, []);
+
   const hasMetaMaskProvider = React.useMemo(() => {
     if (typeof window === 'undefined') return false;
     return Boolean(window.ethereum?.isMetaMask);
@@ -52,32 +56,53 @@ export function Connect() {
       const connectorName = connector.name.toLowerCase();
 
       if (isMobile && connectorName.includes('metamask')) {
-        if (!hasMetaMaskProvider) {
+        if (hasMetaMaskProvider) {
+          // Si nous sommes dans l'app MetaMask
+          await connect({ connector });
+        } else {
+          // Si nous sommes dans un navigateur mobile
           try {
-            // Utiliser le SDK MetaMask pour la connexion mobile
+            // Essayer d'abord le SDK MetaMask
             await sdk?.connect();
             await connect({ connector });
           } catch (error) {
             console.error('MetaMask SDK connection error:', error);
-            // Fallback vers la méthode de deep linking si le SDK échoue
-            const currentUrl = window.location.href;
-            const encodedUrl = encodeURIComponent(currentUrl);
-            const metamaskDeepLink = `metamask://${encodedUrl}`;
-            window.location.href = metamaskDeepLink;
+            
+            // Fallback sur le deep linking
+            const host = window.location.host;
+            const pathname = window.location.pathname;
+            
+            const universalLink = `https://metamask.app.link/dapp/${host}${pathname}`;
+            const protocolLink = `metamask://dapp/${host}${pathname}`;
+
+            if (isIOS) {
+              // Sur iOS, utiliser le lien universel
+              window.location.href = universalLink;
+            } else {
+              // Sur Android, essayer le protocole puis fallback sur le lien universel
+              try {
+                window.location.href = protocolLink;
+                // Fallback sur le lien universel après un court délai
+                setTimeout(() => {
+                  window.location.href = universalLink;
+                }, 1500);
+              } catch {
+                window.location.href = universalLink;
+              }
+            }
           }
           return;
         }
+      } else {
+        // Pour les autres connecteurs (WalletConnect, etc.)
+        await connect({ connector });
       }
-
-      await connect({ connector });
-
     } catch (error) {
       console.error('Connection attempt failed:', error);
-      throw error;
     } finally {
       setConnectionInProgress(null);
     }
-  }, [connect, isMobile, hasMetaMaskProvider, sdk]);
+  }, [connect, isMobile, hasMetaMaskProvider, sdk, isIOS]);
 
   if (isConnected) {
     return null;
@@ -85,7 +110,6 @@ export function Connect() {
 
   const availableConnectors = connectors.filter(connector => {
     const name = connector.name.toLowerCase();
-    // Sur mobile, montrer MetaMask seulement si l'app est installée
     if (isMobile && !hasMetaMaskProvider && name.includes('metamask')) {
       return false;
     }

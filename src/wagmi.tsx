@@ -4,7 +4,7 @@ import { metaMask, walletConnect } from 'wagmi/connectors';
 
 const projectId = '1558da14b9f93fe89954b32c5e17e840';
 
-const dappIcon = 'https://votre-domaine.com/chemin-vers-icone.png';  // À remplacer par votre URL d'icône
+const dappIcon = 'https://drive.google.com/file/d/1G6xy7NiVXYgF00iezFJM3B_Id_FSTy2L/view';  // À remplacer par votre URL d'icône
 
 const baseChain = {
   ...base,
