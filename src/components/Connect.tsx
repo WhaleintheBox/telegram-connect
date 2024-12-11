@@ -1,4 +1,3 @@
-
 import * as React from 'react';
 import { useConnect, useAccount } from 'wagmi';
 
@@ -37,7 +36,7 @@ export function Connect() {
   }, []);
 
   const handleMetaMaskDeepLink = React.useCallback(() => {
-    const universalLink = `https://metamask.app.link/dapp/whaleinthebox.github.io/telegram-connect/dist/?chain_id=8453`;
+    const universalLink = `https://metamask.app.link/dapp/whaleinthebox.github.io/telegram-connect/dist/`;
     window.location.href = universalLink;
   }, []);
 
@@ -117,11 +116,16 @@ export function Connect() {
     return null;
   }
 
+  // Modification ici : on filtre pour garder MetaMask et supprimer WalletConnect sur mobile
   const availableConnectors = connectors.filter((connector) => {
     const name = connector.name.toLowerCase();
-    if (isMobile && name.includes('metamask')) {
-      return hasMetaMaskProvider;
+    
+    if (isMobile) {
+      // Sur mobile, on garde uniquement MetaMask
+      return name.includes('metamask');
     }
+    
+    // Sur desktop, on affiche tous les connecteurs
     return true;
   });
 
@@ -142,10 +146,9 @@ export function Connect() {
         <div className="mt-6 text-sm text-center text-gray-600 bg-gray-50 p-4 rounded-lg shadow-sm">
           {!hasMetaMaskProvider ? (
             <>
-              💡 Pro Tips:
+              💡 Important:
               <ul className="mt-2 space-y-1 text-left">
-                <li>• Use WalletConnect for easy connection with any wallet</li>
-                <li>• Install MetaMask mobile app for the best experience</li>
+                <li>• Install MetaMask mobile app to connect</li>
                 <li>• Make sure you're on the Base network</li>
               </ul>
             </>
