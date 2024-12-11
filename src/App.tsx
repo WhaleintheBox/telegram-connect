@@ -1,12 +1,12 @@
 import { useAccount } from 'wagmi';
 import { WriteContract, WriteContractData } from './components/WriteContract';
 import { SignMessage, SignMessageProps } from './components/SignMessage';
+import { ethers } from 'ethers';
 import { Account } from './components/Account';
 import { Connect } from './components/Connect';
 import EventDetailsPopup from './components/EventDetailsPopup';
 import { getSchemaError, sendEvent } from './utils';
 import { formatEther } from 'viem';
-import { ethers } from 'ethers';
 import { ERC20_ABI, BOX_ABI } from './constants/contracts';
 import { useCache } from './components/cacheService';
 import { useState, useEffect, useCallback } from 'react';  // Ajout de useCallback
@@ -16,7 +16,6 @@ import { WagmiProvider } from 'wagmi';
 import { config } from './wagmi';
 
 const queryClient = new QueryClient();
-
 
 
 type SportsType = {
@@ -397,7 +396,7 @@ export default function App() {
       setTransactionStatus('approving');
   
       try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
+        const provider = new ethers.BrowserProvider(window.ethereum as unknown as ethers.Eip1193Provider);
         const signer = await provider.getSigner();
         const tokenContract = new ethers.Contract(
           box.tokenData.address!,
@@ -473,7 +472,7 @@ export default function App() {
         if (!window.ethereum || !address) return;
         
         try {
-          const provider = new ethers.BrowserProvider(window.ethereum);
+          const provider = new ethers.BrowserProvider(window.ethereum as unknown as ethers.Eip1193Provider);
           
           // Always fetch ETH balance for gas estimation
           const baseEthBalance = await provider.getBalance(address);
@@ -549,7 +548,7 @@ export default function App() {
         // Check aussi quand la box est cancelled
         if (!window.ethereum || !address || (!box.isSettled && !box.isCancelled)) return;
         try {
-          const provider = new ethers.BrowserProvider(window.ethereum);
+          const provider = new ethers.BrowserProvider(window.ethereum as unknown as ethers.Eip1193Provider);
           const boxContract = new ethers.Contract(box.address, BOX_ABI, provider);
           
           const winnings = await boxContract.getWinningsToClaim(address);
@@ -571,7 +570,7 @@ export default function App() {
       setIsProcessing(true);
       
       try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
+        const provider = new ethers.BrowserProvider(window.ethereum as unknown as ethers.Eip1193Provider);
         const signer = await provider.getSigner();
         const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
         
@@ -599,7 +598,7 @@ export default function App() {
       setIsProcessing(true);
       
       try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
+        const provider = new ethers.BrowserProvider(window.ethereum as unknown as ethers.Eip1193Provider);
         const signer = await provider.getSigner();
         const amountInWei = ethers.parseEther(customAmount);
         const prediction = selectedBetType === 'hunt' ? "true" : "false";

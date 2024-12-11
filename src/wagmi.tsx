@@ -1,52 +1,20 @@
-import { http, createConfig } from 'wagmi';
-import { base } from 'wagmi/chains';
-import { metaMask, walletConnect } from 'wagmi/connectors';
+import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
+import { cookieStorage, createStorage } from "wagmi";
+import { base } from '@reown/appkit/networks';
 
-const projectId = '1558da14b9f93fe89954b32c5e17e840';
-const dappIcon = 'https://whaleinthebox.com/_next/image?url=%2Fimg%2Flogos%2Flogo-wtib.png&w=828&q=75';
+export const projectId = process.env.VITE_PROJECT_ID;
 
-const baseChain = {
-  ...base,
-  rpcUrls: {
-    default: {
-      http: ['https://mainnet.base.org']
-    },
-    public: {
-      http: ['https://mainnet.base.org']
-    }
-  }
-};
+if (!projectId) throw new Error("Project ID is not defined");
 
-export const config = createConfig({
-  chains: [baseChain],
-  connectors: [
-    metaMask({
-      dappMetadata: {
-        name: "Whale in the Box",
-        url: window.location.origin,
-        iconUrl: dappIcon,
-      },
-    }),
-    walletConnect({
-      projectId,
-      showQrModal: true,
-      metadata: {
-        name: 'Whale in the Box',
-        description: 'Our Decentralized Betting Platform',
-        url: window.location.origin,
-        icons: [dappIcon]
-      },
-      relayUrl: 'wss://relay.walletconnect.org'
-    })
-  ],
-  transports: {
-    [baseChain.id]: http()
-  },
+export const networks = [base];
+
+export const wagmiAdapter = new WagmiAdapter({
+  storage: createStorage({
+    storage: cookieStorage
+  }),
+  ssr: false,
+  networks,
+  projectId
 });
 
-export const metadata = {
-  name: 'Whale in the Box',
-  description: 'Our Decentralized Betting Platform',
-  url: window.location.origin,
-  icons: [dappIcon]
-};
+export const config = wagmiAdapter.wagmiConfig;
