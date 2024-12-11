@@ -30,51 +30,31 @@ export function Connect() {
     if (connectError) {
       console.error('Connection error:', connectError);
       setConnectionInProgress(null);
-      
-      const errorMessage = connectError.message || 'Connection failed';
-      if (errorMessage.includes('user rejected')) {
-        alert('Connection rejected. Please try again.');
-      } else {
-        alert('Connection failed. Please try again or use a different wallet.');
-      }
+      alert(connectError.message || 'Connection failed. Please try again.');
     }
   }, [connectError]);
 
-  // Modifions le handleConnect pour utiliser le SDK
   const handleConnect = React.useCallback(async (connector: any) => {
     try {
       setConnectionInProgress(connector.id);
       const connectorName = connector.name.toLowerCase();
-
+  
       if (isMobile && connectorName.includes('metamask')) {
-        if (hasMetaMaskProvider) {
-          await connect({ connector });
-        } else {
-          try {
-            // Utiliser le SDK d'abord
-            const result = await sdk?.connect();
-            console.log('SDK connection result:', result);
-            
-            // Si le SDK échoue, utiliser le deep linking
-            if (!result) {
-              const currentUrl = window.location.href;
-              const encodedUrl = encodeURIComponent(currentUrl);
-              
-              if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                window.location.href = `metamask://browse/${encodedUrl}`;
-              } else {
-                window.location.href = `metamask-mobile://browse/${encodedUrl}`;
-                setTimeout(() => {
-                  window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
-                }, 1000);
-              }
-            } else {
-              await connect({ connector });
-            }
-          } catch (error) {
-            console.error('MetaMask connection error:', error);
+        try {
+          console.log('Attempting SDK connection...');
+          const accounts = await sdk?.connect();
+          console.log('SDK connection result:', accounts);
+  
+          if (accounts && accounts.length > 0) {
+            console.log('SDK connected successfully, connecting Wagmi...');
+            await connect({ connector });
+          } else {
+            console.log('No accounts returned from SDK, falling back to deep linking...');
+            window.location.href = `https://metamask.app.link/dapp/${window.location.host}`;
           }
-          return;
+        } catch (error) {
+          console.error('SDK connection failed:', error);
+          window.location.href = `https://metamask.app.link/dapp/${window.location.host}`;
         }
       } else {
         await connect({ connector });
@@ -84,7 +64,7 @@ export function Connect() {
     } finally {
       setConnectionInProgress(null);
     }
-  }, [connect, isMobile, hasMetaMaskProvider, sdk]);
+  }, [connect, sdk]);
 
   if (isConnected) {
     return null;
@@ -92,7 +72,6 @@ export function Connect() {
 
   const availableConnectors = connectors.filter(connector => {
     const name = connector.name.toLowerCase();
-    // Ne montrer qu'un seul bouton MetaMask sur mobile
     if (isMobile && name.includes('metamask')) {
       return hasMetaMaskProvider;
     }
