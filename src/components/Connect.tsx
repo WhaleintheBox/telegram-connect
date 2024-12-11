@@ -50,11 +50,9 @@ export function Connect() {
   }, [isMobile, hasMetaMaskProvider, isConnected, connectors, connect]);
 
   const constructMetaMaskDeepLink = React.useCallback(() => {
-    const currentUrl = window.location.href;
-    const encodedUrl = encodeURIComponent(currentUrl);
-    
-    // Construct deep link with required parameters
-    return `https://metamask.app.link/dapp/${window.location.hostname}${window.location.pathname}?url=${encodedUrl}&chain_id=8453`; // 8453 is Base chain ID
+    const dappUrl = window.location.href;
+    const encodedDappUrl = encodeURIComponent(dappUrl);
+    return `metamask://dapp/${window.location.host}?dapp_url=${encodedDappUrl}&chain_id=8453`;
   }, []);
 
   const handleConnect = React.useCallback(async (connector: any) => {
@@ -63,13 +61,18 @@ export function Connect() {
       const connectorName = connector.name.toLowerCase();
 
       if (isMobile && connectorName.includes('metamask') && !hasMetaMaskProvider) {
-        console.log('No MetaMask provider on mobile, redirecting with deep link...');
         const deepLink = constructMetaMaskDeepLink();
         
-        // Add a small delay to ensure the state is updated
+        // Tentative de redirection directe vers MetaMask
+        window.location.href = deepLink;
+        
+        // Fallback vers le lien app.link si la redirection directe échoue
         setTimeout(() => {
-          window.location.href = deepLink;
-        }, 100);
+          const appLinkUrl = `https://metamask.app.link/dapp/${window.location.host}?dapp_url=${encodeURIComponent(window.location.href)}`;
+          if (document.visibilityState !== 'hidden') {
+            window.location.href = appLinkUrl;
+          }
+        }, 1000);
         
         return;
       }
@@ -77,8 +80,10 @@ export function Connect() {
       await connect({ connector });
     } catch (error) {
       console.error('Connection attempt failed:', error);
-    } finally {
       setConnectionInProgress(null);
+      if (error instanceof Error) {
+        alert(error.message);
+      }
     }
   }, [connect, isMobile, hasMetaMaskProvider, constructMetaMaskDeepLink]);
 
