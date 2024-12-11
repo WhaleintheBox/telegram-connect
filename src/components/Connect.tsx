@@ -32,8 +32,6 @@ export function Connect() {
     }
   }, [connectError]);
 
-  // Tentative automatique de connexion si on est dans le navigateur interne MetaMask sur mobile
-  // et qu'on n'est pas déjà connecté.
   React.useEffect(() => {
     if (isMobile && hasMetaMaskProvider && !isConnected) {
       const mmConnector = connectors.find(c => c.name.toLowerCase().includes('metamask'));
@@ -51,15 +49,28 @@ export function Connect() {
     }
   }, [isMobile, hasMetaMaskProvider, isConnected, connectors, connect]);
 
+  const constructMetaMaskDeepLink = React.useCallback(() => {
+    const currentUrl = window.location.href;
+    const encodedUrl = encodeURIComponent(currentUrl);
+    
+    // Construct deep link with required parameters
+    return `https://metamask.app.link/dapp/${window.location.hostname}${window.location.pathname}?url=${encodedUrl}&chain_id=8453`; // 8453 is Base chain ID
+  }, []);
+
   const handleConnect = React.useCallback(async (connector: any) => {
     try {
       setConnectionInProgress(connector.id);
       const connectorName = connector.name.toLowerCase();
 
-      // Sur mobile, si pas de provider MetaMask alors on redirige vers l'app MetaMask
       if (isMobile && connectorName.includes('metamask') && !hasMetaMaskProvider) {
-        console.log('No MetaMask provider on mobile, redirecting...');
-        window.location.href = `https://metamask.app.link/dapp/${window.location.hostname}${window.location.pathname}`;
+        console.log('No MetaMask provider on mobile, redirecting with deep link...');
+        const deepLink = constructMetaMaskDeepLink();
+        
+        // Add a small delay to ensure the state is updated
+        setTimeout(() => {
+          window.location.href = deepLink;
+        }, 100);
+        
         return;
       }
 
@@ -69,7 +80,7 @@ export function Connect() {
     } finally {
       setConnectionInProgress(null);
     }
-  }, [connect, isMobile, hasMetaMaskProvider]);
+  }, [connect, isMobile, hasMetaMaskProvider, constructMetaMaskDeepLink]);
 
   if (isConnected) {
     return null;
@@ -77,7 +88,6 @@ export function Connect() {
 
   const availableConnectors = connectors.filter((connector) => {
     const name = connector.name.toLowerCase();
-    // Sur mobile, on affiche MetaMask seulement si le provider est présent (in-app browser)
     if (isMobile && name.includes('metamask')) {
       return hasMetaMaskProvider;
     }
