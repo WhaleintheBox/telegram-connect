@@ -36,7 +36,6 @@ export const config = createConfig({
         url: window.location.origin,
         icons: [dappIcon]
       },
-      relayUrl: 'wss://relay.walletconnect.org'
     })
   ],
   transports: {
