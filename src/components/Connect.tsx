@@ -39,6 +39,7 @@ export function Connect() {
       setConnectionInProgress(connector.id);
       const connectorName = connector.name.toLowerCase();
   
+      // Si on est sur mobile et que le connecteur est MetaMask
       if (isMobile && connectorName.includes('metamask')) {
         try {
           console.log('Attempting SDK connection...');
@@ -64,14 +65,15 @@ export function Connect() {
     } finally {
       setConnectionInProgress(null);
     }
-  }, [connect, sdk]);
+  }, [connect, sdk, isMobile]);
 
   if (isConnected) {
     return null;
   }
 
-  const availableConnectors = connectors.filter(connector => {
+  const availableConnectors = connectors.filter((connector) => {
     const name = connector.name.toLowerCase();
+    // Si sur mobile et qu'aucun provider MetaMask n'est présent, on cache le bouton MetaMask
     if (isMobile && name.includes('metamask')) {
       return hasMetaMaskProvider;
     }
