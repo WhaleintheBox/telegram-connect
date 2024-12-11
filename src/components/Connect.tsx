@@ -1,6 +1,17 @@
 import * as React from 'react';
 import { useConnect, useAccount } from 'wagmi';
 
+declare global {
+  interface Window {
+    ethereum?: {
+      isMetaMask?: boolean;
+      request: (params: { method: string; params?: any[] }) => Promise<any>;
+      on: (event: string, callback: (params: any) => void) => void;
+      removeListener: (event: string, callback: (params: any) => void) => void;
+    };
+  }
+}
+
 type ConnectorButtonProps = {
   name: string;
   onClick: () => void;
@@ -8,7 +19,7 @@ type ConnectorButtonProps = {
 };
 
 export function Connect() {
-  const { connectors, connect, error: connectError, status } = useConnect();
+  const { connectors, connect, status } = useConnect();
   const { isConnected } = useAccount();
   const [connectionInProgress, setConnectionInProgress] = React.useState<string | null>(null);
 
@@ -24,35 +35,57 @@ export function Connect() {
     return Boolean(window.ethereum?.isMetaMask);
   }, []);
 
-  React.useEffect(() => {
-    if (connectError) {
-      console.error('Connection error:', connectError);
-      setConnectionInProgress(null);
-      alert(connectError.message || 'Connection failed. Please try again.');
-    }
-  }, [connectError]);
-
-  React.useEffect(() => {
-    if (isMobile && hasMetaMaskProvider && !isConnected) {
-      const mmConnector = connectors.find(c => c.name.toLowerCase().includes('metamask'));
-      if (mmConnector) {
-        (async () => {
-          try {
-            setConnectionInProgress(mmConnector.id);
-            await connect({ connector: mmConnector });
-          } catch (error) {
-            console.error('Automatic connection attempt failed:', error);
-            setConnectionInProgress(null);
-          }
-        })();
+  const connectToMetaMask = React.useCallback(async () => {
+    try {
+      if (!window.ethereum) {
+        throw new Error('MetaMask not found');
       }
-    }
-  }, [isMobile, hasMetaMaskProvider, isConnected, connectors, connect]);
 
-  const constructMetaMaskDeepLink = React.useCallback(() => {
-    const dappUrl = window.location.href;
-    const encodedDappUrl = encodeURIComponent(dappUrl);
-    return `metamask://dapp/${window.location.host}?dapp_url=${encodedDappUrl}&chain_id=8453`;
+      // Demande de connexion des comptes
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      // Vérification que nous avons au moins un compte
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts found');
+      }
+
+      // Demande de changement de réseau vers Base
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x2105' }], // 8453 en hexadécimal pour Base
+        });
+      } catch (switchError: any) {
+        // Si le réseau n'existe pas, on l'ajoute
+        if (switchError.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainId: '0x2105', // 8453 en hexadécimal
+                chainName: 'Base',
+                nativeCurrency: {
+                  name: 'ETH',
+                  symbol: 'ETH',
+                  decimals: 18
+                },
+                rpcUrls: ['https://mainnet.base.org'],
+                blockExplorerUrls: ['https://basescan.org']
+              }
+            ]
+          });
+        } else {
+          throw switchError;
+        }
+      }
+
+      return accounts[0];
+    } catch (error) {
+      console.error('Error connecting to MetaMask:', error);
+      throw error;
+    }
   }, []);
 
   const handleConnect = React.useCallback(async (connector: any) => {
@@ -60,49 +93,38 @@ export function Connect() {
       setConnectionInProgress(connector.id);
       const connectorName = connector.name.toLowerCase();
 
-      if (isMobile && connectorName.includes('metamask') && !hasMetaMaskProvider) {
-        const deepLink = constructMetaMaskDeepLink();
-        
-        // Tentative de redirection directe vers MetaMask
-        window.location.href = deepLink;
-        
-        // Fallback vers le lien app.link si la redirection directe échoue
-        setTimeout(() => {
-          const appLinkUrl = `https://metamask.app.link/dapp/${window.location.host}?dapp_url=${encodeURIComponent(window.location.href)}`;
-          if (document.visibilityState !== 'hidden') {
-            window.location.href = appLinkUrl;
-          }
-        }, 1000);
-        
-        return;
-      }
+      if (connectorName.includes('metamask')) {
+        if (!hasMetaMaskProvider && isMobile) {
+          // Redirection vers MetaMask sur mobile
+          const dappUrl = window.location.href;
+          window.location.href = `https://metamask.app.link/dapp/${window.location.host}?dapp_url=${encodeURIComponent(dappUrl)}`;
+          return;
+        }
 
-      await connect({ connector });
+        await connectToMetaMask();
+      } else {
+        // Pour les autres connecteurs, utiliser wagmi
+        await connect({ connector });
+      }
     } catch (error) {
       console.error('Connection attempt failed:', error);
-      setConnectionInProgress(null);
       if (error instanceof Error) {
         alert(error.message);
       }
+    } finally {
+      setConnectionInProgress(null);
     }
-  }, [connect, isMobile, hasMetaMaskProvider, constructMetaMaskDeepLink]);
+  }, [connect, connectToMetaMask, hasMetaMaskProvider, isMobile]);
 
   if (isConnected) {
     return null;
   }
 
-  const availableConnectors = connectors.filter((connector) => {
-    const name = connector.name.toLowerCase();
-    if (isMobile && name.includes('metamask')) {
-      return hasMetaMaskProvider;
-    }
-    return true;
-  });
-
+  // Le reste de votre code pour le rendu reste inchangé
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-md mx-auto space-y-4">
-        {availableConnectors.map((connector) => (
+        {connectors.map((connector) => (
           <ConnectorButton
             key={connector.id}
             name={connector.name}
@@ -134,6 +156,7 @@ export function Connect() {
   );
 }
 
+// Les composants ConnectorButton et getConnectorIcon restent inchangés
 function ConnectorButton({ name, onClick, isPending }: ConnectorButtonProps) {
   return (
     <button
