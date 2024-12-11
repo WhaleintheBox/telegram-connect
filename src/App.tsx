@@ -1276,7 +1276,7 @@ export default function App() {
           dappMetadata: {
             name: "Whale in the Box",
             url: window.location.origin, // Utilisez origin au lieu de host
-            iconUrl: "votre-url-icone-directe"
+            iconUrl: "https://whaleinthebox.com/_next/image?url=%2Fimg%2Flogos%2Flogo-wtib.png&w=828&q=75"
           },
           preferDesktop: false,
           useDeeplink: true, // Important pour le deep linking mobile

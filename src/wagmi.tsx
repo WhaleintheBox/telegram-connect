@@ -3,7 +3,7 @@ import { base } from 'wagmi/chains';
 import { metaMask, walletConnect } from 'wagmi/connectors';
 
 const projectId = '1558da14b9f93fe89954b32c5e17e840';
-const dappIcon = 'https://drive.google.com/file/d/1G6xy7NiVXYgF00iezFJM3B_Id_FSTy2L/view';
+const dappIcon = 'https://whaleinthebox.com/_next/image?url=%2Fimg%2Flogos%2Flogo-wtib.png&w=828&q=75';
 
 const baseChain = {
   ...base,
