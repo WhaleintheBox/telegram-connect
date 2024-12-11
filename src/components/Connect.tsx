@@ -1,3 +1,4 @@
+
 import * as React from 'react';
 import { useConnect, useAccount } from 'wagmi';
 
@@ -35,46 +36,45 @@ export function Connect() {
     return Boolean(window.ethereum?.isMetaMask);
   }, []);
 
+  const handleMetaMaskDeepLink = React.useCallback(() => {
+    const universalLink = `https://metamask.app.link/dapp/whaleinthebox.github.io/telegram-connect/dist/?chain_id=8453`;
+    window.location.href = universalLink;
+  }, []);
+
   const connectToMetaMask = React.useCallback(async () => {
     try {
       if (!window.ethereum) {
         throw new Error('MetaMask not found');
       }
 
-      // Demande de connexion des comptes
       const accounts = await window.ethereum.request({
         method: 'eth_requestAccounts'
       });
 
-      // Vérification que nous avons au moins un compte
       if (!accounts || accounts.length === 0) {
         throw new Error('No accounts found');
       }
 
-      // Demande de changement de réseau vers Base
       try {
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x2105' }], // 8453 en hexadécimal pour Base
+          params: [{ chainId: '0x2105' }]
         });
       } catch (switchError: any) {
-        // Si le réseau n'existe pas, on l'ajoute
         if (switchError.code === 4902) {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
-            params: [
-              {
-                chainId: '0x2105', // 8453 en hexadécimal
-                chainName: 'Base',
-                nativeCurrency: {
-                  name: 'ETH',
-                  symbol: 'ETH',
-                  decimals: 18
-                },
-                rpcUrls: ['https://mainnet.base.org'],
-                blockExplorerUrls: ['https://basescan.org']
-              }
-            ]
+            params: [{
+              chainId: '0x2105',
+              chainName: 'Base',
+              nativeCurrency: {
+                name: 'ETH',
+                symbol: 'ETH',
+                decimals: 18
+              },
+              rpcUrls: ['https://mainnet.base.org'],
+              blockExplorerUrls: ['https://basescan.org']
+            }]
           });
         } else {
           throw switchError;
@@ -95,15 +95,12 @@ export function Connect() {
 
       if (connectorName.includes('metamask')) {
         if (!hasMetaMaskProvider && isMobile) {
-          // Redirection vers MetaMask sur mobile
-          const dappUrl = window.location.href;
-          window.location.href = `https://metamask.app.link/dapp/${window.location.host}?dapp_url=${encodeURIComponent(dappUrl)}`;
+          handleMetaMaskDeepLink();
           return;
         }
 
         await connectToMetaMask();
       } else {
-        // Pour les autres connecteurs, utiliser wagmi
         await connect({ connector });
       }
     } catch (error) {
@@ -114,17 +111,24 @@ export function Connect() {
     } finally {
       setConnectionInProgress(null);
     }
-  }, [connect, connectToMetaMask, hasMetaMaskProvider, isMobile]);
+  }, [connect, connectToMetaMask, hasMetaMaskProvider, isMobile, handleMetaMaskDeepLink]);
 
   if (isConnected) {
     return null;
   }
 
-  // Le reste de votre code pour le rendu reste inchangé
+  const availableConnectors = connectors.filter((connector) => {
+    const name = connector.name.toLowerCase();
+    if (isMobile && name.includes('metamask')) {
+      return hasMetaMaskProvider;
+    }
+    return true;
+  });
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-md mx-auto space-y-4">
-        {connectors.map((connector) => (
+        {availableConnectors.map((connector) => (
           <ConnectorButton
             key={connector.id}
             name={connector.name}
@@ -156,7 +160,6 @@ export function Connect() {
   );
 }
 
-// Les composants ConnectorButton et getConnectorIcon restent inchangés
 function ConnectorButton({ name, onClick, isPending }: ConnectorButtonProps) {
   return (
     <button
