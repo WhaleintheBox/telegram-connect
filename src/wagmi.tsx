@@ -1,51 +1,26 @@
 import { http, createConfig } from 'wagmi';
 import { base } from 'wagmi/chains';
-import { metaMask, walletConnect } from 'wagmi/connectors';
+import { injected, walletConnect } from 'wagmi/connectors';
 
-const projectId = '1558da14b9f93fe89954b32c5e17e840';
-const dappIcon = 'https://whaleinthebox.com/_next/image?url=%2Fimg%2Flogos%2Flogo-wtib.png&w=828&q=75';
-
-const baseChain = {
-  ...base,
-  rpcUrls: {
-    default: {
-      http: ['https://mainnet.base.org']
-    },
-    public: {
-      http: ['https://mainnet.base.org']
-    }
-  }
-};
+const projectId = '3fbb6bba6f1de962d911bb5b5c9dba88';
 
 export const config = createConfig({
-  chains: [baseChain],
+  chains: [base], // Focus uniquement sur Base
   connectors: [
-    metaMask({
-      dappMetadata: {
-        name: "Whale in the Box",
-        url: window.location.origin,
-        iconUrl: dappIcon,
-      },
-    }),
-    walletConnect({
+    injected({
+      shimDisconnect: true,
+    }), 
+    walletConnect({ 
       projectId,
-      showQrModal: false,
       metadata: {
         name: 'Whale in the Box',
-        description: 'Our Decentralized Betting Platform',
+        description: 'Betting Platform',
         url: window.location.origin,
-        icons: [dappIcon]
-      },
+        icons: ['https://whaleinthebox.com/_next/image?url=%2Fimg%2Flogos%2Flogo-wtib.png&w=828&q=75']
+      }
     })
   ],
   transports: {
-    [baseChain.id]: http()
+    [base.id]: http()
   },
 });
-
-export const metadata = {
-  name: 'Whale in the Box',
-  description: 'Our Decentralized Betting Platform',
-  url: window.location.origin,
-  icons: [dappIcon]
-};
