@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { useConnect, useAccount } from 'wagmi';
-import { useSDK } from '@metamask/sdk-react';
 
 type ConnectorButtonProps = {
   name: string;
@@ -9,7 +8,6 @@ type ConnectorButtonProps = {
 };
 
 export function Connect() {
-  const { sdk } = useSDK();
   const { connectors, connect, error: connectError, status } = useConnect();
   const { isConnected } = useAccount();
   const [connectionInProgress, setConnectionInProgress] = React.useState<string | null>(null);
@@ -34,38 +32,44 @@ export function Connect() {
     }
   }, [connectError]);
 
+  // Tentative automatique de connexion si on est dans le navigateur interne MetaMask sur mobile
+  // et qu'on n'est pas déjà connecté.
+  React.useEffect(() => {
+    if (isMobile && hasMetaMaskProvider && !isConnected) {
+      const mmConnector = connectors.find(c => c.name.toLowerCase().includes('metamask'));
+      if (mmConnector) {
+        (async () => {
+          try {
+            setConnectionInProgress(mmConnector.id);
+            await connect({ connector: mmConnector });
+          } catch (error) {
+            console.error('Automatic connection attempt failed:', error);
+            setConnectionInProgress(null);
+          }
+        })();
+      }
+    }
+  }, [isMobile, hasMetaMaskProvider, isConnected, connectors, connect]);
+
   const handleConnect = React.useCallback(async (connector: any) => {
     try {
       setConnectionInProgress(connector.id);
       const connectorName = connector.name.toLowerCase();
-  
-      // Si on est sur mobile et que le connecteur est MetaMask
-      if (isMobile && connectorName.includes('metamask')) {
-        try {
-          console.log('Attempting SDK connection...');
-          const accounts = await sdk?.connect();
-          console.log('SDK connection result:', accounts);
-  
-          if (accounts && accounts.length > 0) {
-            console.log('SDK connected successfully, connecting Wagmi...');
-            await connect({ connector });
-          } else {
-            console.log('No accounts returned from SDK, falling back to deep linking...');
-            window.location.href = `https://metamask.app.link/dapp/${window.location.host}`;
-          }
-        } catch (error) {
-          console.error('SDK connection failed:', error);
-          window.location.href = `https://metamask.app.link/dapp/${window.location.host}`;
-        }
-      } else {
-        await connect({ connector });
+
+      // Sur mobile, si pas de provider MetaMask alors on redirige vers l'app MetaMask
+      if (isMobile && connectorName.includes('metamask') && !hasMetaMaskProvider) {
+        console.log('No MetaMask provider on mobile, redirecting...');
+        window.location.href = `https://metamask.app.link/dapp/${window.location.hostname}${window.location.pathname}`;
+        return;
       }
+
+      await connect({ connector });
     } catch (error) {
       console.error('Connection attempt failed:', error);
     } finally {
       setConnectionInProgress(null);
     }
-  }, [connect, sdk, isMobile]);
+  }, [connect, isMobile, hasMetaMaskProvider]);
 
   if (isConnected) {
     return null;
@@ -73,7 +77,7 @@ export function Connect() {
 
   const availableConnectors = connectors.filter((connector) => {
     const name = connector.name.toLowerCase();
-    // Si sur mobile et qu'aucun provider MetaMask n'est présent, on cache le bouton MetaMask
+    // Sur mobile, on affiche MetaMask seulement si le provider est présent (in-app browser)
     if (isMobile && name.includes('metamask')) {
       return hasMetaMaskProvider;
     }
