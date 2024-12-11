@@ -29,7 +29,7 @@ export const config = createConfig({
     }),
     walletConnect({
       projectId,
-      showQrModal: true,
+      showQrModal: false,
       metadata: {
         name: 'Whale in the Box',
         description: 'Our Decentralized Betting Platform',
