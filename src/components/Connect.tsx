@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Connector, useConnect, useAccount } from 'wagmi';
 import { useSDK } from '@metamask/sdk-react';
 
-// Types
 type ConnectorButtonProps = {
   connector: Connector;
   onClick: () => void;
@@ -31,7 +30,7 @@ export function Connect() {
     return Boolean(window.ethereum?.isMetaMask);
   }, []);
 
-  // Error handling
+  // Error handling with retries for mobile
   React.useEffect(() => {
     if (connectError) {
       console.error('Connection error:', connectError);
@@ -42,13 +41,16 @@ export function Connect() {
         alert('Connection rejected. Please try again.');
       } else if (errorMessage.includes('network')) {
         alert('Network error. Please check your connection and try again.');
-      } else if (errorMessage.includes('timeout')) {
-        alert('Connection timed out. Please try again.');
       } else {
-        alert('Connection failed. Please try again or use a different wallet.');
+        // For mobile users, provide more specific guidance
+        if (isMobile) {
+          alert('Please make sure MetaMask is installed and you are using its in-app browser. If you were redirected, please try connecting again.');
+        } else {
+          alert('Connection failed. Please try again or use a different wallet.');
+        }
       }
     }
-  }, [connectError]);
+  }, [connectError, isMobile]);
 
   const handleConnect = React.useCallback(async (connector: Connector) => {
     try {
@@ -57,52 +59,78 @@ export function Connect() {
 
       if (isMobile && connectorName.includes('metamask')) {
         if (hasMetaMaskProvider) {
-          // Si nous sommes dans l'app MetaMask
+          // Direct connection if we're in MetaMask's browser
           await connect({ connector });
         } else {
-          // Si nous sommes dans un navigateur mobile
+          // Handle mobile browser scenario
           try {
-            // Essayer d'abord le SDK MetaMask
-            await sdk?.connect();
-            await connect({ connector });
-          } catch (error) {
-            console.error('MetaMask SDK connection error:', error);
-            
-            // Fallback sur le deep linking
-            const host = window.location.host;
-            const pathname = window.location.pathname;
-            
-            const universalLink = `https://metamask.app.link/dapp/${host}${pathname}`;
-            const protocolLink = `metamask://dapp/${host}${pathname}`;
-
-            if (isIOS) {
-              // Sur iOS, utiliser le lien universel
-              window.location.href = universalLink;
+            if (sdk) {
+              // Try SDK first
+              await sdk.connect();
+              await connect({ connector });
             } else {
-              // Sur Android, essayer le protocole puis fallback sur le lien universel
-              try {
-                window.location.href = protocolLink;
-                // Fallback sur le lien universel après un court délai
-                setTimeout(() => {
-                  window.location.href = universalLink;
-                }, 1500);
-              } catch {
+              // Fallback to deep linking with return URL
+              const currentURL = encodeURIComponent(window.location.href);
+              const host = window.location.host;
+              const pathname = window.location.pathname;
+              
+              // Include return URL in the deep link
+              const universalLink = `https://metamask.app.link/dapp/${host}${pathname}?returnUrl=${currentURL}`;
+              const protocolLink = `metamask://dapp/${host}${pathname}?returnUrl=${currentURL}`;
+
+              // Store connection attempt in sessionStorage
+              sessionStorage.setItem('metamaskConnectionPending', 'true');
+
+              if (isIOS) {
                 window.location.href = universalLink;
+              } else {
+                // For Android, try protocol first then fallback
+                window.location.href = protocolLink;
+                setTimeout(() => {
+                  if (!document.hidden) {
+                    window.location.href = universalLink;
+                  }
+                }, 1500);
               }
             }
+          } catch (error) {
+            console.error('MetaMask connection error:', error);
+            throw error;
           }
           return;
         }
       } else {
-        // Pour les autres connecteurs (WalletConnect, etc.)
         await connect({ connector });
       }
     } catch (error) {
       console.error('Connection attempt failed:', error);
+      throw error;
     } finally {
       setConnectionInProgress(null);
     }
   }, [connect, isMobile, hasMetaMaskProvider, sdk, isIOS]);
+
+  // Check for pending connections on return from MetaMask
+  React.useEffect(() => {
+    const checkPendingConnection = async () => {
+      const isPending = sessionStorage.getItem('metamaskConnectionPending');
+      if (isPending && window.ethereum?.isMetaMask) {
+        sessionStorage.removeItem('metamaskConnectionPending');
+        const metamaskConnector = connectors.find(c => 
+          c.name.toLowerCase().includes('metamask')
+        );
+        if (metamaskConnector) {
+          try {
+            await connect({ connector: metamaskConnector });
+          } catch (error) {
+            console.error('Auto-reconnect failed:', error);
+          }
+        }
+      }
+    };
+
+    checkPendingConnection();
+  }, [connect, connectors]);
 
   if (isConnected) {
     return null;
@@ -111,7 +139,7 @@ export function Connect() {
   const availableConnectors = connectors.filter(connector => {
     const name = connector.name.toLowerCase();
     if (isMobile && !hasMetaMaskProvider && name.includes('metamask')) {
-      return false;
+      return true; // Always show MetaMask option on mobile
     }
     return true;
   });
@@ -133,16 +161,17 @@ export function Connect() {
         <div className="mt-6 text-sm text-center text-gray-600 bg-gray-50 p-4 rounded-lg shadow-sm">
           {!hasMetaMaskProvider ? (
             <>
-              💡 Pro Tips:
+              💡 Connection Tips:
               <ul className="mt-2 space-y-1 text-left">
-                <li>• Use WalletConnect for easy connection with any wallet</li>
-                <li>• Install MetaMask mobile app for the best experience</li>
-                <li>• Make sure you're on the Base network</li>
+                <li>• Install MetaMask if not already installed</li>
+                <li>• After redirecting to MetaMask, connect in the MetaMask app</li>
+                <li>• Return to this page to complete the connection</li>
+                <li>• If connection fails, try WalletConnect as an alternative</li>
               </ul>
             </>
           ) : (
             <span className="flex items-center justify-center gap-2">
-              🦊 Using MetaMask mobile browser
+              🦊 Using MetaMask browser
             </span>
           )}
         </div>
