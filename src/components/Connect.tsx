@@ -13,27 +13,39 @@ type ConnectorButtonProps = {
 export function Connect() {
   const { isConnected } = useAccount();
   const [connectionInProgress, setConnectionInProgress] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
+  // Enhanced mobile detection
   const isMobile = React.useMemo(() => {
     if (typeof window === 'undefined') return false;
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
       navigator.userAgent
-    );
+    ) || window.innerWidth <= 768;
   }, []);
 
   const handleConnect = React.useCallback(async () => {
+    setError(null);
     try {
       setConnectionInProgress('connecting');
-      await modal.open();
+      
+      // Using only the supported view property
+      await modal.open({
+        view: 'Connect'
+      });
+      
+      // Handle successful connection
+      if (isConnected) {
+        window.location.reload();
+      }
     } catch (error) {
       console.error('Connection attempt failed:', error);
       if (error instanceof Error) {
-        alert(error.message);
+        setError(error.message);
       }
     } finally {
       setConnectionInProgress(null);
     }
-  }, []);
+  }, [isConnected]);
 
   if (isConnected) {
     return null;
@@ -47,6 +59,12 @@ export function Connect() {
           onClick={handleConnect}
           isPending={connectionInProgress === 'connecting'}
         />
+        
+        {error && (
+          <div className="mt-2 text-red-500 text-sm text-center">
+            {error}
+          </div>
+        )}
       </div>
 
       {isMobile && (
@@ -54,10 +72,15 @@ export function Connect() {
           <div>
             💡 Connection Options:
             <ul className="mt-2 space-y-1 text-left">
+              <li>• Open in MetaMask mobile app</li>
+              <li>• Use WalletConnect-compatible wallets</li>
               <li>• Connect with email or social accounts</li>
-              <li>• Use MetaMask or other wallets</li>
               <li>• Make sure you're on the Base network</li>
             </ul>
+          </div>
+          <div className="mt-4 text-xs text-gray-500">
+            Note: If you're using a mobile wallet, you may need to open it first 
+            before attempting to connect.
           </div>
         </div>
       )}
