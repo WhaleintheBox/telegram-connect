@@ -18,6 +18,7 @@ import { config } from './wagmi';
 const queryClient = new QueryClient();
 
 
+
 type SportsType = {
   [key in 'SOCCER' | 'F1' | 'MMA' | 'NFL' | 'BASKETBALL']: boolean;
 };

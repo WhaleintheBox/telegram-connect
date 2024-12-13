@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   type BaseError, 
   useWriteContract, 
-  useWaitForTransactionReceipt 
+  useWaitForTransactionReceipt,
+  useSimulateContract
 } from 'wagmi';
 import { parseAbi, formatEther } from 'viem';
 
@@ -33,16 +34,38 @@ function formatAddress(address: string): string {
 
 export function WriteContract(data: WriteContractProps) {
   const { sendEvent } = data;
-  const { writeContractAsync, isPending, data: hash, error } = useWriteContract();
+  const [userRejected, setUserRejected] = useState(false);
+  
+  // Simuler la transaction d'abord
+  const { isError: isSimulateError, error: simulateError } = useSimulateContract({
+    address: data.address,
+    abi: parseAbi(data.abi),
+    functionName: data.functionName,
+    args: data.args,
+    value: data.value ? BigInt(data.value) : undefined,
+  });
 
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({
-      hash,
-    });
+  const { writeContractAsync, isPending, data: hash, error: writeError } = useWriteContract();
+
+  const { 
+    isLoading: isConfirming, 
+    isSuccess: isConfirmed,
+    error: confirmError 
+  } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  // Gérer tous les types d'erreurs
+  const error = writeError || confirmError || (isSimulateError ? simulateError : null);
 
   async function submit() {
+    setUserRejected(false);
     try {
-      // Convertir et vérifier la valeur avant l'envoi
+      if (isSimulateError) {
+        console.error('Simulation failed:', simulateError);
+        return;
+      }
+
       let transactionValue;
       if (data.value) {
         try {
@@ -53,7 +76,6 @@ export function WriteContract(data: WriteContractProps) {
         }
       }
 
-      // Envoyer la transaction avec la valeur convertie
       await writeContractAsync({
         address: data.address,
         abi: parseAbi(data.abi),
@@ -61,21 +83,30 @@ export function WriteContract(data: WriteContractProps) {
         args: data.args,
         value: transactionValue,
       });
-    } catch (err) {
+    } catch (err: any) {  // Typage explicite de l'erreur
       console.error('Contract write error:', err);
+      // Vérification sécurisée du message d'erreur
+      if (typeof err === 'object' && err !== null && 'message' in err) {
+        if (err.message.includes('user rejected transaction')) {
+          setUserRejected(true);
+        }
+      }
     }
   }
 
   useEffect(() => {
-    if (isConfirmed) return sendEvent({ confirmed: true });
-    if (hash) return sendEvent({ hash });
-    if (error) return sendEvent({ error });
-  }, [hash, error, isConfirmed, sendEvent]);
+    if (isConfirmed) {
+      sendEvent({ confirmed: true });
+    } else if (hash) {
+      sendEvent({ hash });
+    } else if (error && !userRejected) {
+      sendEvent({ error });
+    }
+  }, [hash, error, isConfirmed, sendEvent, userRejected]);
 
   const chainName = CHAIN_NAMES[data.chainId] || `Chain ID: ${data.chainId}`;
   const isProcessing = isPending || isConfirming;
 
-  // Formatage sécurisé de la valeur pour l'affichage
   const displayValue = data.value ? 
     formatEther(BigInt(data.value)) : 
     '0 ETH';
@@ -129,11 +160,13 @@ export function WriteContract(data: WriteContractProps) {
 
         <div className="buttonContainer">
           <button
-            className="transactionButton"
-            disabled={isProcessing}
+            className={`transactionButton ${isSimulateError ? 'error' : ''}`}
+            disabled={isProcessing || isSimulateError}
             onClick={submit}
           >
-            {isProcessing ? 'Processing...' : 'Sign Transaction'}
+            {isProcessing ? 'Processing...' : 
+             isSimulateError ? 'Transaction Will Fail' : 
+             'Sign Transaction'}
           </button>
         </div>
       </div>
@@ -160,12 +193,17 @@ export function WriteContract(data: WriteContractProps) {
           )}
           {isConfirmed && (
             <div className="status-message success">
-              Transaction confirmed
+              Transaction confirmed! ✅
             </div>
           )}
-          {error && (
+          {error && !userRejected && (
             <div className="status-message error">
-              Error: {(error as BaseError).shortMessage || error.message}
+              Error: {(error as BaseError).shortMessage || (error as Error).message || 'Transaction failed'}
+            </div>
+          )}
+          {userRejected && (
+            <div className="status-message warning">
+              Transaction rejected by user
             </div>
           )}
         </div>

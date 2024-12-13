@@ -11,43 +11,77 @@ type ConnectorButtonProps = {
 };
 
 export function Connect() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const [connectionInProgress, setConnectionInProgress] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const mountedRef = React.useRef(false);
 
-  // Enhanced mobile detection
+  // Enhanced mobile detection with additional checks
   const isMobile = React.useMemo(() => {
     if (typeof window === 'undefined') return false;
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    ) || window.innerWidth <= 768;
+    const userAgent = window.navigator.userAgent || window.navigator.vendor;
+    const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+    return mobileRegex.test(userAgent) || window.innerWidth <= 768;
   }, []);
 
+  // Track component mount state for cleanup
+  React.useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // Watch for connection changes
+  React.useEffect(() => {
+    if (isConnected && address) {
+      const timeoutId = setTimeout(() => {
+        if (mountedRef.current) {
+          window.location.reload();
+        }
+      }, 1000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isConnected, address]);
+
   const handleConnect = React.useCallback(async () => {
+    if (connectionInProgress) return;
+
     setError(null);
+    setConnectionInProgress('connecting');
+
     try {
-      setConnectionInProgress('connecting');
-      
-      // Using only the supported view property
       await modal.open({
         view: 'Connect'
       });
-      
-      // Handle successful connection
-      if (isConnected) {
-        window.location.reload();
-      }
+
+      // Check connection status after modal closes
+      const checkConnection = setInterval(() => {
+        if (isConnected && address) {
+          clearInterval(checkConnection);
+          window.location.reload();
+        }
+      }, 1000);
+
+      // Clear interval after 30 seconds to prevent memory leaks
+      setTimeout(() => {
+        clearInterval(checkConnection);
+      }, 30000);
+
     } catch (error) {
       console.error('Connection attempt failed:', error);
-      if (error instanceof Error) {
-        setError(error.message);
+      if (mountedRef.current) {
+        setError(error instanceof Error ? error.message : 'Connection failed');
       }
     } finally {
-      setConnectionInProgress(null);
+      if (mountedRef.current) {
+        setConnectionInProgress(null);
+      }
     }
-  }, [isConnected]);
+  }, [connectionInProgress, isConnected, address]);
 
-  if (isConnected) {
+  // Handle initial connection state
+  if (isConnected && address) {
     return null;
   }
 
@@ -61,7 +95,7 @@ export function Connect() {
         />
         
         {error && (
-          <div className="mt-2 text-red-500 text-sm text-center">
+          <div className="mt-2 text-red-500 text-sm text-center" role="alert">
             {error}
           </div>
         )}
@@ -98,6 +132,7 @@ function ConnectorButton({ name, onClick, isPending }: ConnectorButtonProps) {
       }}
       disabled={isPending}
       type="button"
+      aria-busy={isPending}
       className={`
         w-full h-14 bg-gradient-to-r from-blue-500 to-blue-600 
         text-white font-bold rounded-xl shadow-lg 
@@ -108,7 +143,10 @@ function ConnectorButton({ name, onClick, isPending }: ConnectorButtonProps) {
     >
       <div className="flex items-center justify-center gap-3">
         {isPending ? (
-          <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+          <div 
+            className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"
+            aria-hidden="true"
+          />
         ) : (
           getConnectorIcon(name)
         )}
@@ -120,7 +158,7 @@ function ConnectorButton({ name, onClick, isPending }: ConnectorButtonProps) {
   );
 }
 
-function getConnectorIcon(connectorName: string) {
+function getConnectorIcon(connectorName: string): string {
   const name = connectorName.toLowerCase();
   if (name.includes('metamask')) return '🦊';
   if (name.includes('walletconnect')) return '🔗';
