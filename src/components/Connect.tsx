@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useAccount } from 'wagmi';
-import { modal } from '../Context';
+import { useAppKit } from '@reown/appkit/react';
 
 const BASE_CHAIN_ID = 8453;
 const SUCCESS_TOAST_DURATION = 1500;
@@ -18,7 +18,8 @@ type ConnectionStatus = 'idle' | 'connecting' | 'switching' | 'connected' | 'err
 type ModalAction = 'connecting' | 'switching';
 
 export function Connect() {
-  const { isConnected, address, chain, connector } = useAccount();
+  const { isConnected, address, chain } = useAccount();
+  const { open } = useAppKit();
   const [status, setStatus] = React.useState<ConnectionStatus>('idle');
   const [error, setError] = React.useState<string | null>(null);
   const [showSuccessToast, setShowSuccessToast] = React.useState(false);
@@ -62,22 +63,22 @@ export function Connect() {
     return () => clearTimeout(timer);
   }, [clearModalTimeout]);
 
-  const handleError = React.useCallback((error: unknown) => {
+  const handleError = React.useCallback((err: unknown) => {
     if (!mountedRef.current) return;
-    console.error('Connection error:', error);
+    console.error('Connection error:', err);
     clearModalTimeout();
     actionRef.current = null;
 
     let message = 'Connection failed. Please try again.';
-    if (error instanceof Error) {
-      if (error.message.includes('user rejected')) {
+    if (err instanceof Error) {
+      if (err.message.includes('user rejected')) {
         message = 'Connection cancelled. Please try again.';
-      } else if (error.message.includes('network') || error.message.includes('chain')) {
+      } else if (err.message.includes('network') || err.message.includes('chain')) {
         message = 'Please switch to Base network.';
-      } else if (error.message.includes('timeout')) {
+      } else if (err.message.includes('timeout')) {
         message = 'Connection timed out. Please check your internet connection.';
       } else {
-        message = error.message;
+        message = err.message;
       }
     }
 
@@ -93,19 +94,11 @@ export function Connect() {
       setError(null);
       actionRef.current = 'connecting';
 
-      if (typeof window !== 'undefined' && window.sessionStorage) {
-        window.sessionStorage.removeItem('wagmi.connected');
-      }
-
-      // On utilise 'Connect' pour afficher les réseaux sociaux, e-mails et wallets.
-      await modal.open({
+      await open({
         view: 'Connect',
         ...MODAL_CONFIG
       });
 
-      if (typeof window !== 'undefined' && window.sessionStorage) {
-        window.sessionStorage.setItem('wagmi.connected', 'true');
-      }
       handleSuccess();
 
       modalTimeoutRef.current = setTimeout(() => {
@@ -116,11 +109,11 @@ export function Connect() {
         }
       }, 30000);
 
-    } catch (error) {
-      console.error('Connection failed:', error);
-      handleError(error);
+    } catch (err) {
+      console.error('Connection failed:', err);
+      handleError(err);
     }
-  }, [handleError, handleSuccess]);
+  }, [handleError, handleSuccess, open]);
 
   const handleSwitchNetwork = React.useCallback(async () => {
     if (actionRef.current === 'switching') return;
@@ -130,7 +123,7 @@ export function Connect() {
       setError(null);
       actionRef.current = 'switching';
 
-      await modal.open({
+      await open({
         view: 'Networks',
         ...MODAL_CONFIG
       });
@@ -143,11 +136,11 @@ export function Connect() {
         }
       }, 30000);
 
-    } catch (error) {
-      console.error('Network switch failed:', error);
-      handleError(error);
+    } catch (err) {
+      console.error('Network switch failed:', err);
+      handleError(err);
     }
-  }, [handleError]);
+  }, [handleError, open]);
 
   React.useEffect(() => {
     mountedRef.current = true;
@@ -157,33 +150,6 @@ export function Connect() {
       clearModalTimeout();
     };
   }, [clearModalTimeout]);
-
-  React.useEffect(() => {
-    let checkInterval: NodeJS.Timeout;
-    
-    const checkConnection = async () => {
-      const isConnectedSession = typeof window !== 'undefined' && 
-        window.sessionStorage?.getItem('wagmi.connected') === 'true';
-      
-      if (isConnectedSession && connector && !isConnected) {
-        try {
-          await connector.connect();
-          handleSuccess();
-          window.sessionStorage?.removeItem('wagmi.connected');
-        } catch (error) {
-          console.error('Reconnection error:', error);
-          window.sessionStorage?.removeItem('wagmi.connected');
-        }
-      }
-    };
-
-    checkConnection();
-    checkInterval = setInterval(checkConnection, 1000);
-
-    return () => {
-      if (checkInterval) clearInterval(checkInterval);
-    };
-  }, [isConnected, connector, handleSuccess]);
 
   React.useEffect(() => {
     if (isConnected && address && status !== 'connected') {

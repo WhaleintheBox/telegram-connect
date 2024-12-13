@@ -14,17 +14,12 @@ if (!projectId) {
   throw new Error('Project ID is not defined');
 }
 
-const wagmiAdapter = new WagmiAdapter({
-  networks: [base],
-  projectId,
-  ssr: false
-});
 
 const metadata = {
   name: "Whale in the Box",
   description: "Our Decentralized Betting Platform",
   url: typeof window !== 'undefined' ? window.location.origin : "https://whaleinthebox.github.io/telegram-connect/dist/",
-  icons: ["https://whaleinthebox.com/_next/image?url=%2Fimg%2Flogos%2Flogo-wtib.png&w=828&q=75"],
+  icons: ["https://imagedelivery.net/_aTEfDRm7z3tKgu9JhfeKA/e64de848-991b-4de3-787a-5e6008473800/sm"],
   redirect: {
     native: 'whaleinthebox://',  
     universal: 'https://whaleinthebox.github.io/telegram-connect/dist/',  
@@ -32,10 +27,16 @@ const metadata = {
   }
 };
 
+const wagmiAdapter = new WagmiAdapter({
+  networks: [base],
+  projectId,
+  ssr: false
+});
+
 export const modal = createAppKit({
   adapters: [wagmiAdapter],
-  projectId,
   networks: [base],
+  projectId,
   metadata,
   features: {
     analytics: true,
