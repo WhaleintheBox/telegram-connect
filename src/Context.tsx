@@ -6,7 +6,7 @@ import { base } from '@reown/appkit/networks';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { WagmiProvider, type Config } from 'wagmi';
-import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
+import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 
 const queryClient = new QueryClient();
 
@@ -16,14 +16,20 @@ if (!projectId) {
 
 const wagmiAdapter = new WagmiAdapter({
   networks: [base],
-  projectId
-})
+  projectId,
+  ssr: false
+});
 
 const metadata = {
   name: "Whale in the Box",
   description: "Our Decentralized Betting Platform",
-  url: "https://whaleinthebox.github.io/telegram-connect/dist/",
-  icons: ["https://whaleinthebox.com/_next/image?url=%2Fimg%2Flogos%2Flogo-wtib.png&w=828&q=75"]
+  url: typeof window !== 'undefined' ? window.location.origin : "https://whaleinthebox.github.io/telegram-connect/dist/",
+  icons: ["https://whaleinthebox.com/_next/image?url=%2Fimg%2Flogos%2Flogo-wtib.png&w=828&q=75"],
+  redirect: {
+    native: 'whaleinthebox://',  
+    universal: 'https://whaleinthebox.github.io/telegram-connect/dist/',  
+    linkMode: true
+  }
 };
 
 export const modal = createAppKit({
@@ -35,12 +41,13 @@ export const modal = createAppKit({
     analytics: true,
     email: true,
     socials: ['google', 'x', 'github', 'discord', 'apple', 'facebook'],
-    emailShowWallets: true,
+    emailShowWallets: true
   },
   themeMode: 'light',
+  defaultNetwork: base,
+  enableWalletConnect: true,
+  allWallets: 'SHOW'
 });
-
-
 
 export function ContextProvider({ children }: { children: ReactNode }) {
   return (
