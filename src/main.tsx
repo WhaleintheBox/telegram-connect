@@ -5,6 +5,10 @@ import { WagmiProvider } from 'wagmi';
 import App from './App.tsx';
 import './index.css';
 import { config } from './wagmi';
+import { modal } from './Context';
+
+// Initialise AppKit globalement
+modal;
 
 const queryClient = new QueryClient();
 

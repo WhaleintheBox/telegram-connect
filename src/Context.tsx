@@ -14,6 +14,11 @@ if (!projectId) {
   throw new Error('Project ID is not defined');
 }
 
+const wagmiAdapter = new WagmiAdapter({
+  networks: [base],
+  projectId,
+  ssr: false
+});
 
 const metadata = {
   name: "Whale in the Box",
@@ -27,11 +32,15 @@ const metadata = {
   }
 };
 
-const wagmiAdapter = new WagmiAdapter({
-  networks: [base],
-  projectId,
-  ssr: false
-});
+export function ContextProvider({ children }: { children: ReactNode }) {
+  return (
+    <WagmiProvider config={wagmiAdapter.wagmiConfig as Config}>
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </WagmiProvider>
+  );
+}
 
 export const modal = createAppKit({
   adapters: [wagmiAdapter],
@@ -49,11 +58,3 @@ export const modal = createAppKit({
   enableWalletConnect: true,
   allWallets: 'SHOW'
 });
-
-export function ContextProvider({ children }: { children: ReactNode }) {
-  return (
-    <WagmiProvider config={wagmiAdapter.wagmiConfig as Config}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </WagmiProvider>
-  );
-}
