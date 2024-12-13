@@ -15,8 +15,12 @@ export function Connect() {
   const [connectionInProgress, setConnectionInProgress] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const mountedRef = React.useRef(false);
+  const popupRef = React.useRef<Window | null>(null);
+  const timeoutRef = React.useRef<number | null>(null);
+  const checkIntervalRef = React.useRef<number | null>(null);
+  const popupIntervalRef = React.useRef<number | null>(null);
 
-  // Enhanced mobile detection with additional checks
+  // Enhanced mobile detection
   const isMobile = React.useMemo(() => {
     if (typeof window === 'undefined') return false;
     const userAgent = window.navigator.userAgent || window.navigator.vendor;
@@ -24,63 +28,114 @@ export function Connect() {
     return mobileRegex.test(userAgent) || window.innerWidth <= 768;
   }, []);
 
-  // Track component mount state for cleanup
+  // Cleanup function
+  const cleanup = React.useCallback(() => {
+    if (timeoutRef.current) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (checkIntervalRef.current) {
+      window.clearInterval(checkIntervalRef.current);
+      checkIntervalRef.current = null;
+    }
+    if (popupIntervalRef.current) {
+      window.clearInterval(popupIntervalRef.current);
+      popupIntervalRef.current = null;
+    }
+    if (popupRef.current && !popupRef.current.closed) {
+      popupRef.current.close();
+      popupRef.current = null;
+    }
+  }, []);
+
+  // Component mount/unmount
   React.useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      cleanup();
     };
-  }, []);
+  }, [cleanup]);
 
-  // Watch for connection changes
+  // Connection state watcher
   React.useEffect(() => {
     if (isConnected && address) {
-      const timeoutId = setTimeout(() => {
+      cleanup();
+      timeoutRef.current = window.setTimeout(() => {
         if (mountedRef.current) {
           window.location.reload();
         }
       }, 1000);
-      return () => clearTimeout(timeoutId);
     }
-  }, [isConnected, address]);
+    return () => {
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [isConnected, address, cleanup]);
 
   const handleConnect = React.useCallback(async () => {
     if (connectionInProgress) return;
 
     setError(null);
     setConnectionInProgress('connecting');
+    cleanup();
 
     try {
+      const popupConfig = !isMobile ? {
+        target: '_blank',
+        features: 'width=500,height=600,status=yes,toolbar=no,menubar=no,location=no'
+      } : undefined;
+
       await modal.open({
-        view: 'Connect'
+        view: 'Connect',
+        ...(popupConfig && {
+          popupConfig: {
+            ...popupConfig,
+            onPopupOpen: (popup: Window) => {
+              popupRef.current = popup;
+              popupIntervalRef.current = window.setInterval(() => {
+                if (!popup || popup.closed) {
+                  cleanup();
+                  if (mountedRef.current) {
+                    setConnectionInProgress(null);
+                  }
+                }
+              }, 500);
+            }
+          }
+        })
       });
 
-      // Check connection status after modal closes
-      const checkConnection = setInterval(() => {
+      // Check connection status
+      checkIntervalRef.current = window.setInterval(() => {
         if (isConnected && address) {
-          clearInterval(checkConnection);
+          cleanup();
           window.location.reload();
         }
       }, 1000);
 
-      // Clear interval after 30 seconds to prevent memory leaks
-      setTimeout(() => {
-        clearInterval(checkConnection);
+      // Cleanup after 30 seconds
+      timeoutRef.current = window.setTimeout(() => {
+        if (mountedRef.current) {
+          cleanup();
+          setConnectionInProgress(null);
+        }
       }, 30000);
 
     } catch (error) {
       console.error('Connection attempt failed:', error);
       if (mountedRef.current) {
         setError(error instanceof Error ? error.message : 'Connection failed');
+        cleanup();
       }
     } finally {
-      if (mountedRef.current) {
+      if (!isConnected && mountedRef.current) {
         setConnectionInProgress(null);
       }
     }
-  }, [connectionInProgress, isConnected, address]);
+  }, [connectionInProgress, isConnected, address, isMobile, cleanup]);
 
-  // Handle initial connection state
   if (isConnected && address) {
     return null;
   }
