@@ -26,7 +26,7 @@ export function Connect() {
   const modalTimeoutRef = React.useRef<NodeJS.Timeout>();
   const actionRef = React.useRef<ModalAction | null>(null);
 
-  // Detect mobile using window.navigator
+  // Détection du mobile
   const isMobile = React.useMemo(() => {
     if (typeof window === 'undefined') return false;
     const userAgent = window.navigator.userAgent || window.navigator.vendor;
@@ -73,7 +73,7 @@ export function Connect() {
       if (error.message.includes('user rejected')) {
         message = 'Connection cancelled. Please try again.';
       } else if (error.message.includes('network') || error.message.includes('chain')) {
-        message = 'Please switch to Base network';
+        message = 'Please switch to Base network.';
       } else if (error.message.includes('timeout')) {
         message = 'Connection timed out. Please check your internet connection.';
       } else {
@@ -97,6 +97,7 @@ export function Connect() {
         window.sessionStorage.removeItem('wagmi.connected');
       }
 
+      // On utilise 'Connect' pour afficher les réseaux sociaux, e-mails et wallets.
       await modal.open({
         view: 'Connect',
         ...MODAL_CONFIG
@@ -196,6 +197,7 @@ export function Connect() {
     }
   }, [isConnected, chain?.id, status, handleSuccess]);
 
+  // Si connecté et sur le bon réseau, ne rien afficher
   if (isConnected && !isWrongNetwork) {
     return null;
   }
