@@ -6,187 +6,164 @@ import { modal } from '../Context';
 
 type ConnectorButtonProps = {
   name: string;
-  onClick: () => void;
+  onClick: () => Promise<void>;
   isPending?: boolean;
   isMobile?: boolean;
 };
 
+type ConnectionStatus = 'idle' | 'connecting' | 'switching' | 'connected' | 'error';
+
 const BASE_CHAIN_ID = 8453;
+const CONNECTION_TIMEOUT = 30000;
+const SUCCESS_TOAST_DURATION = 1500;
+const CONNECTION_CHECK_INTERVAL = 1000;
 
 export function Connect() {
   const { isConnected, address, chain } = useAccount();
-  const [connectionInProgress, setConnectionInProgress] = React.useState<string | null>(null);
+  const [status, setStatus] = React.useState<ConnectionStatus>('idle');
   const [error, setError] = React.useState<string | null>(null);
   const [showSuccessToast, setShowSuccessToast] = React.useState(false);
-  const startTimeRef = React.useRef<number>(0);
+  
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const mountedRef = React.useRef(false);
-  const timeoutRef = React.useRef<number | null>(null);
-  const checkConnectionRef = React.useRef<number | null>(null);
-  const reconnectAttempts = React.useRef(0);
-  const MAX_RECONNECT_ATTEMPTS = 3;
 
-  // Enhanced mobile detection
   const isMobile = React.useMemo(() => {
     if (typeof window === 'undefined') return false;
     const userAgent = window.navigator.userAgent || window.navigator.vendor;
-    const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
-    return mobileRegex.test(userAgent) || window.innerWidth <= 768;
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent) || 
+           window.innerWidth <= 768;
   }, []);
 
-  // Network check
   const isWrongNetwork = React.useMemo(() => {
     return isConnected && chain?.id !== BASE_CHAIN_ID;
   }, [isConnected, chain?.id]);
 
-  // Error message handler
-  const getErrorMessage = React.useCallback((error: unknown): string => {
-    if (error instanceof Error) {
-      if (error.message.includes('user rejected')) {
-        return 'Connection cancelled. Please try again.';
-      }
-      if (error.message.includes('network') || error.message.includes('chain')) {
-        return 'Please switch to Base network';
-      }
-      if (error.message.includes('timeout')) {
-        return 'Connection timed out. Please check your internet connection.';
-      }
-      return error.message;
-    }
-    return 'Connection failed. Please try again';
-  }, []);
-
-  // Cleanup function
-  const cleanup = React.useCallback(() => {
+  const clearTimers = React.useCallback(() => {
     if (timeoutRef.current) {
-      window.clearTimeout(timeoutRef.current);
+      clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
-    if (checkConnectionRef.current) {
-      window.clearInterval(checkConnectionRef.current);
-      checkConnectionRef.current = null;
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
-    setShowSuccessToast(false);
   }, []);
 
-  // Component lifecycle
-  React.useEffect(() => {
-    mountedRef.current = true;
-    window.addEventListener('beforeunload', cleanup);
-    return () => {
-      mountedRef.current = false;
-      window.removeEventListener('beforeunload', cleanup);
-      cleanup();
-    };
-  }, [cleanup]);
+  const resetState = React.useCallback(() => {
+    clearTimers();
+    setStatus('idle');
+    setError(null);
+    setShowSuccessToast(false);
+  }, [clearTimers]);
 
-  // Connection state handler
-  React.useEffect(() => {
-    if (isConnected && address) {
-      cleanup();
-      setShowSuccessToast(true);
-      if (mountedRef.current) {
-        timeoutRef.current = window.setTimeout(() => {
-          window.location.reload();
-        }, 1500);
+  const handleSuccess = React.useCallback(() => {
+    if (!mountedRef.current) return;
+    
+    clearTimers();
+    setStatus('connected');
+    setShowSuccessToast(true);
+    setError(null);
+
+    timeoutRef.current = setTimeout(() => {
+      setShowSuccessToast(false);
+    }, SUCCESS_TOAST_DURATION);
+  }, [clearTimers]);
+
+  const handleError = React.useCallback((error: unknown) => {
+    if (!mountedRef.current) return;
+
+    let message = 'Connection failed. Please try again.';
+    if (error instanceof Error) {
+      if (error.message.includes('user rejected')) {
+        message = 'Connection cancelled. Please try again.';
+      } else if (error.message.includes('network') || error.message.includes('chain')) {
+        message = 'Please switch to Base network';
+      } else if (error.message.includes('timeout')) {
+        message = 'Connection timed out. Please check your internet connection.';
+      } else {
+        message = error.message;
       }
     }
-    return cleanup;
-  }, [isConnected, address, cleanup]);
 
-  // Network switcher
-  const handleSwitchNetwork = React.useCallback(async () => {
-    try {
-      // Use the "Networks" view instead of "NetworkSwitch"
-      await modal.open({
-        view: 'Networks',
-      });
-    } catch (error) {
-      setError(getErrorMessage(error));
-    }
-  }, [getErrorMessage]);
+    clearTimers();
+    setStatus('error');
+    setError(message);
+  }, [clearTimers]);
 
-  // Reconnection handler
-  const attemptReconnect = React.useCallback(async () => {
-    if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
-      setError('Unable to reconnect. Please try again later.');
-      return;
-    }
-    reconnectAttempts.current++;
-    await handleConnect();
-  }, []);
+  const startConnectionCheck = React.useCallback(() => {
+    intervalRef.current = setInterval(() => {
+      if (isConnected && address) {
+        handleSuccess();
+      }
+    }, CONNECTION_CHECK_INTERVAL);
+
+    timeoutRef.current = setTimeout(() => {
+      if (!isConnected && mountedRef.current) {
+        handleError(new Error('Connection timeout'));
+      }
+    }, CONNECTION_TIMEOUT);
+  }, [isConnected, address, handleSuccess, handleError]);
 
   const handleConnect = React.useCallback(async () => {
-    if (connectionInProgress) return;
-
-    setError(null);
-    setConnectionInProgress('connecting');
-    cleanup();
-    startTimeRef.current = Date.now();
+    if (status === 'connecting') return;
 
     try {
+      resetState();
+      setStatus('connecting');
+
       await modal.open({
         view: 'Connect',
-        ...(isMobile && {
-          redirectUrl: window.location.href
-        })
+        ...(isMobile && { redirectUrl: window.location.href })
       });
 
-      // Check connection status
-      checkConnectionRef.current = window.setInterval(() => {
-        if (isConnected && address) {
-          cleanup();
-          window.location.reload();
-        }
-      }, 1000);
-
-      // Security timeout
-      timeoutRef.current = window.setTimeout(() => {
-        if (mountedRef.current) {
-          cleanup();
-          setConnectionInProgress(null);
-          if (!isConnected) {
-            setError('Connection timeout. Please try again.');
-            attemptReconnect();
-          }
-        }
-      }, 30000);
-
+      startConnectionCheck();
     } catch (error) {
-      console.error('Connection attempt failed:', error);
-      if (mountedRef.current) {
-        setError(getErrorMessage(error));
-        cleanup();
-      }
-    } finally {
-      if (!isConnected && mountedRef.current) {
-        setConnectionInProgress(null);
-      }
+      console.error('Connection failed:', error);
+      handleError(error);
     }
-  }, [connectionInProgress, isConnected, address, isMobile, cleanup, getErrorMessage, attemptReconnect]);
+  }, [status, isMobile, resetState, startConnectionCheck, handleError]);
+
+  const handleSwitchNetwork = React.useCallback(async () => {
+    if (status === 'switching') return;
+
+    try {
+      resetState();
+      setStatus('switching');
+
+      await modal.open({
+        view: 'Networks'
+      });
+
+      startConnectionCheck();
+    } catch (error) {
+      console.error('Network switch failed:', error);
+      handleError(error);
+    }
+  }, [status, resetState, startConnectionCheck, handleError]);
+
+  React.useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      clearTimers();
+    };
+  }, [clearTimers]);
 
   // Early return if connected and on right network
   if (isConnected && !isWrongNetwork) {
     return null;
   }
 
+  const isPending = status === 'connecting' || status === 'switching';
+  const buttonProps = isWrongNetwork
+    ? { name: 'Switch to Base', onClick: handleSwitchNetwork, isPending: status === 'switching' }
+    : { name: 'Connect Wallet', onClick: handleConnect, isPending: status === 'connecting' };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-md mx-auto space-y-4">
-        {isWrongNetwork ? (
-          <ConnectorButton
-            name="Switch to Base"
-            onClick={handleSwitchNetwork}
-            isPending={connectionInProgress === 'switching'}
-            isMobile={isMobile}
-          />
-        ) : (
-          <ConnectorButton
-            name="Connect Wallet"
-            onClick={handleConnect}
-            isPending={connectionInProgress === 'connecting'}
-            isMobile={isMobile}
-          />
-        )}
+        <ConnectorButton {...buttonProps} isMobile={isMobile} />
         
         {error && (
           <div className="mt-2 text-red-500 text-sm text-center" role="alert">
@@ -194,13 +171,11 @@ export function Connect() {
           </div>
         )}
 
-        {connectionInProgress && (
-          <div className="mt-4 w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+        {isPending && (
+          <div className="mt-4 w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
             <div 
-              className="bg-blue-600 h-1.5 rounded-full transition-all duration-300 ease-out"
-              style={{ 
-                width: `${Math.min(((Date.now() - startTimeRef.current) / 300), 100)}%`
-              }}
+              className="h-full bg-blue-600 rounded-full transition-all duration-300 ease-out animate-[progress_2s_ease-in-out_infinite]"
+              style={{ width: '100%' }}
             />
           </div>
         )}
@@ -238,8 +213,9 @@ function ConnectorButton({ name, onClick, isPending, isMobile }: ConnectorButton
     <button
       onClick={(e) => {
         e.preventDefault();
-        if (isPending) return;
-        onClick();
+        if (!isPending) {
+          onClick();
+        }
       }}
       disabled={isPending}
       type="button"
@@ -264,18 +240,17 @@ function ConnectorButton({ name, onClick, isPending, isMobile }: ConnectorButton
           getConnectorIcon(name)
         )}
         <span className="text-lg">
-          {isPending ? 'Connecting...' : name}
+          {isPending ? (name.includes('Switch') ? 'Switching...' : 'Connecting...') : name}
         </span>
       </div>
     </button>
   );
 }
 
-function getConnectorIcon(connectorName: string): string {
-  const name = connectorName.toLowerCase();
-  if (name.includes('metamask')) return '🦊';
-  if (name.includes('walletconnect')) return '🔗';
-  if (name.includes('connect wallet')) return '👛';
-  if (name.includes('switch')) return '🔄';
+function getConnectorIcon(name: string): string {
+  const lowercaseName = name.toLowerCase();
+  if (lowercaseName.includes('metamask')) return '🦊';
+  if (lowercaseName.includes('walletconnect')) return '🔗';
+  if (lowercaseName.includes('switch')) return '🔄';
   return '👛';
 }
