@@ -132,7 +132,8 @@ export function Connect() {
       setStatus('switching');
 
       await modal.open({
-        view: 'Networks'
+        view: 'Networks',
+        ...(isMobile && { redirectUrl: window.location.href })
       });
 
       startConnectionCheck();
@@ -140,7 +141,7 @@ export function Connect() {
       console.error('Network switch failed:', error);
       handleError(error);
     }
-  }, [status, resetState, startConnectionCheck, handleError]);
+  }, [status, isMobile, resetState, startConnectionCheck, handleError]);
 
   React.useEffect(() => {
     mountedRef.current = true;
