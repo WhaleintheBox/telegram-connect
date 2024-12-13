@@ -7,7 +7,6 @@ import { useAppKit } from '@reown/appkit/react';
 // Constants
 const BASE_CHAIN_ID = 8453;
 const SUCCESS_TOAST_DURATION = 1500;
-const CONNECTION_TIMEOUT = 60000; // Increased timeout for mobile browsers
 
 type ConnectionStatus = 'idle' | 'connecting' | 'switching' | 'connected' | 'error';
 type ModalAction = 'connecting' | 'switching';
@@ -138,56 +137,42 @@ export function Connect() {
   }, [clearModalTimeout, isMobile]);
 
   const handleConnect = React.useCallback(async () => {
-    if (actionRef.current === 'connecting') return;
-
+    if (status === 'connecting') return;
+    
     try {
       setStatus('connecting');
-      setError(null);
       actionRef.current = 'connecting';
-
+      
       await open({
         view: 'Connect'
       });
-
+      
       handleSuccess();
-
-      modalTimeoutRef.current = setTimeout(() => {
-        if (mountedRef.current && actionRef.current === 'connecting') {
-          setStatus('error');
-          setError('Connection attempt timed out. Please try again.');
-          actionRef.current = null;
-        }
-      }, CONNECTION_TIMEOUT);
-
     } catch (err) {
       handleError(err);
+      setStatus('idle');
+      actionRef.current = null;
     }
-  }, [handleError, handleSuccess, open]);
+  }, [status, open, handleSuccess, handleError]);
 
   const handleSwitchNetwork = React.useCallback(async () => {
-    if (actionRef.current === 'switching') return;
-
+    if (status === 'switching') return;
+    
     try {
       setStatus('switching');
-      setError(null);
       actionRef.current = 'switching';
-
+      
       await open({
         view: 'Networks'
       });
-
-      modalTimeoutRef.current = setTimeout(() => {
-        if (mountedRef.current && actionRef.current === 'switching') {
-          setStatus('error');
-          setError('Network switch timed out. Please try again.');
-          actionRef.current = null;
-        }
-      }, CONNECTION_TIMEOUT);
-
+      
+      handleSuccess();
     } catch (err) {
       handleError(err);
+      setStatus('idle');
+      actionRef.current = null;
     }
-  }, [handleError, open]);
+  }, [status, open, handleSuccess, handleError]);
 
   React.useEffect(() => {
     mountedRef.current = true;
