@@ -30,9 +30,12 @@ export function Connect() {
 
   const isMobile = React.useMemo(() => {
     if (typeof window === 'undefined') return false;
+    
+    const mobileQuery = window.matchMedia('(max-width: 768px)');
     const userAgent = window.navigator.userAgent || window.navigator.vendor;
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent) || 
-           window.innerWidth <= 768;
+    const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+    
+    return mobileQuery.matches || mobileRegex.test(userAgent);
   }, []);
 
   const isWrongNetwork = React.useMemo(() => {
@@ -66,7 +69,9 @@ export function Connect() {
     setError(null);
 
     timeoutRef.current = setTimeout(() => {
-      setShowSuccessToast(false);
+      if (mountedRef.current) {
+        setShowSuccessToast(false);
+      }
     }, SUCCESS_TOAST_DURATION);
   }, [clearTimers]);
 
@@ -92,6 +97,8 @@ export function Connect() {
   }, [clearTimers]);
 
   const startConnectionCheck = React.useCallback(() => {
+    clearTimers();
+    
     intervalRef.current = setInterval(() => {
       if (isConnected && address) {
         handleSuccess();
@@ -99,11 +106,12 @@ export function Connect() {
     }, CONNECTION_CHECK_INTERVAL);
 
     timeoutRef.current = setTimeout(() => {
-      if (!isConnected && mountedRef.current) {
+      if (mountedRef.current && !isConnected) {
+        clearTimers();
         handleError(new Error('Connection timeout'));
       }
     }, CONNECTION_TIMEOUT);
-  }, [isConnected, address, handleSuccess, handleError]);
+  }, [isConnected, address, handleSuccess, handleError, clearTimers]);
 
   const handleConnect = React.useCallback(async () => {
     if (status === 'connecting') return;
@@ -114,7 +122,9 @@ export function Connect() {
 
       await modal.open({
         view: 'Connect',
-        ...(isMobile && { redirectUrl: window.location.href })
+        ...(isMobile && { 
+          redirectUrl: window.location.href
+        })
       });
 
       startConnectionCheck();
@@ -133,7 +143,9 @@ export function Connect() {
 
       await modal.open({
         view: 'Networks',
-        ...(isMobile && { redirectUrl: window.location.href })
+        ...(isMobile && { 
+          redirectUrl: window.location.href
+        })
       });
 
       startConnectionCheck();
@@ -145,13 +157,17 @@ export function Connect() {
 
   React.useEffect(() => {
     mountedRef.current = true;
+
+    if (isConnected && address) {
+      handleSuccess();
+    }
+
     return () => {
       mountedRef.current = false;
       clearTimers();
     };
-  }, [clearTimers]);
+  }, [isConnected, address, handleSuccess, clearTimers]);
 
-  // Early return if connected and on right network
   if (isConnected && !isWrongNetwork) {
     return null;
   }
@@ -175,7 +191,7 @@ export function Connect() {
         {isPending && (
           <div className="mt-4 w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-blue-600 rounded-full transition-all duration-300 ease-out animate-[progress_2s_ease-in-out_infinite]"
+              className="h-full bg-blue-600 rounded-full transition-all duration-300 ease-out animate-[shimmer_2s_infinite]"
               style={{ width: '100%' }}
             />
           </div>
@@ -183,7 +199,7 @@ export function Connect() {
       </div>
 
       {showSuccessToast && (
-        <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg animate-fade-in-down z-50">
+        <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg animate-fade-in">
           Successfully connected! ✅
         </div>
       )}
