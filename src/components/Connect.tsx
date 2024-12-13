@@ -78,14 +78,22 @@ export function Connect() {
       setStatus('connecting');
       setError(null);
 
-      await modal.open({
-        view: 'Connect',
-        ...(isMobile && { 
-          redirectUrl: window.location.href 
-        })
-      });
+      // Ajout d'un try-catch spécifique pour le modal
+      try {
+        await modal.open({
+          view: 'Connect',
+          ...(isMobile && { 
+            redirectUrl: window.location.href
+          })
+        });
+      } catch (modalError) {
+        // Ignorer les erreurs spécifiques au modal
+        console.debug('Modal interaction:', modalError);
+      }
 
-      // La connexion sera vérifiée via l'effet qui surveille isConnected
+      // Ajouter un délai pour laisser le temps à la connexion de s'établir
+      await new Promise(resolve => setTimeout(resolve, 500));
+
     } catch (error) {
       console.error('Connection failed:', error);
       handleError(error);
@@ -99,14 +107,22 @@ export function Connect() {
       setStatus('switching');
       setError(null);
 
-      await modal.open({
-        view: 'Networks',
-        ...(isMobile && { 
-          redirectUrl: window.location.href 
-        })
-      });
+      // Ajout d'un try-catch spécifique pour le modal
+      try {
+        await modal.open({
+          view: 'Networks',
+          ...(isMobile && { 
+            redirectUrl: window.location.href
+          })
+        });
+      } catch (modalError) {
+        // Ignorer les erreurs spécifiques au modal
+        console.debug('Modal interaction:', modalError);
+      }
 
-      // Le changement de réseau sera vérifié via l'effet qui surveille chain.id
+      // Ajouter un délai pour laisser le temps au changement de réseau
+      await new Promise(resolve => setTimeout(resolve, 500));
+
     } catch (error) {
       console.error('Network switch failed:', error);
       handleError(error);
