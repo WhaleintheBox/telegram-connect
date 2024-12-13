@@ -14,9 +14,7 @@ type ConnectorButtonProps = {
 type ConnectionStatus = 'idle' | 'connecting' | 'switching' | 'connected' | 'error';
 
 const BASE_CHAIN_ID = 8453;
-const CONNECTION_TIMEOUT = 30000;
 const SUCCESS_TOAST_DURATION = 1500;
-const CONNECTION_CHECK_INTERVAL = 1000;
 
 export function Connect() {
   const { isConnected, address, chain } = useAccount();
@@ -24,56 +22,34 @@ export function Connect() {
   const [error, setError] = React.useState<string | null>(null);
   const [showSuccessToast, setShowSuccessToast] = React.useState(false);
   
-  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-  const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
   const mountedRef = React.useRef(false);
 
   const isMobile = React.useMemo(() => {
     if (typeof window === 'undefined') return false;
-    
     const mobileQuery = window.matchMedia('(max-width: 768px)');
     const userAgent = window.navigator.userAgent || window.navigator.vendor;
     const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
-    
     return mobileQuery.matches || mobileRegex.test(userAgent);
   }, []);
 
   const isWrongNetwork = React.useMemo(() => {
-    return isConnected && chain?.id !== BASE_CHAIN_ID;
+    return Boolean(isConnected && chain?.id !== BASE_CHAIN_ID);
   }, [isConnected, chain?.id]);
-
-  const clearTimers = React.useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
-
-  const resetState = React.useCallback(() => {
-    clearTimers();
-    setStatus('idle');
-    setError(null);
-    setShowSuccessToast(false);
-  }, [clearTimers]);
 
   const handleSuccess = React.useCallback(() => {
     if (!mountedRef.current) return;
-    
-    clearTimers();
     setStatus('connected');
     setShowSuccessToast(true);
     setError(null);
-
-    timeoutRef.current = setTimeout(() => {
+    
+    const timer = setTimeout(() => {
       if (mountedRef.current) {
         setShowSuccessToast(false);
       }
     }, SUCCESS_TOAST_DURATION);
-  }, [clearTimers]);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleError = React.useCallback((error: unknown) => {
     if (!mountedRef.current) return;
@@ -91,82 +67,73 @@ export function Connect() {
       }
     }
 
-    clearTimers();
     setStatus('error');
     setError(message);
-  }, [clearTimers]);
-
-  const startConnectionCheck = React.useCallback(() => {
-    clearTimers();
-    
-    intervalRef.current = setInterval(() => {
-      if (isConnected && address) {
-        handleSuccess();
-      }
-    }, CONNECTION_CHECK_INTERVAL);
-
-    timeoutRef.current = setTimeout(() => {
-      if (mountedRef.current && !isConnected) {
-        clearTimers();
-        handleError(new Error('Connection timeout'));
-      }
-    }, CONNECTION_TIMEOUT);
-  }, [isConnected, address, handleSuccess, handleError, clearTimers]);
+  }, []);
 
   const handleConnect = React.useCallback(async () => {
     if (status === 'connecting') return;
 
     try {
-      resetState();
       setStatus('connecting');
+      setError(null);
 
       await modal.open({
         view: 'Connect',
         ...(isMobile && { 
-          redirectUrl: window.location.href
+          redirectUrl: window.location.href 
         })
       });
 
-      startConnectionCheck();
+      // La connexion sera vérifiée via l'effet qui surveille isConnected
     } catch (error) {
       console.error('Connection failed:', error);
       handleError(error);
     }
-  }, [status, isMobile, resetState, startConnectionCheck, handleError]);
+  }, [status, isMobile, handleError]);
 
   const handleSwitchNetwork = React.useCallback(async () => {
     if (status === 'switching') return;
 
     try {
-      resetState();
       setStatus('switching');
+      setError(null);
 
       await modal.open({
         view: 'Networks',
         ...(isMobile && { 
-          redirectUrl: window.location.href
+          redirectUrl: window.location.href 
         })
       });
 
-      startConnectionCheck();
+      // Le changement de réseau sera vérifié via l'effet qui surveille chain.id
     } catch (error) {
       console.error('Network switch failed:', error);
       handleError(error);
     }
-  }, [status, isMobile, resetState, startConnectionCheck, handleError]);
+  }, [status, isMobile, handleError]);
 
+  // Montage/démontage
   React.useEffect(() => {
     mountedRef.current = true;
-
-    if (isConnected && address) {
-      handleSuccess();
-    }
-
     return () => {
       mountedRef.current = false;
-      clearTimers();
     };
-  }, [isConnected, address, handleSuccess, clearTimers]);
+  }, []);
+
+  // Vérification de la connexion
+  React.useEffect(() => {
+    if (isConnected && address && status !== 'connected') {
+      handleSuccess();
+    }
+  }, [isConnected, address, status, handleSuccess]);
+
+  // Vérification du réseau
+  React.useEffect(() => {
+    if (isConnected && chain?.id === BASE_CHAIN_ID && status === 'switching') {
+      handleSuccess();
+    }
+  }, [isConnected, chain?.id, status, handleSuccess]);
 
   if (isConnected && !isWrongNetwork) {
     return null;
@@ -191,8 +158,7 @@ export function Connect() {
         {isPending && (
           <div className="mt-4 w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-blue-600 rounded-full transition-all duration-300 ease-out animate-pulse"
-              style={{ width: '100%' }}
+              className="h-full w-full bg-blue-600 rounded-full transition-all duration-300 ease-out animate-pulse"
             />
           </div>
         )}
@@ -224,23 +190,21 @@ export function Connect() {
     </div>
   );
 }
-
 function ConnectorButton({ name, onClick, isPending, isMobile }: ConnectorButtonProps) {
-  const handleClick = React.useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    if (!isPending) {
-      onClick();
-    }
-  }, [isPending, onClick]);
-
   return (
     <button
-      onClick={handleClick}
+      onClick={(e) => {
+        e.preventDefault();
+        if (!isPending) {
+          onClick();
+        }
+      }}
       disabled={isPending}
       type="button"
       aria-busy={isPending}
       className={`
         button
+        ${isPending ? 'disabled' : ''}
         ${isMobile ? 'active:scale-95' : ''}
       `}
     >
