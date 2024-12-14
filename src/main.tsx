@@ -8,7 +8,10 @@ import { config } from './wagmi';
 import { modal } from './Context';
 
 // Initialise AppKit globalement
-modal;
+if (modal) {
+  // L'AppKit est configuré et prêt à être utilisé
+  console.log('AppKit initialized');
+}
 
 const queryClient = new QueryClient();
 

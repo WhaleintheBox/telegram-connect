@@ -27,16 +27,6 @@ const metadata = {
   icons: ["https://imagedelivery.net/_aTEfDRm7z3tKgu9JhfeKA/e64de848-991b-4de3-787a-5e6008473800/sm"]
 };
 
-export function ContextProvider({ children }: { children: ReactNode }) {
-  return (
-    <WagmiProvider config={wagmiAdapter.wagmiConfig as Config}>
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    </WagmiProvider>
-  );
-}
-
 export const modal = createAppKit({
   adapters: [wagmiAdapter],
   networks: [base],
@@ -46,5 +36,16 @@ export const modal = createAppKit({
     analytics: true,
     email: true,
     socials: ['google', 'x', 'github', 'discord', 'apple', 'facebook']
-  }
+  },
+  allWallets: 'SHOW'
 });
+
+export function ContextProvider({ children }: { children: ReactNode }) {
+  return (
+    <WagmiProvider config={wagmiAdapter.wagmiConfig as Config}>
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </WagmiProvider>
+  );
+}

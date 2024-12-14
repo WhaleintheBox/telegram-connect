@@ -1,6 +1,7 @@
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { cookieStorage, createStorage } from "wagmi";
 import { base } from '@reown/appkit/networks';
+import { http } from 'wagmi';
 
 export const projectId = "1558da14b9f93fe89954b32c5e17e840";
 
@@ -14,9 +15,12 @@ const storage = createStorage({
 
 export const wagmiAdapter = new WagmiAdapter({
   storage,
-  ssr: false,
+  transports: {
+    [base.id]: http()
+  },
   networks,
-  projectId
+  projectId,
+  ssr: false
 });
 
 export const config = wagmiAdapter.wagmiConfig;
