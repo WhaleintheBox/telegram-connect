@@ -1,11 +1,12 @@
 'use client';
 
 import * as React from 'react';
-import { useAccount } from 'wagmi';
-import { useAppKit } from '@reown/appkit/react';
+import { useAccount, useChainId } from 'wagmi';
+import { modal } from '../Context';
+import { base } from '@reown/appkit/networks';
 
 // Constants
-const BASE_CHAIN_ID = 8453;
+const BASE_CHAIN_ID = base.id;
 const SUCCESS_TOAST_DURATION = 1500;
 
 type ConnectionStatus = 'idle' | 'connecting' | 'switching' | 'connected' | 'error';
@@ -71,8 +72,8 @@ function getErrorMessage(err: unknown): string {
 }
 
 export function Connect() {
-  const { isConnected, chain } = useAccount();
-  const { open } = useAppKit();
+  const { isConnected } = useAccount();
+  const chainId = useChainId();
   const [status, setStatus] = React.useState<ConnectionStatus>('idle');
   const [error, setError] = React.useState<string | null>(null);
   const [showSuccessToast, setShowSuccessToast] = React.useState(false);
@@ -82,8 +83,8 @@ export function Connect() {
   
   const isMobile = React.useMemo(() => detectMobile(), []);
   const isWrongNetwork = React.useMemo(() => (
-    Boolean(isConnected && chain?.id !== BASE_CHAIN_ID)
-  ), [isConnected, chain?.id]);
+    Boolean(isConnected && chainId !== BASE_CHAIN_ID)
+  ), [isConnected, chainId]);
 
   // Reset status when component mounts or when connection state changes
   React.useEffect(() => {
@@ -117,13 +118,15 @@ export function Connect() {
       setStatus('connecting');
       actionRef.current = 'connecting';
       
-      await open();
+      await modal.open({
+        view: 'Connect'
+      });
     } catch (err) {
       handleError(err);
       setStatus('idle');
       actionRef.current = null;
     }
-  }, [status, open, handleError]);
+  }, [status, handleError]);
 
   const handleSwitchNetwork = React.useCallback(async () => {
     if (status === 'switching') return;
@@ -132,13 +135,15 @@ export function Connect() {
       setStatus('switching');
       actionRef.current = 'switching';
       
-      await open();
+      await modal.open({
+        view: 'Networks'
+      });
     } catch (err) {
       handleError(err);
       setStatus('idle');
       actionRef.current = null;
     }
-  }, [status, open, handleError]);
+  }, [status, handleError]);
 
   React.useEffect(() => {
     mountedRef.current = true;

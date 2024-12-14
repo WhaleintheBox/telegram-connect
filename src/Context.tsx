@@ -1,24 +1,17 @@
 'use client';
 
-import { projectId } from './wagmi';
-import { createAppKit } from '@reown/appkit/react';
-import { base } from '@reown/appkit/networks';
+import { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
-import { WagmiProvider, type Config } from 'wagmi';
-import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
+import { WagmiProvider, Config } from 'wagmi';
+import { createAppKit } from '@reown/appkit/react';
+import { wagmiAdapter, projectId } from './wagmi';
+import { base } from '@reown/appkit/networks';
 
 const queryClient = new QueryClient();
 
 if (!projectId) {
   throw new Error('Project ID is not defined');
 }
-
-const wagmiAdapter = new WagmiAdapter({
-  networks: [base],
-  projectId,
-  ssr: false
-});
 
 const metadata = {
   name: "Whale in the Box",
@@ -29,15 +22,15 @@ const metadata = {
 
 export const modal = createAppKit({
   adapters: [wagmiAdapter],
-  networks: [base],
   projectId,
   metadata,
+  networks: [base],
   features: {
     analytics: true,
     email: true,
-    socials: ['google', 'x', 'github', 'discord', 'apple', 'facebook']
-  },
-  allWallets: 'SHOW'
+    socials: ['google', 'x', 'github', 'discord', 'apple', 'facebook'],
+    allWallets: true
+  }
 });
 
 export function ContextProvider({ children }: { children: ReactNode }) {
