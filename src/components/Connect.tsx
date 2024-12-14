@@ -71,14 +71,13 @@ function getErrorMessage(err: unknown): string {
 }
 
 export function Connect() {
-  const { isConnected, address, chain } = useAccount();
+  const { isConnected, chain } = useAccount();
   const { open } = useAppKit();
   const [status, setStatus] = React.useState<ConnectionStatus>('idle');
   const [error, setError] = React.useState<string | null>(null);
   const [showSuccessToast, setShowSuccessToast] = React.useState(false);
   
   const mountedRef = React.useRef(false);
-  const modalTimeoutRef = React.useRef<NodeJS.Timeout>();
   const actionRef = React.useRef<ModalAction | null>(null);
   const retryCountRef = React.useRef(0);
   
@@ -87,12 +86,12 @@ export function Connect() {
     Boolean(isConnected && chain?.id !== BASE_CHAIN_ID)
   ), [isConnected, chain?.id]);
 
-  const clearModalTimeout = React.useCallback(() => {
-    if (modalTimeoutRef.current) {
-      clearTimeout(modalTimeoutRef.current);
-      modalTimeoutRef.current = undefined;
+  // Effet pour détecter la connexion réussie
+  React.useEffect(() => {
+    if (isConnected && status !== 'connected') {
+      handleSuccess();
     }
-  }, []);
+  }, [isConnected, status]);
 
   const handleSuccess = React.useCallback(() => {
     if (!mountedRef.current) return;
@@ -100,7 +99,6 @@ export function Connect() {
     setStatus('connected');
     setShowSuccessToast(true);
     setError(null);
-    clearModalTimeout();
     actionRef.current = null;
     retryCountRef.current = 0;
     
@@ -111,30 +109,16 @@ export function Connect() {
     }, SUCCESS_TOAST_DURATION);
 
     return () => clearTimeout(timer);
-  }, [clearModalTimeout]);
+  }, []);
 
   const handleError = React.useCallback((err: unknown) => {
     if (!mountedRef.current) return;
     
     console.error('Connection error:', err);
-    clearModalTimeout();
-    actionRef.current = null;
     setStatus('error');
     setError(getErrorMessage(err));
-
-    // Auto-retry for certain errors on mobile
-    if (isMobile && retryCountRef.current < 2 && err instanceof Error) {
-      const message = err.message.toLowerCase();
-      if (message.includes('provider not found') || message.includes('network error')) {
-        retryCountRef.current += 1;
-        setTimeout(() => {
-          if (mountedRef.current) {
-            handleConnect();
-          }
-        }, 1000);
-      }
-    }
-  }, [clearModalTimeout, isMobile]);
+    actionRef.current = null;
+  }, []);
 
   const handleConnect = React.useCallback(async () => {
     if (status === 'connecting') return;
@@ -147,13 +131,13 @@ export function Connect() {
         view: 'Connect'
       });
       
-      handleSuccess();
+      // Ne pas appeler handleSuccess ici, l'effet s'en chargera
     } catch (err) {
       handleError(err);
       setStatus('idle');
       actionRef.current = null;
     }
-  }, [status, open, handleSuccess, handleError]);
+  }, [status, open, handleError]);
 
   const handleSwitchNetwork = React.useCallback(async () => {
     if (status === 'switching') return;
@@ -166,13 +150,13 @@ export function Connect() {
         view: 'Networks'
       });
       
-      handleSuccess();
+      // Ne pas appeler handleSuccess ici, l'effet s'en chargera
     } catch (err) {
       handleError(err);
       setStatus('idle');
       actionRef.current = null;
     }
-  }, [status, open, handleSuccess, handleError]);
+  }, [status, open, handleError]);
 
   const fetchBoxes = async () => {
     try {
@@ -195,21 +179,8 @@ export function Connect() {
     return () => {
       mountedRef.current = false;
       actionRef.current = null;
-      clearModalTimeout();
     };
-  }, [clearModalTimeout]);
-
-  React.useEffect(() => {
-    if (isConnected && address && status !== 'connected') {
-      handleSuccess();
-    }
-  }, [isConnected, address, status, handleSuccess]);
-
-  React.useEffect(() => {
-    if (isConnected && chain?.id === BASE_CHAIN_ID && status === 'switching') {
-      handleSuccess();
-    }
-  }, [isConnected, chain?.id, status, handleSuccess]);
+  }, []);
 
   if (isConnected && !isWrongNetwork) {
     return null;
