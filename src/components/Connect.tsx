@@ -80,18 +80,82 @@ export function Connect() {
   const mountedRef = React.useRef(false);
   const actionRef = React.useRef<ModalAction | null>(null);
   const retryCountRef = React.useRef(0);
+  const lastRequestTime = React.useRef<number>(0);
   
   const isMobile = React.useMemo(() => detectMobile(), []);
   const isWrongNetwork = React.useMemo(() => (
     Boolean(isConnected && chain?.id !== BASE_CHAIN_ID)
   ), [isConnected, chain?.id]);
 
-  // Effet pour détecter la connexion réussie
+  // Reset status when component mounts or when connection state changes
+  React.useEffect(() => {
+    if (isConnected) {
+      setStatus('connected');
+    } else {
+      setStatus('idle');
+    }
+  }, [isConnected]);
+
+  // Effet pour détecter la connexion réussie avec retry
   React.useEffect(() => {
     if (isConnected && status !== 'connected') {
-      handleSuccess();
+      const tryConnection = async () => {
+        try {
+          checkRateLimit();
+          handleSuccess();
+        } catch (error) {
+          if (retryCountRef.current < 3) {
+            retryCountRef.current++;
+            setTimeout(tryConnection, 1000);
+          } else {
+            handleError(error);
+          }
+        }
+      };
+      tryConnection();
     }
   }, [isConnected, status]);
+
+  // Réinitialiser l'état lors du focus de la fenêtre
+  React.useEffect(() => {
+    const handleFocus = () => {
+      if (isConnected && status !== 'connected') {
+        setStatus('connected');
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [isConnected, status]);
+
+  // Fonction utilitaire pour gérer les limites de taux
+  const checkRateLimit = () => {
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTime.current;
+    if (timeSinceLastRequest < 1000) { // 1 seconde minimum entre les requêtes
+      throw new Error('Please wait before trying again');
+    }
+    lastRequestTime.current = now;
+  };
+
+  const fetchBoxes = async () => {
+    try {
+      checkRateLimit();
+      const response = await fetch('/api/boxes');
+      if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error('Rate limit exceeded. Please wait before trying again.');
+        }
+        throw new Error('Network response was not ok');
+      }
+      await response.json();
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error('Error fetching boxes:', error);
+        setError(error.message);
+      }
+    }
+  };
 
   const handleSuccess = React.useCallback(() => {
     if (!mountedRef.current) return;
@@ -124,51 +188,37 @@ export function Connect() {
     if (status === 'connecting') return;
     
     try {
+      checkRateLimit();
       setStatus('connecting');
       actionRef.current = 'connecting';
       
       await open({
         view: 'Connect'
       });
-      
-      // Ne pas appeler handleSuccess ici, l'effet s'en chargera
     } catch (err) {
       handleError(err);
       setStatus('idle');
       actionRef.current = null;
     }
-  }, [status, open, handleError]);
+  }, [status, open]);
 
   const handleSwitchNetwork = React.useCallback(async () => {
     if (status === 'switching') return;
     
     try {
+      checkRateLimit();
       setStatus('switching');
       actionRef.current = 'switching';
       
       await open({
         view: 'Networks'
       });
-      
-      // Ne pas appeler handleSuccess ici, l'effet s'en chargera
     } catch (err) {
       handleError(err);
       setStatus('idle');
       actionRef.current = null;
     }
-  }, [status, open, handleError]);
-
-  const fetchBoxes = async () => {
-    try {
-      const response = await fetch('/api/boxes');
-      if (!response.ok) throw new Error('Network response was not ok');
-      await response.json();
-      // Traitement des données...
-    } catch (error) {
-      console.error('Error fetching boxes:', error);
-      setError('Failed to fetch boxes. Please try again later.');
-    }
-  };
+  }, [status, open]);
 
   React.useEffect(() => {
     fetchBoxes();
