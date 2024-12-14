@@ -11,7 +11,6 @@ const BASE_CHAIN_ID = base.id;
 const SUCCESS_TOAST_DURATION = 1500;
 
 type ConnectionStatus = 'idle' | 'connecting' | 'switching' | 'connected' | 'error';
-type ModalAction = 'connecting' | 'switching';
 type PlatformType = 'telegram' | 'ios' | 'android' | 'desktop' | 'unknown';
 
 interface ConnectorButtonProps {
@@ -31,9 +30,6 @@ const MMSDK = new MetaMaskSDK({
   checkInstallationImmediately: true,
   preferDesktop: false,
   useDeeplink: true,
-  logging: {
-    developerMode: false,
-  },
 });
 
 // Platform detection utilities
@@ -148,29 +144,16 @@ export function Connect() {
   const isMobile = platform !== 'desktop';
   const isTelegram = platform === 'telegram';
   
-  const mountedRef = React.useRef(false);
-  const actionRef = React.useRef<ModalAction | null>(null);
-
   const isWrongNetwork = React.useMemo(() => (
     Boolean(isConnected && chainId !== BASE_CHAIN_ID)
   ), [isConnected, chainId]);
-
-  React.useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      actionRef.current = null;
-    };
-  }, []);
 
   React.useEffect(() => {
     if (isConnected) {
       setStatus('connected');
       setShowSuccessToast(true);
       const timer = setTimeout(() => {
-        if (mountedRef.current) {
-          setShowSuccessToast(false);
-        }
+        setShowSuccessToast(false);
       }, SUCCESS_TOAST_DURATION);
       return () => clearTimeout(timer);
     } else {
@@ -180,17 +163,12 @@ export function Connect() {
   }, [isConnected]);
 
   const handleError = React.useCallback((err: unknown) => {
-    if (!mountedRef.current) return;
-    
     console.error('Connection error:', err);
     setStatus('error');
     setError(getErrorMessage(err));
-    actionRef.current = null;
     
     setTimeout(() => {
-      if (mountedRef.current) {
-        setStatus('idle');
-      }
+      setStatus('idle');
     }, 3000);
   }, []);
 
@@ -244,10 +222,8 @@ export function Connect() {
     
     try {
       setStatus('connecting');
-      actionRef.current = 'connecting';
       
       if (isTelegram) {
-        // Ouvrir dans le navigateur externe pour Telegram
         window.open(window.location.href, '_blank');
         return;
       }
@@ -265,8 +241,6 @@ export function Connect() {
     
     try {
       setStatus('switching');
-      actionRef.current = 'switching';
-      
       await modal.open({
         view: 'Networks'
       });

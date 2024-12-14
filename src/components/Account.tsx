@@ -1,5 +1,7 @@
+'use client';
+
 import { useAccount, useDisconnect, useEnsAvatar, useEnsName } from 'wagmi';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import KrillClaimButton from './KrillClaimButton';
 
 interface AccountProps {
@@ -7,23 +9,32 @@ interface AccountProps {
   onToggleMyGames: () => void;
 }
 
+function formatAddress(address?: string): string {
+  if (!address) return '';
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
+
 export function Account({ myGames, onToggleMyGames }: AccountProps) {
   const { address, connector, isConnecting, isReconnecting, status } = useAccount();
   const { disconnect } = useDisconnect();
-  const { data: ensName, isLoading: isEnsNameLoading } = useEnsName({ 
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+
+  const { data: ensName, isLoading: isEnsNameLoading } = useEnsName({
     address,
-    chainId: 1 // ENS est sur Ethereum mainnet
-  });
-  const { data: ensAvatar, isLoading: isEnsAvatarLoading } = useEnsAvatar({ 
-    name: ensName!,
-    chainId: 1
+    chainId: 1,
   });
 
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
-  const formattedAddress = formatAddress(address);
+  const { data: ensAvatar, isLoading: isEnsAvatarLoading } = useEnsAvatar({
+    name: ensName ?? undefined,
+    chainId: 1,
+  });
+
+  const formattedAddress = useMemo(() => formatAddress(address), [address]);
 
   const handleDisconnect = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
+    if (isDisconnecting) return;
+
     setIsDisconnecting(true);
     try {
       await disconnect();
@@ -32,7 +43,12 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
     } finally {
       setIsDisconnecting(false);
     }
-  }, [disconnect]);
+  }, [disconnect, isDisconnecting]);
+
+  const handleMyGamesClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    onToggleMyGames();
+  }, [onToggleMyGames]);
 
   // Loading state
   if (isConnecting || isReconnecting) {
@@ -48,7 +64,7 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
     );
   }
 
-  // No address
+  // No address or not connected
   if (!address || status !== 'connected') return null;
 
   return (
@@ -58,31 +74,40 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
           <div className="relative">
             {ensAvatar ? (
               <img 
-                alt="ENS Avatar" 
+                alt={ensName || 'ENS Avatar'} 
                 className="avatar transition-opacity duration-200"
                 src={ensAvatar}
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
+                  target.style.opacity = '0';
+                  setTimeout(() => {
+                    target.style.display = 'none';
+                  }, 200);
                 }}
               />
             ) : (
-              <div className={`avatar ${isEnsAvatarLoading ? 'animate-pulse' : ''}`} />
+              <div 
+                className={`avatar ${isEnsAvatarLoading ? 'animate-pulse bg-gray-200' : 'bg-blue-100'}`}
+                role="img"
+                aria-label="Default Avatar"
+              />
             )}
-            <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-white" />
+            <div 
+              className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-white"
+              role="status"
+              aria-label="Connected"
+            />
           </div>
           <div className="account-details">
-            {address && (
-              <div className="account-address">
-                {isEnsNameLoading ? (
-                  <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
-                ) : (
-                  <span className="font-medium">
-                    {ensName ? `${ensName} (${formattedAddress})` : formattedAddress}
-                  </span>
-                )}
-              </div>
-            )}
+            <div className="account-address">
+              {isEnsNameLoading ? (
+                <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
+              ) : (
+                <span className="font-medium">
+                  {ensName ? `${ensName} (${formattedAddress})` : formattedAddress}
+                </span>
+              )}
+            </div>
             <div className="account-network text-sm text-gray-500">
               {connector?.name ? `Connected to ${connector.name}` : 'Connected'}
             </div>
@@ -90,17 +115,15 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
         </div>
         <div className="account-actions flex items-center gap-2">
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              onToggleMyGames();
-            }}
+            onClick={handleMyGamesClick}
             className={`
               my-games-button transform transition-all duration-200
               ${myGames ? 'active scale-105' : 'hover:scale-105'}
             `}
+            aria-pressed={myGames}
           >
             <span className="button-content flex items-center gap-2">
-              <span className="text-lg">🎮</span>
+              <span className="text-lg" role="img" aria-label="Games">🎮</span>
               <span>My Games</span>
             </span>
           </button>
@@ -112,10 +135,11 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
             target="_blank"
             rel="noopener noreferrer"
             className="telegram-link"
+            aria-label="Return to Telegram chat"
           >
             <button className="back-button hover:scale-105 transform transition-all duration-200">
               <span className="button-content flex items-center gap-2">
-                <span className="text-lg">💬</span>
+                <span className="text-lg" role="img" aria-label="Chat">💬</span>
                 <span>Back to chat</span>
               </span>
             </button>
@@ -128,13 +152,14 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
               disconnect-button transform transition-all duration-200
               ${isDisconnecting ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}
             `}
+            aria-busy={isDisconnecting}
           >
             <span className="button-content flex items-center gap-2">
               {isDisconnecting ? (
-                <span className="animate-spin">⏳</span>
+                <span className="animate-spin" aria-hidden="true">⏳</span>
               ) : (
                 <>
-                  <span className="text-lg">🔌</span>
+                  <span className="text-lg" role="img" aria-label="Disconnect">🔌</span>
                   <span>Disconnect</span>
                 </>
               )}
@@ -144,9 +169,4 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
       </div>
     </div>
   );
-}
-
-function formatAddress(address?: string) {
-  if (!address) return null;
-  return `${address.slice(0, 6)}…${address.slice(38, 42)}`;
 }
