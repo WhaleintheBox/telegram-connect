@@ -2,6 +2,7 @@ import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { cookieStorage, createStorage, http, fallback } from 'wagmi';
 import { base } from '@reown/appkit/networks';
 import { walletConnect, coinbaseWallet, injected } from 'wagmi/connectors';
+import { createAppKit } from '@reown/appkit/react';
 
 export const projectId = "1558da14b9f93fe89954b32c5e17e840";
 
@@ -13,12 +14,6 @@ const metadata = {
   url: typeof window !== 'undefined' ? window.location.origin : "https://whaleinthebox.github.io/telegram-connect/dist/",
   icons: ["https://imagedelivery.net/_aTEfDRm7z3tKgu9JhfeKA/e64de848-991b-4de3-787a-5e6008473800/sm"]
 };
-
-export const networks = [base];
-
-const storage = createStorage({
-  storage: cookieStorage
-});
 
 // RPC URLs de secours pour Base
 const baseRpcUrls = [
@@ -59,15 +54,31 @@ const baseTransport = fallback(
   }))
 );
 
+// Setup wagmi adapter
 export const wagmiAdapter = new WagmiAdapter({
-  storage,
+  projectId,
+  networks: [base],
+  storage: createStorage({
+    storage: cookieStorage
+  }),
   transports: {
     [base.id]: baseTransport
   },
-  connectors,
-  networks,
-  projectId,
-  ssr: false
+  connectors
 });
 
+// Create AppKit instance
+createAppKit({
+  adapters: [wagmiAdapter],
+  networks: [base],
+  metadata,
+  projectId,
+  themeMode: 'dark',
+  themeVariables: {
+    '--w3m-color-mix': '#2563eb',
+    '--w3m-color-mix-strength': 20
+  }
+});
+
+// Export la config wagmi pour l'application
 export const config = wagmiAdapter.wagmiConfig;
