@@ -79,8 +79,6 @@ export function Connect() {
   
   const mountedRef = React.useRef(false);
   const actionRef = React.useRef<ModalAction | null>(null);
-  const retryCountRef = React.useRef(0);
-  const lastRequestTime = React.useRef<number>(0);
   
   const isMobile = React.useMemo(() => detectMobile(), []);
   const isWrongNetwork = React.useMemo(() => (
@@ -91,89 +89,17 @@ export function Connect() {
   React.useEffect(() => {
     if (isConnected) {
       setStatus('connected');
+      setShowSuccessToast(true);
+      const timer = setTimeout(() => {
+        if (mountedRef.current) {
+          setShowSuccessToast(false);
+        }
+      }, SUCCESS_TOAST_DURATION);
+      return () => clearTimeout(timer);
     } else {
       setStatus('idle');
     }
   }, [isConnected]);
-
-  // Effet pour détecter la connexion réussie avec retry
-  React.useEffect(() => {
-    if (isConnected && status !== 'connected') {
-      const tryConnection = async () => {
-        try {
-          checkRateLimit();
-          handleSuccess();
-        } catch (error) {
-          if (retryCountRef.current < 3) {
-            retryCountRef.current++;
-            setTimeout(tryConnection, 1000);
-          } else {
-            handleError(error);
-          }
-        }
-      };
-      tryConnection();
-    }
-  }, [isConnected, status]);
-
-  // Réinitialiser l'état lors du focus de la fenêtre
-  React.useEffect(() => {
-    const handleFocus = () => {
-      if (isConnected && status !== 'connected') {
-        setStatus('connected');
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [isConnected, status]);
-
-  // Fonction utilitaire pour gérer les limites de taux
-  const checkRateLimit = () => {
-    const now = Date.now();
-    const timeSinceLastRequest = now - lastRequestTime.current;
-    if (timeSinceLastRequest < 1000) { // 1 seconde minimum entre les requêtes
-      throw new Error('Please wait before trying again');
-    }
-    lastRequestTime.current = now;
-  };
-
-  const fetchBoxes = async () => {
-    try {
-      checkRateLimit();
-      const response = await fetch('/api/boxes');
-      if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error('Rate limit exceeded. Please wait before trying again.');
-        }
-        throw new Error('Network response was not ok');
-      }
-      await response.json();
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error('Error fetching boxes:', error);
-        setError(error.message);
-      }
-    }
-  };
-
-  const handleSuccess = React.useCallback(() => {
-    if (!mountedRef.current) return;
-    
-    setStatus('connected');
-    setShowSuccessToast(true);
-    setError(null);
-    actionRef.current = null;
-    retryCountRef.current = 0;
-    
-    const timer = setTimeout(() => {
-      if (mountedRef.current) {
-        setShowSuccessToast(false);
-      }
-    }, SUCCESS_TOAST_DURATION);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleError = React.useCallback((err: unknown) => {
     if (!mountedRef.current) return;
@@ -188,7 +114,6 @@ export function Connect() {
     if (status === 'connecting') return;
     
     try {
-      checkRateLimit();
       setStatus('connecting');
       actionRef.current = 'connecting';
       
@@ -200,13 +125,12 @@ export function Connect() {
       setStatus('idle');
       actionRef.current = null;
     }
-  }, [status, open]);
+  }, [status, open, handleError]);
 
   const handleSwitchNetwork = React.useCallback(async () => {
     if (status === 'switching') return;
     
     try {
-      checkRateLimit();
       setStatus('switching');
       actionRef.current = 'switching';
       
@@ -218,11 +142,7 @@ export function Connect() {
       setStatus('idle');
       actionRef.current = null;
     }
-  }, [status, open]);
-
-  React.useEffect(() => {
-    fetchBoxes();
-  }, []);
+  }, [status, open, handleError]);
 
   React.useEffect(() => {
     mountedRef.current = true;
@@ -232,6 +152,7 @@ export function Connect() {
     };
   }, []);
 
+  // Si déjà connecté et sur le bon réseau, ne pas afficher le bouton
   if (isConnected && !isWrongNetwork) {
     return null;
   }
