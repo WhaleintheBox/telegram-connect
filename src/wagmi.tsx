@@ -1,5 +1,5 @@
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
-import { cookieStorage, createStorage, http } from 'wagmi';
+import { cookieStorage, createStorage, http, fallback } from 'wagmi';
 import { base } from '@reown/appkit/networks';
 import { walletConnect, coinbaseWallet, injected } from 'wagmi/connectors';
 
@@ -20,26 +20,49 @@ const storage = createStorage({
   storage: cookieStorage
 });
 
+// RPC URLs de secours pour Base
+const baseRpcUrls = [
+  'https://mainnet.base.org',
+  'https://1rpc.io/base',
+  'https://base.blockpi.network/v1/rpc/public',
+  'https://base.meowrpc.com'
+];
+
 // Configure les connecteurs
 const connectors = [
   walletConnect({ 
     projectId, 
-    metadata, 
-    showQrModal: false // Important: AppKit gère l'affichage QR
+    metadata,
+    showQrModal: false,
+    qrModalOptions: {
+      themeMode: 'dark',
+      explorerExcludedWalletIds: [],
+      explorerRecommendedWalletIds: []
+    }
   }),
   injected({ 
-    shimDisconnect: true 
+    shimDisconnect: true
   }),
   coinbaseWallet({
     appName: metadata.name,
-    appLogoUrl: metadata.icons[0]
+    appLogoUrl: metadata.icons[0],
+    headlessMode: true
   })
 ];
+
+// Crée un transport avec fallback pour Base
+const baseTransport = fallback(
+  baseRpcUrls.map(url => http(url, {
+    timeout: 10000,
+    retryDelay: 1000,
+    retryCount: 3
+  }))
+);
 
 export const wagmiAdapter = new WagmiAdapter({
   storage,
   transports: {
-    [base.id]: http()
+    [base.id]: baseTransport
   },
   connectors,
   networks,
