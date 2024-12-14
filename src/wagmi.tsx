@@ -28,11 +28,31 @@ const connectors = [
   walletConnect({ 
     projectId, 
     metadata,
-    showQrModal: false,
+    showQrModal: true,
     qrModalOptions: {
       themeMode: 'dark',
       explorerExcludedWalletIds: [],
-      explorerRecommendedWalletIds: []
+      explorerRecommendedWalletIds: [],
+      mobileWallets: [
+        {
+          id: 'metamask',
+          name: 'MetaMask',
+          links: {
+            native: 'metamask://',
+            universal: 'https://metamask.app.link'
+          }
+        }
+      ],
+      desktopWallets: [
+        {
+          id: 'metamask',
+          name: 'MetaMask',
+          links: {
+            native: 'metamask://',
+            universal: 'https://metamask.io'
+          }
+        }
+      ]
     }
   }),
   injected({ 
@@ -41,7 +61,7 @@ const connectors = [
   coinbaseWallet({
     appName: metadata.name,
     appLogoUrl: metadata.icons[0],
-    headlessMode: true
+    headlessMode: false
   })
 ];
 
