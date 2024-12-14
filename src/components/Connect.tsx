@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useAccount, useChainId } from 'wagmi';
 import { modal } from '../Context';
 import { base } from '@reown/appkit/networks';
+import { MetaMaskSDK } from '@metamask/sdk-react';
 
 // Constants
 const BASE_CHAIN_ID = base.id;
@@ -17,7 +18,16 @@ interface ConnectorButtonProps {
   onClick: () => Promise<void>;
   isPending?: boolean;
   isMobile?: boolean;
+  customIcon?: React.ReactNode;
 }
+
+// Initialize MetaMask SDK
+const MMSDK = new MetaMaskSDK({
+  dappMetadata: {
+    name: "Whale in the Box",
+    url: window.location.origin,
+  }
+});
 
 // Utility functions
 function detectMobile(): boolean {
@@ -31,6 +41,7 @@ function detectMobile(): boolean {
 function getConnectorIcon(name: string): string {
   const lowercaseName = name.toLowerCase();
   if (lowercaseName.includes('metamask')) return '🦊';
+  if (lowercaseName.includes('phantom')) return '👻';
   if (lowercaseName.includes('walletconnect')) return '🔗';
   if (lowercaseName.includes('switch')) return '🔄';
   if (lowercaseName.includes('google')) return '🔵';
@@ -50,24 +61,19 @@ function getErrorMessage(err: unknown): string {
   }
 
   const message = err.message.toLowerCase();
+
   if (message.includes('user rejected')) {
-    return 'Connection cancelled. Please try again.';
+    return 'Connection rejected. Please try again.';
   }
-  if (message.includes('network') || message.includes('chain')) {
-    return 'Please switch to Base network.';
+
+  if (message.includes('already processing')) {
+    return 'Connection already in progress. Please wait.';
   }
-  if (message.includes('timeout')) {
-    return 'Connection timed out. Please check your internet connection and try again.';
+
+  if (message.includes('chain mismatch')) {
+    return 'Please switch to Base network and try again.';
   }
-  if (message.includes('provider not found')) {
-    return 'Please install a supported wallet or use social login.';
-  }
-  if (message.includes('social auth')) {
-    return 'Social authentication failed. Please try again or use a different method.';
-  }
-  if (message.includes('deep linking')) {
-    return 'Opening wallet app... Please approve the connection request.';
-  }
+
   return err.message;
 }
 
@@ -82,6 +88,7 @@ export function Connect() {
   const actionRef = React.useRef<ModalAction | null>(null);
   
   const isMobile = React.useMemo(() => detectMobile(), []);
+  
   const isWrongNetwork = React.useMemo(() => (
     Boolean(isConnected && chainId !== BASE_CHAIN_ID)
   ), [isConnected, chainId]);
@@ -110,6 +117,43 @@ export function Connect() {
     setError(getErrorMessage(err));
     actionRef.current = null;
   }, []);
+
+  const handleMetaMaskConnect = async () => {
+    if (status === 'connecting') return;
+    
+    try {
+      setStatus('connecting');
+      const ethereum = MMSDK.getProvider();
+      if (!ethereum) {
+        throw new Error('MetaMask not installed');
+      }
+      await ethereum.request({ method: 'eth_requestAccounts' });
+      setStatus('connected');
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
+  const handlePhantomConnect = async () => {
+    if (status === 'connecting') return;
+    
+    try {
+      setStatus('connecting');
+      // @ts-ignore
+      const provider = window.phantom?.solana;
+      
+      if (!provider) {
+        window.open('https://phantom.app/', '_blank');
+        throw new Error('Phantom not installed');
+      }
+
+      const resp = await provider.connect();
+      console.log('Connected with Public Key:', resp.publicKey.toString());
+      setStatus('connected');
+    } catch (err) {
+      handleError(err);
+    }
+  };
 
   const handleConnect = React.useCallback(async () => {
     if (status === 'connecting') return;
@@ -159,14 +203,43 @@ export function Connect() {
   }
 
   const isPending = status === 'connecting' || status === 'switching';
-  const buttonProps = isWrongNetwork
-    ? { name: 'Switch to Base', onClick: handleSwitchNetwork, isPending: status === 'switching' }
-    : { name: 'Connect Wallet', onClick: handleConnect, isPending: status === 'connecting' };
 
   return (
     <div className="container mx-auto px-4">
       <div className="max-w-md mx-auto space-y-4">
-        <ConnectorButton {...buttonProps} isMobile={isMobile} />
+        {!isWrongNetwork && (
+          <>
+            <ConnectorButton
+              name="MetaMask"
+              onClick={handleMetaMaskConnect}
+              isPending={status === 'connecting'}
+              isMobile={isMobile}
+            />
+            
+            <ConnectorButton
+              name="Phantom"
+              onClick={handlePhantomConnect}
+              isPending={status === 'connecting'}
+              isMobile={isMobile}
+            />
+
+            <div className="relative my-2">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or connect with</span>
+              </div>
+            </div>
+          </>
+        )}
+
+        <ConnectorButton
+          name={isWrongNetwork ? 'Switch to Base' : 'Other Wallets'}
+          onClick={isWrongNetwork ? handleSwitchNetwork : handleConnect}
+          isPending={isPending}
+          isMobile={isMobile}
+        />
         
         {error && (
           <div 
@@ -195,40 +268,35 @@ export function Connect() {
   );
 }
 
-function ConnectorButton({ name, onClick, isPending, isMobile }: ConnectorButtonProps) {
+function ConnectorButton({ name, onClick, isPending, isMobile, customIcon }: ConnectorButtonProps) {
   const handleClick = React.useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     if (!isPending) onClick();
-  }, [isPending, onClick]);
+  }, [onClick, isPending]);
 
   return (
     <button
       onClick={handleClick}
       disabled={isPending}
-      type="button"
-      aria-busy={isPending}
       className={`
-        w-full px-4 py-2 
-        bg-blue-600 hover:bg-blue-700 
-        disabled:bg-blue-400 
-        text-white font-medium 
-        rounded-lg shadow-sm 
-        transition-all duration-200 
-        flex items-center justify-center 
-        space-x-2
+        w-full px-4 py-3 text-white font-semibold rounded-lg
+        flex items-center justify-center gap-2
+        transition-all duration-200
+        ${isPending
+          ? 'bg-gray-400 cursor-not-allowed'
+          : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
+        }
         ${isMobile ? 'active:scale-95 touch-manipulation' : ''}
       `}
     >
-      <div className="flex items-center justify-center space-x-2">
-        {isPending ? (
-          <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
-        ) : (
-          <span className="text-xl select-none">{getConnectorIcon(name)}</span>
-        )}
-        <span>
-          {isPending ? (name.includes('Switch') ? 'Switching...' : 'Connecting...') : name}
-        </span>
-      </div>
+      {isPending ? (
+        <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+      ) : (
+        customIcon || <span className="text-xl select-none">{getConnectorIcon(name)}</span>
+      )}
+      <span>
+        {isPending ? (name.includes('Switch') ? 'Switching...' : 'Connecting...') : name}
+      </span>
     </button>
   );
 }
