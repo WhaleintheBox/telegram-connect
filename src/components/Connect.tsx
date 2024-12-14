@@ -2,9 +2,8 @@
 
 import * as React from 'react';
 import { useAccount, useChainId } from 'wagmi';
-import { modal } from '../Context';
 import { base } from '@reown/appkit/networks';
-import { MetaMaskSDK } from '@metamask/sdk-react';
+import { useAppKit } from '@reown/appkit/react';
 
 // Constants
 const BASE_CHAIN_ID = base.id;
@@ -23,21 +22,19 @@ interface ConnectorButtonProps {
   customIcon?: React.ReactNode;
 }
 
-// Initialize MetaMask SDK with optimized settings
-const MMSDK = new MetaMaskSDK({
-  dappMetadata: {
-    name: "Whale in the Box",
-    url: window.location.origin,
-  },
-  checkInstallationImmediately: false,
-  preferDesktop: false,
-  useDeeplink: true,
-});
+// Helpers
+const requestAccounts = async (provider: Record<string, unknown>) => {
+  if (typeof provider.request !== 'function') {
+    throw new Error('Invalid provider');
+  }
+  return provider.request({ 
+    method: 'eth_requestAccounts' 
+  }) as Promise<string[]>;
+};
 
-// Cached platform detection
+// Platform detection with cache
 const detectPlatform = (() => {
   let cachedPlatform: PlatformType | null = null;
-
   return (): PlatformType => {
     if (cachedPlatform) return cachedPlatform;
     if (typeof window === 'undefined') return 'unknown';
@@ -55,7 +52,6 @@ const detectPlatform = (() => {
     } else {
       cachedPlatform = 'unknown';
     }
-
     return cachedPlatform;
   };
 })();
@@ -69,66 +65,10 @@ const getConnectorIcon = (name: string): string => {
   return '👛';
 };
 
-const getErrorMessage = (error: unknown): string => {
-  if (!(error instanceof Error)) {
-    return 'Connection failed. Please try again.';
-  }
-
-  const message = error.message.toLowerCase();
-  const platform = detectPlatform();
-
-  if (message.includes('user rejected')) {
-    return 'Connection rejected. Please try again.';
-  }
-  if (message.includes('already processing')) {
-    return 'Connection in progress. Please wait.';
-  }
-  if (message.includes('chain mismatch')) {
-    return 'Please switch to Base network.';
-  }
-  if (message.includes('not installed')) {
-    switch (platform) {
-      case 'telegram':
-        return 'Please open in external browser to connect wallet.';
-      case 'ios':
-        return 'Please install MetaMask from the App Store.';
-      case 'android':
-        return 'Please install MetaMask from the Play Store.';
-      default:
-        return 'Please install MetaMask to connect.';
-    }
-  }
-
-  return error.message;
-};
-
-const handleMobileRedirect = (walletType: 'metamask' | 'phantom') => {
-  const platform = detectPlatform();
-  const currentUrl = encodeURIComponent(window.location.href);
-  const storeUrls = {
-    metamask: {
-      ios: 'https://apps.apple.com/app/metamask/id1438144202',
-      android: 'https://play.google.com/store/apps/details?id=io.metamask',
-      default: `https://metamask.app.link/dapp/${currentUrl}`
-    },
-    phantom: {
-      ios: 'https://apps.apple.com/app/phantom-crypto-wallet/id1598432977',
-      android: 'https://play.google.com/store/apps/details?id=app.phantom',
-      default: `https://phantom.app/ul/browse/${currentUrl}`
-    }
-  };
-
-  const urls = storeUrls[walletType];
-  const redirectUrl = platform === 'ios' ? urls.ios : 
-                     platform === 'android' ? urls.android : 
-                     urls.default;
-  
-  window.location.href = redirectUrl;
-};
-
 export function Connect() {
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
+  const appKit = useAppKit();
   const [status, setStatus] = React.useState<ConnectionStatus>('idle');
   const [error, setError] = React.useState<string | null>(null);
   const [showSuccessToast, setShowSuccessToast] = React.useState(false);
@@ -142,51 +82,56 @@ export function Connect() {
     Boolean(isConnected && chainId !== BASE_CHAIN_ID)
   ), [isConnected, chainId]);
 
-  // Connection stability monitoring
+  // Vérification de la connexion
   React.useEffect(() => {
     if (!address || !isConnected) return;
-  
+
     const checkConnection = async () => {
       try {
-        const provider = MMSDK.getProvider();
+        const provider = window?.ethereum;
         if (!provider) return;
-  
-        const accounts = await provider.request({ 
-          method: 'eth_accounts' 
-        }) as string[];
+
+        const accounts = await requestAccounts(provider);
         
-        if (!accounts || !accounts[0] || accounts[0].toLowerCase() !== address?.toLowerCase()) {
+        if (Array.isArray(accounts) && accounts[0]?.toLowerCase() !== address?.toLowerCase()) {
           setStatus('idle');
         }
       } catch (err) {
         console.error('Connection check failed:', err);
       }
     };
-  
+
     const interval = setInterval(checkConnection, 5000);
     return () => clearInterval(interval);
   }, [address, isConnected]);
 
-  // Telegram deep linking handler
+  // Gestion de Telegram
   React.useEffect(() => {
     if (!isTelegram) return;
+
+    const saveReturnUrl = () => {
+      const currentUrl = window.location.href;
+      localStorage.setItem('telegram_return_url', currentUrl);
+    };
 
     const handleTelegramReturn = () => {
       const now = Date.now();
       if (now - lastAttemptRef.current < DEBOUNCE_DELAY) return;
       lastAttemptRef.current = now;
 
-      const searchParams = new URLSearchParams(window.location.search);
-      if (searchParams.get('wallet_connected')) {
-        setStatus('connected');
+      const returnUrl = localStorage.getItem('telegram_return_url');
+      if (returnUrl) {
+        localStorage.removeItem('telegram_return_url');
+        window.location.href = returnUrl;
       }
     };
 
+    saveReturnUrl();
     window.addEventListener('focus', handleTelegramReturn);
     return () => window.removeEventListener('focus', handleTelegramReturn);
   }, [isTelegram]);
 
-  // Connection state manager
+  // Gestion de l'état de connexion
   React.useEffect(() => {
     if (!isConnected) return;
     
@@ -201,100 +146,104 @@ export function Connect() {
     return () => clearTimeout(timer);
   }, [isConnected]);
 
-  const handleError = React.useCallback((err: unknown) => {
-    console.error('Connection error:', err);
-    setStatus('error');
-    setError(getErrorMessage(err));
-    
-    setTimeout(() => {
-      setStatus('idle');
-      setError(null);
-    }, ERROR_DISPLAY_DURATION);
-  }, []);
-
-  const isActionAllowed = () => {
-    const now = Date.now();
-    if (now - lastAttemptRef.current < DEBOUNCE_DELAY) return false;
-    lastAttemptRef.current = now;
-    return true;
-  };
-
   const handleMetaMaskConnect = async () => {
-    if (status === 'connecting' || !isActionAllowed()) return;
+    if (status === 'connecting') return;
     
-    try {
-      setStatus('connecting');
-      const ethereum = MMSDK.getProvider();
-      
-      if (!ethereum) {
-        if (isMobile) {
-          handleMobileRedirect('metamask');
-          return;
-        }
-        throw new Error('MetaMask not installed');
-      }
-
-      await ethereum.request({ method: 'eth_requestAccounts' });
-    } catch (err) {
-      handleError(err);
-    }
-  };
-
-  const handlePhantomConnect = async () => {
-    if (status === 'connecting' || !isActionAllowed()) return;
-    
-    try {
-      setStatus('connecting');
-      // @ts-ignore
-      const provider = window.phantom?.ethereum;
-      
-      if (!provider) {
-        if (isMobile) {
-          handleMobileRedirect('phantom');
-          return;
-        }
-        throw new Error('Phantom not installed');
-      }
-
-      await provider.request({ method: 'eth_requestAccounts' });
-    } catch (err) {
-      handleError(err);
-    }
-  };
-
-  const handleConnect = React.useCallback(async () => {
-    if (status === 'connecting' || !isActionAllowed()) return;
+    const now = Date.now();
+    if (now - lastAttemptRef.current < DEBOUNCE_DELAY) return;
+    lastAttemptRef.current = now;
     
     try {
       setStatus('connecting');
       
       if (isTelegram) {
         const url = new URL(window.location.href);
-        url.searchParams.append('wallet_connect', 'true');
+        url.searchParams.set('action', 'connect');
+        window.open(url.toString(), '_blank');
+        return;
+      }
+
+      const provider = window?.ethereum;
+      if (!provider) {
+        if (isMobile) {
+          const currentUrl = encodeURIComponent(window.location.href);
+          window.location.href = `https://metamask.app.link/dapp/${currentUrl}`;
+          return;
+        }
+        throw new Error('Please install MetaMask');
+      }
+
+      const accounts = await requestAccounts(provider);
+
+      if (!Array.isArray(accounts) || !accounts[0]) {
+        throw new Error('No accounts found');
+      }
+
+      setStatus('connected');
+    } catch (err) {
+      console.error('Connection error:', err);
+      setStatus('error');
+      setError(err instanceof Error ? err.message : 'Connection failed');
+      setTimeout(() => {
+        setStatus('idle');
+        setError(null);
+      }, ERROR_DISPLAY_DURATION);
+    }
+  };
+
+  const handleConnect = React.useCallback(async () => {
+    if (status === 'connecting') return;
+    
+    const now = Date.now();
+    if (now - lastAttemptRef.current < DEBOUNCE_DELAY) return;
+    lastAttemptRef.current = now;
+    
+    try {
+      setStatus('connecting');
+      
+      if (isTelegram) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('action', 'connect');
         window.open(url.toString(), '_blank');
         return;
       }
       
-      await modal.open({
+      await appKit.open({
         view: 'Connect'
       });
     } catch (err) {
-      handleError(err);
+      console.error('Connection error:', err);
+      setStatus('error');
+      setError(err instanceof Error ? err.message : 'Connection failed');
+      setTimeout(() => {
+        setStatus('idle');
+        setError(null);
+      }, ERROR_DISPLAY_DURATION);
     }
-  }, [status, isTelegram]);
+  }, [status, isTelegram, appKit]);
 
   const handleSwitchNetwork = React.useCallback(async () => {
-    if (status === 'switching' || !isActionAllowed()) return;
+    if (status === 'switching') return;
+    
+    const now = Date.now();
+    if (now - lastAttemptRef.current < DEBOUNCE_DELAY) return;
+    lastAttemptRef.current = now;
     
     try {
       setStatus('switching');
-      await modal.open({
+      await appKit.open({
         view: 'Networks'
       });
     } catch (err) {
-      handleError(err);
+      console.error('Network switch error:', err);
+      setStatus('error');
+      setError(err instanceof Error ? err.message : 'Network switch failed');
+      setTimeout(() => {
+        setStatus('idle');
+        setError(null);
+      }, ERROR_DISPLAY_DURATION);
     }
-  }, [status]);
+  }, [status, appKit]);
 
   if (isConnected && !isWrongNetwork) {
     return null;
@@ -308,13 +257,6 @@ export function Connect() {
             <ConnectorButton
               name="MetaMask"
               onClick={handleMetaMaskConnect}
-              isPending={status === 'connecting'}
-              isMobile={isMobile}
-            />
-            
-            <ConnectorButton
-              name="Phantom"
-              onClick={handlePhantomConnect}
               isPending={status === 'connecting'}
               isMobile={isMobile}
             />
