@@ -8,10 +8,12 @@ if (!projectId) throw new Error("Project ID is not defined");
 
 export const networks = [base];
 
+const storage = createStorage({
+  storage: cookieStorage
+});
+
 export const wagmiAdapter = new WagmiAdapter({
-  storage: createStorage({
-    storage: cookieStorage
-  }),
+  storage,
   ssr: false,
   networks,
   projectId

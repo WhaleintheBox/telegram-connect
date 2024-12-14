@@ -24,12 +24,7 @@ const metadata = {
   name: "Whale in the Box",
   description: "Our Decentralized Betting Platform",
   url: typeof window !== 'undefined' ? window.location.origin : "https://whaleinthebox.github.io/telegram-connect/dist/",
-  icons: ["https://imagedelivery.net/_aTEfDRm7z3tKgu9JhfeKA/e64de848-991b-4de3-787a-5e6008473800/sm"],
-  redirect: {
-    native: 'whaleinthebox://',  
-    universal: typeof window !== 'undefined' ? window.location.origin : "https://whaleinthebox.github.io/telegram-connect/dist/",
-    linkMode: true
-  }
+  icons: ["https://imagedelivery.net/_aTEfDRm7z3tKgu9JhfeKA/e64de848-991b-4de3-787a-5e6008473800/sm"]
 };
 
 export function ContextProvider({ children }: { children: ReactNode }) {
@@ -50,11 +45,6 @@ export const modal = createAppKit({
   features: {
     analytics: true,
     email: true,
-    socials: ['google', 'x', 'github', 'discord', 'apple', 'facebook'],
-    emailShowWallets: true
-  },
-  themeMode: 'light',
-  defaultNetwork: base,
-  enableWalletConnect: true,
-  allWallets: 'SHOW'
+    socials: ['google', 'x', 'github', 'discord', 'apple', 'facebook']
+  }
 });

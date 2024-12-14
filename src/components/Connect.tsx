@@ -117,9 +117,7 @@ export function Connect() {
       setStatus('connecting');
       actionRef.current = 'connecting';
       
-      await open({
-        view: 'Connect'
-      });
+      await open();
     } catch (err) {
       handleError(err);
       setStatus('idle');
@@ -134,9 +132,7 @@ export function Connect() {
       setStatus('switching');
       actionRef.current = 'switching';
       
-      await open({
-        view: 'Networks'
-      });
+      await open();
     } catch (err) {
       handleError(err);
       setStatus('idle');
