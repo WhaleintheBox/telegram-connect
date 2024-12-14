@@ -174,6 +174,22 @@ export function Connect() {
     }
   }, [status, open, handleSuccess, handleError]);
 
+  const fetchBoxes = async () => {
+    try {
+      const response = await fetch('/api/boxes');
+      if (!response.ok) throw new Error('Network response was not ok');
+      await response.json();
+      // Traitement des données...
+    } catch (error) {
+      console.error('Error fetching boxes:', error);
+      setError('Failed to fetch boxes. Please try again later.');
+    }
+  };
+
+  React.useEffect(() => {
+    fetchBoxes();
+  }, []);
+
   React.useEffect(() => {
     mountedRef.current = true;
     return () => {
