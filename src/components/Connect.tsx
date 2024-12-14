@@ -9,6 +9,8 @@ import { MetaMaskSDK } from '@metamask/sdk-react';
 // Constants
 const BASE_CHAIN_ID = base.id;
 const SUCCESS_TOAST_DURATION = 1500;
+const DEBOUNCE_DELAY = 1000;
+const ERROR_DISPLAY_DURATION = 3000;
 
 type ConnectionStatus = 'idle' | 'connecting' | 'switching' | 'connected' | 'error';
 type PlatformType = 'telegram' | 'ios' | 'android' | 'desktop' | 'unknown';
@@ -21,56 +23,53 @@ interface ConnectorButtonProps {
   customIcon?: React.ReactNode;
 }
 
-// Initialize MetaMask SDK with mobile-optimized settings
+// Initialize MetaMask SDK with optimized settings
 const MMSDK = new MetaMaskSDK({
   dappMetadata: {
     name: "Whale in the Box",
     url: window.location.origin,
   },
-  checkInstallationImmediately: true,
+  checkInstallationImmediately: false,
   preferDesktop: false,
   useDeeplink: true,
 });
 
-// Platform detection utilities
-function detectPlatform(): PlatformType {
-  if (typeof window === 'undefined') return 'unknown';
-  
-  const userAgent = window.navigator.userAgent.toLowerCase();
-  
-  // Telegram WebApp detection
-  if ('Telegram' in window || window.location.href.includes('tg://')) {
-    return 'telegram';
-  }
-  
-  // iOS detection
-  if (/iphone|ipad|ipod/.test(userAgent)) {
-    return 'ios';
-  }
-  
-  // Android detection
-  if (/android/.test(userAgent)) {
-    return 'android';
-  }
-  
-  // Desktop detection
-  if (window.innerWidth >= 768 && !(/mobile|tablet/.test(userAgent))) {
-    return 'desktop';
-  }
-  
-  return 'unknown';
-}
+// Cached platform detection
+const detectPlatform = (() => {
+  let cachedPlatform: PlatformType | null = null;
 
-function getConnectorIcon(name: string): string {
+  return (): PlatformType => {
+    if (cachedPlatform) return cachedPlatform;
+    if (typeof window === 'undefined') return 'unknown';
+
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    
+    if ('Telegram' in window || window.location.href.includes('tg://')) {
+      cachedPlatform = 'telegram';
+    } else if (/iphone|ipad|ipod/.test(userAgent)) {
+      cachedPlatform = 'ios';
+    } else if (/android/.test(userAgent)) {
+      cachedPlatform = 'android';
+    } else if (window.innerWidth >= 768 && !(/mobile|tablet/.test(userAgent))) {
+      cachedPlatform = 'desktop';
+    } else {
+      cachedPlatform = 'unknown';
+    }
+
+    return cachedPlatform;
+  };
+})();
+
+const getConnectorIcon = (name: string): string => {
   const lowercaseName = name.toLowerCase();
   if (lowercaseName.includes('metamask')) return '🦊';
   if (lowercaseName.includes('phantom')) return '👻';
   if (lowercaseName.includes('walletconnect')) return '🔗';
   if (lowercaseName.includes('switch')) return '🔄';
   return '👛';
-}
+};
 
-function getErrorMessage(error: unknown): string {
+const getErrorMessage = (error: unknown): string => {
   if (!(error instanceof Error)) {
     return 'Connection failed. Please try again.';
   }
@@ -81,15 +80,12 @@ function getErrorMessage(error: unknown): string {
   if (message.includes('user rejected')) {
     return 'Connection rejected. Please try again.';
   }
-
   if (message.includes('already processing')) {
     return 'Connection in progress. Please wait.';
   }
-
   if (message.includes('chain mismatch')) {
     return 'Please switch to Base network.';
   }
-
   if (message.includes('not installed')) {
     switch (platform) {
       case 'telegram':
@@ -104,41 +100,39 @@ function getErrorMessage(error: unknown): string {
   }
 
   return error.message;
-}
+};
 
-function handleMobileRedirect(walletType: 'metamask' | 'phantom') {
+const handleMobileRedirect = (walletType: 'metamask' | 'phantom') => {
   const platform = detectPlatform();
   const currentUrl = encodeURIComponent(window.location.href);
+  const storeUrls = {
+    metamask: {
+      ios: 'https://apps.apple.com/app/metamask/id1438144202',
+      android: 'https://play.google.com/store/apps/details?id=io.metamask',
+      default: `https://metamask.app.link/dapp/${currentUrl}`
+    },
+    phantom: {
+      ios: 'https://apps.apple.com/app/phantom-crypto-wallet/id1598432977',
+      android: 'https://play.google.com/store/apps/details?id=app.phantom',
+      default: `https://phantom.app/ul/browse/${currentUrl}`
+    }
+  };
+
+  const urls = storeUrls[walletType];
+  const redirectUrl = platform === 'ios' ? urls.ios : 
+                     platform === 'android' ? urls.android : 
+                     urls.default;
   
-  switch (walletType) {
-    case 'metamask':
-      if (platform === 'ios') {
-        window.location.href = `https://apps.apple.com/app/metamask/id1438144202`;
-      } else if (platform === 'android') {
-        window.location.href = `https://play.google.com/store/apps/details?id=io.metamask`;
-      } else {
-        window.location.href = `https://metamask.app.link/dapp/${currentUrl}`;
-      }
-      break;
-      
-    case 'phantom':
-      if (platform === 'ios') {
-        window.location.href = `https://apps.apple.com/app/phantom-crypto-wallet/id1598432977`;
-      } else if (platform === 'android') {
-        window.location.href = `https://play.google.com/store/apps/details?id=app.phantom`;
-      } else {
-        window.location.href = `https://phantom.app/ul/browse/${currentUrl}`;
-      }
-      break;
-  }
-}
+  window.location.href = redirectUrl;
+};
 
 export function Connect() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const chainId = useChainId();
   const [status, setStatus] = React.useState<ConnectionStatus>('idle');
   const [error, setError] = React.useState<string | null>(null);
   const [showSuccessToast, setShowSuccessToast] = React.useState(false);
+  const lastAttemptRef = React.useRef<number>(0);
   
   const platform = React.useMemo(() => detectPlatform(), []);
   const isMobile = platform !== 'desktop';
@@ -148,18 +142,63 @@ export function Connect() {
     Boolean(isConnected && chainId !== BASE_CHAIN_ID)
   ), [isConnected, chainId]);
 
+  // Connection stability monitoring
   React.useEffect(() => {
-    if (isConnected) {
-      setStatus('connected');
-      setShowSuccessToast(true);
-      const timer = setTimeout(() => {
-        setShowSuccessToast(false);
-      }, SUCCESS_TOAST_DURATION);
-      return () => clearTimeout(timer);
-    } else {
-      setStatus('idle');
-      setError(null);
-    }
+    if (!address || !isConnected) return;
+  
+    const checkConnection = async () => {
+      try {
+        const provider = MMSDK.getProvider();
+        if (!provider) return;
+  
+        const accounts = await provider.request({ 
+          method: 'eth_accounts' 
+        }) as string[];
+        
+        if (!accounts || !accounts[0] || accounts[0].toLowerCase() !== address?.toLowerCase()) {
+          setStatus('idle');
+        }
+      } catch (err) {
+        console.error('Connection check failed:', err);
+      }
+    };
+  
+    const interval = setInterval(checkConnection, 5000);
+    return () => clearInterval(interval);
+  }, [address, isConnected]);
+
+  // Telegram deep linking handler
+  React.useEffect(() => {
+    if (!isTelegram) return;
+
+    const handleTelegramReturn = () => {
+      const now = Date.now();
+      if (now - lastAttemptRef.current < DEBOUNCE_DELAY) return;
+      lastAttemptRef.current = now;
+
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get('wallet_connected')) {
+        setStatus('connected');
+      }
+    };
+
+    window.addEventListener('focus', handleTelegramReturn);
+    return () => window.removeEventListener('focus', handleTelegramReturn);
+  }, [isTelegram]);
+
+  // Connection state manager
+  React.useEffect(() => {
+    if (!isConnected) return;
+    
+    setStatus('connected');
+    setShowSuccessToast(true);
+    setError(null);
+    
+    const timer = setTimeout(() => {
+      setShowSuccessToast(false);
+    }, SUCCESS_TOAST_DURATION);
+    
+    return () => clearTimeout(timer);
   }, [isConnected]);
 
   const handleError = React.useCallback((err: unknown) => {
@@ -169,11 +208,19 @@ export function Connect() {
     
     setTimeout(() => {
       setStatus('idle');
-    }, 3000);
+      setError(null);
+    }, ERROR_DISPLAY_DURATION);
   }, []);
 
+  const isActionAllowed = () => {
+    const now = Date.now();
+    if (now - lastAttemptRef.current < DEBOUNCE_DELAY) return false;
+    lastAttemptRef.current = now;
+    return true;
+  };
+
   const handleMetaMaskConnect = async () => {
-    if (status === 'connecting') return;
+    if (status === 'connecting' || !isActionAllowed()) return;
     
     try {
       setStatus('connecting');
@@ -188,14 +235,13 @@ export function Connect() {
       }
 
       await ethereum.request({ method: 'eth_requestAccounts' });
-      setStatus('connected');
     } catch (err) {
       handleError(err);
     }
   };
 
   const handlePhantomConnect = async () => {
-    if (status === 'connecting') return;
+    if (status === 'connecting' || !isActionAllowed()) return;
     
     try {
       setStatus('connecting');
@@ -211,20 +257,21 @@ export function Connect() {
       }
 
       await provider.request({ method: 'eth_requestAccounts' });
-      setStatus('connected');
     } catch (err) {
       handleError(err);
     }
   };
 
   const handleConnect = React.useCallback(async () => {
-    if (status === 'connecting') return;
+    if (status === 'connecting' || !isActionAllowed()) return;
     
     try {
       setStatus('connecting');
       
       if (isTelegram) {
-        window.open(window.location.href, '_blank');
+        const url = new URL(window.location.href);
+        url.searchParams.append('wallet_connect', 'true');
+        window.open(url.toString(), '_blank');
         return;
       }
       
@@ -237,7 +284,7 @@ export function Connect() {
   }, [status, isTelegram]);
 
   const handleSwitchNetwork = React.useCallback(async () => {
-    if (status === 'switching') return;
+    if (status === 'switching' || !isActionAllowed()) return;
     
     try {
       setStatus('switching');
@@ -314,7 +361,7 @@ export function Connect() {
   );
 }
 
-const ConnectorButton: React.FC<ConnectorButtonProps> = React.memo(({ 
+const ConnectorButton = React.memo<ConnectorButtonProps>(({ 
   name, 
   onClick, 
   isPending, 
@@ -354,3 +401,5 @@ const ConnectorButton: React.FC<ConnectorButtonProps> = React.memo(({
     </button>
   );
 });
+
+ConnectorButton.displayName = 'ConnectorButton';
