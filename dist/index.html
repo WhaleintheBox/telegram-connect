@@ -1,38 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Whale in the Box</title>
-    <style>
-      /* Styles pour le positionnement du logo en haut à gauche */
-      #logo {
-        position: absolute;
-        top: 20px;
-        left: 20px;
-        height: 80px; /* Ajustez cette valeur pour changer la taille du logo */
-        z-index: 1000; /* Assurez-vous que le logo est au-dessus des autres éléments */
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Whale in the Box</title>
+  <style>
+    /* Styles pour le positionnement du logo en haut à gauche */
+    .header {
+      position: relative;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+    }
+
+    /* Logo styling */
+    .header-logo {
+      height: 60px;
+      width: auto;
+      object-fit: contain;
+      margin: 0 auto;
+    }
+
+    /* Assurez-vous que la page est bien stylisée sans conflits */
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Media query pour le style du logo sur mobile */
+    @media screen and (max-width: 768px) {
+      .header {
+        margin-bottom: 16px;
+        padding-bottom: 16px;
       }
 
-      /* Assurez-vous que la page est bien stylisée sans conflits */
-      body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        overflow-x: hidden;
+      .header-logo {
+        height: 40px;
       }
-    </style>
-    <link rel="icon" src="public/favicon.ico" type="image/x-icon" />
-    <script type="module" crossorigin src="/telegram-connect/dist/assets/index-CWI7CKIW.js"></script>
-    <link rel="modulepreload" crossorigin href="/telegram-connect/dist/assets/vendor-Z-7XfRoy.js">
-    <link rel="stylesheet" crossorigin href="/telegram-connect/dist/assets/index-HFJ2htM8.css">
-  </head>
-  <body>
-    <!-- Logo en haut à gauche -->
-    <img id="logo" src="/telegram-connect/dist/assets/logo-BFjBgrQU.png" alt="Logo de Whale in the Box" />
+    }
+  </style>
+  <link rel="icon" href="public/favicon.ico" type="image/x-icon" />
+  <script type="module" crossorigin src="/telegram-connect/dist/assets/index-CWI7CKIW.js"></script>
+  <link rel="modulepreload" crossorigin href="/telegram-connect/dist/assets/vendor-Z-7XfRoy.js">
+  <link rel="stylesheet" crossorigin href="/telegram-connect/dist/assets/index-HFJ2htM8.css">
+</head>
+<body>
+  <!-- Logo en haut à gauche sur desktop, centré sur mobile -->
+  <div class="header">
+    <img 
+      class="header-logo" 
+      src="/telegram-connect/dist/assets/logo-BFjBgrQU.png" 
+      alt="Logo de Whale in the Box" 
+    />
+  </div>
 
-    <!-- Conteneur principal de l'application -->
-    <div id="root"></div>
+  <!-- Conteneur principal de l'application -->
+  <div id="root"></div>
 
-    <!-- Chargement du script principal -->
-  </body>
+  <!-- Chargement du script principal -->
+</body>
 </html>
