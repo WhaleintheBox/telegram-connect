@@ -3,9 +3,11 @@
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { cookieStorage, createStorage, http, fallback } from 'wagmi'; 
 import { base } from 'wagmi/chains';
-import { coinbaseWallet, injected, metaMask } from 'wagmi/connectors';
 import { createAppKit } from '@reown/appkit/react';
-import { getDefaultWallets } from '@rainbow-me/rainbowkit';
+import { metaMaskWallet, phantomWallet, coinbaseWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
+import { connectorsForWallets } from '@rainbow-me/rainbowkit';
+
+export const chains = [base]; // Exportez ce tableau
 
 export const APP_CONFIG = {
   projectIds: {
@@ -38,34 +40,30 @@ const baseTransport = fallback(
   }))
 );
 
-// Retrait de la sérialisation personnalisée
 const storage = createStorage({
   storage: cookieStorage,
   key: 'witb-wallet-storage'
 });
 
-const { connectors: rainbowConnectors } = getDefaultWallets({
-  appName: APP_CONFIG.metadata.name,
-  projectId: APP_CONFIG.projectIds.walletConnect
-});
+const projectId = APP_CONFIG.projectIds.walletConnect;
 
-const connectors = [
-  metaMask({
-    dappMetadata: {
-      name: APP_CONFIG.metadata.name,
-      url: APP_CONFIG.metadata.url,
-      iconUrl: APP_CONFIG.metadata.iconUrl
-    }
-  }),
-  injected({
-    target: 'phantom',
-    shimDisconnect: true
-  }),
-  coinbaseWallet({
+const walletConnectors = connectorsForWallets(
+  [
+    {
+      groupName: 'Recommended',
+      wallets: [
+        metaMaskWallet,
+        phantomWallet,
+        coinbaseWallet,
+        walletConnectWallet
+      ],
+    },
+  ],
+  {
     appName: APP_CONFIG.metadata.name,
-    appLogoUrl: APP_CONFIG.metadata.iconUrl
-  })
-]; 
+    projectId
+  }
+);
 
 export const wagmiAdapter = new WagmiAdapter({
   projectId: APP_CONFIG.projectIds.reown,
@@ -74,7 +72,7 @@ export const wagmiAdapter = new WagmiAdapter({
   transports: {
     [base.id]: baseTransport
   },
-  connectors
+  connectors: walletConnectors
 });
 
 export const appKit = createAppKit({
@@ -91,13 +89,5 @@ export const appKit = createAppKit({
     emailShowWallets: true
   }
 });
-
-export const rainbowConfig = {
-  chains: [base],
-  transports: {
-    [base.id]: baseTransport
-  },
-  connectors: rainbowConnectors 
-};
 
 export const config = wagmiAdapter.wagmiConfig;

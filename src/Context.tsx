@@ -5,7 +5,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState, createContext, useContext, useCallback } from 'react';
-import { config } from './wagmi';
+import { config } from './wagmi'; // Importez chains au lieu de APP_CONFIG
 import { useAppKit } from '@reown/appkit/react';
 import { useAccount } from 'wagmi';
 import type { ReactNode } from 'react';
