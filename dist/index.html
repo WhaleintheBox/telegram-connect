@@ -15,12 +15,13 @@
       padding-bottom: 24px;
     }
 
-    /* Logo styling */
-    .header-logo {
-      height: 60px;
-      width: auto;
-      object-fit: contain;
-      margin: 0 auto;
+    /* Style pour l'ancien logo */
+    #logo {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      height: 80px; /* Ajustez cette valeur pour changer la taille du logo */
+      z-index: 1000; /* Assurez-vous que le logo est au-dessus des autres éléments */
     }
 
     /* Assurez-vous que la page est bien stylisée sans conflits */
@@ -40,6 +41,10 @@
       .header-logo {
         height: 40px;
       }
+
+      #logo {
+        height: 60px; /* Taille ajustée pour les écrans plus petits */
+      }
     }
   </style>
   <link rel="icon" href="public/favicon.ico" type="image/x-icon" />
@@ -48,12 +53,19 @@
   <link rel="stylesheet" crossorigin href="/telegram-connect/dist/assets/index-HFJ2htM8.css">
 </head>
 <body>
-  <!-- Logo en haut à gauche sur desktop, centré sur mobile -->
+  <!-- Ancien logo en haut à gauche -->
+  <img 
+    id="logo" 
+    src="/telegram-connect/dist/assets/logo-BFjBgrQU.png" 
+    alt="Logo Whale in the Box" 
+  />
+
+  <!-- Logo centré -->
   <div class="header">
     <img 
       class="header-logo" 
       src="/telegram-connect/dist/assets/logo-BFjBgrQU.png" 
-      alt="Logo de Whale in the Box" 
+      alt="Logo Whale in the Box" 
     />
   </div>
 
