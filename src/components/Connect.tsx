@@ -51,7 +51,7 @@ export function Connect() {
   return (
     <div className="connect-container">
       <div className="logo-container">
-        <img src="/src/assets/logo.png" alt="Whale in the Box" />
+        <img src="public/images/logo.png" alt="Whale in the Box" />
       </div>
       <div className="connect-button-container">
         <ConnectButton.Custom>
