@@ -5,66 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Whale in the Box</title>
   <style>
-    /* Styles pour le positionnement du logo en haut à gauche */
-    .header {
-      position: relative;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      margin-bottom: 24px;
-      padding-bottom: 24px;
-    }
-
-    /* Style pour l'ancien logo */
-    #logo {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      height: 80px; /* Ajustez cette valeur pour changer la taille du logo */
-      z-index: 1000; /* Assurez-vous que le logo est au-dessus des autres éléments */
-    }
-
-    /* Assurez-vous que la page est bien stylisée sans conflits */
+    /* Styles généraux */
     body {
       margin: 0;
       font-family: Arial, sans-serif;
       overflow-x: hidden;
     }
 
-    /* Media query pour le style du logo sur mobile */
+    /* Logo sur desktop */
+    #logo {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      height: 80px; /* Taille du logo */
+      z-index: 1000; /* Assurez-vous que le logo est au-dessus des autres éléments */
+    }
+
+    /* Logo centré sur mobile */
     @media screen and (max-width: 768px) {
-      .header {
-        margin-bottom: 16px;
-        padding-bottom: 16px;
-      }
-
-      .header-logo {
-        height: 40px;
-      }
-
       #logo {
-        height: 60px; /* Taille ajustée pour les écrans plus petits */
+        position: relative;
+        top: 0;
+        left: 0;
+        margin: 16px auto; /* Centrage horizontal */
+        display: block;
+        height: 60px; /* Taille ajustée pour mobile */
       }
     }
   </style>
   <link rel="icon" href="public/favicon.ico" type="image/x-icon" />
 </head>
 <body>
-  <!-- Ancien logo en haut à gauche -->
+  <!-- Logo -->
   <img 
     id="logo" 
     src="public/images/logo.png" 
-    alt="Logo Whale in the Box" 
+    alt="Logo de Whale in the Box" 
   />
-
-  <!-- Logo centré -->
-  <div class="header">
-    <img 
-      class="header-logo" 
-      src="public/images/logo.png" 
-      alt="Logo Whale in the Box" 
-    />
-  </div>
 
   <!-- Conteneur principal de l'application -->
   <div id="root"></div>
