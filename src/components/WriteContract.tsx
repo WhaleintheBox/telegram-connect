@@ -6,6 +6,7 @@ import {
   useSimulateContract
 } from 'wagmi';
 import { parseAbi, formatEther } from 'viem';
+import confetti from 'canvas-confetti';
 
 export interface WriteContractData {
   chainId: number;
@@ -32,9 +33,18 @@ function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+const transactionGifs = [
+  'https://media.giphy.com/media/H3cBaC5OnaJ79UjL9h/giphy.gif',
+  'https://media.giphy.com/media/orVWNtMXSr9eDEUwhH/giphy.gif',
+  'https://media.giphy.com/media/LrN9NbJNp9SWQ/giphy.gif',
+  'https://media.giphy.com/media/2wSe48eAUC15p38UqO/giphy.gif',
+  'https://media.giphy.com/media/KgX7on3DWfGSKGK8eI/giphy.gif',
+];
+
 export function WriteContract(data: WriteContractProps) {
   const { sendEvent } = data;
   const [userRejected, setUserRejected] = useState(false);
+  const [selectedGif, setSelectedGif] = useState('');
   
   // Simuler la transaction d'abord
   const { isError: isSimulateError, error: simulateError } = useSimulateContract({
@@ -57,6 +67,11 @@ export function WriteContract(data: WriteContractProps) {
 
   // Gérer tous les types d'erreurs
   const error = writeError || confirmError || (isSimulateError ? simulateError : null);
+
+  const selectRandomGif = () => {
+    const randomIndex = Math.floor(Math.random() * transactionGifs.length);
+    setSelectedGif(transactionGifs[randomIndex]);
+  };
 
   async function submit() {
     setUserRejected(false);
@@ -83,6 +98,9 @@ export function WriteContract(data: WriteContractProps) {
         args: data.args,
         value: transactionValue,
       });
+
+      selectRandomGif(); // Sélectionne un GIF aléatoire après une transaction réussie
+
     } catch (err: any) {  // Typage explicite de l'erreur
       console.error('Contract write error:', err);
       // Vérification sécurisée du message d'erreur
@@ -97,6 +115,15 @@ export function WriteContract(data: WriteContractProps) {
   useEffect(() => {
     if (isConfirmed) {
       sendEvent({ confirmed: true });
+      
+      // Déclencher les confettis après une transaction réussie
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#bb0000', '#ffffff', '#00bb00', '#0000bb', '#ffaa00', '#00aaff'],
+      });
+      
     } else if (hash) {
       sendEvent({ hash });
     } else if (error && !userRejected) {
@@ -126,7 +153,14 @@ export function WriteContract(data: WriteContractProps) {
           
           <div className="detail-row">
             <span className="detail-label">Contract:</span>
-            <span className="detail-value">{`https://basescan.org/address/${data.address}`}</span>
+            <a 
+              href={`https://basescan.org/address/${data.address}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="detail-value contract-address"
+            >
+              {formatAddress(data.address)}
+            </a>
           </div>
           
           <div className="detail-row">
@@ -177,9 +211,10 @@ export function WriteContract(data: WriteContractProps) {
               Waiting for confirmation...
             </div>
           )}
-          {isConfirmed && (
+          {isConfirmed && selectedGif && (
             <div className="status-message success">
-              Transaction confirmed! ✅
+              <img src={selectedGif} alt="Transaction GIF" />
+              <div>Transaction confirmed! ✅</div>
             </div>
           )}
           {error && !userRejected && (
