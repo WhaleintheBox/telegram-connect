@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { ethers } from 'ethers';
 import { KRILL_ABI } from '../constants/contracts';
 import { useAccount, useWalletClient } from 'wagmi';
+import confetti from 'canvas-confetti'; // Import de la bibliothèque
 
 const KRILL_CONTRACT = "0x33E5b643C05a3B00F71a066FefA4F59eF6BE27fc";
 
@@ -40,7 +41,15 @@ const KrillClaimButton = () => {
       
       // Attendre la confirmation
       await tx.wait();
-      
+
+      // 🎉 Déclencher les confettis après une transaction réussie
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }, // Point de départ des confettis
+        colors: ['#bb0000', '#ffffff', '#00bb00', '#0000bb', '#ffaa00', '#00aaff'],
+      });
+
       alert('🎉 Successfully claimed KRILL!');
       
     } catch (error: any) {
