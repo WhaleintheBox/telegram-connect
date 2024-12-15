@@ -1584,9 +1584,6 @@ export default function App() {
           <>
             {operationType === "transaction" && transactionData && uid && (
               <>
-                <div className="container">
-                  <pre>{JSON.stringify(transactionData, null, 2)}</pre>
-                </div>
                 <WriteContract
                   uid={uid}
                   chainId={transactionData.chainId}
