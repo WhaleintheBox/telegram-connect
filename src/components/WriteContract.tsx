@@ -115,7 +115,7 @@ export function WriteContract(data: WriteContractProps) {
     <>
       <div className="container">
         <div className="header">
-          <img src="public/images/logo.png" alt="Whale in the Box" className="header-logo" />
+          <img id="logo"  src="public/images/logo.png" alt="Whale in the Box" className="header-logo" />
         </div>
         
         <div className="transaction-info">
@@ -140,14 +140,7 @@ export function WriteContract(data: WriteContractProps) {
             <span className="detail-label">Function:</span>
             <span className="detail-value">{data.functionName}</span>
           </div>
-          
-          {data.args && data.args.length > 0 && (
-            <div className="detail-row">
-              <span className="detail-label">Arguments:</span>
-              <span className="detail-value">{data.args.join(', ')}</span>
-            </div>
-          )}
-          
+                    
           {data.value && Number(data.value) > 0 && (
             <div className="detail-row">
               <span className="detail-label">Bet Amount:</span>
