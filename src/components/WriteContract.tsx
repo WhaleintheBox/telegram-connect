@@ -126,14 +126,7 @@ export function WriteContract(data: WriteContractProps) {
           
           <div className="detail-row">
             <span className="detail-label">Contract:</span>
-            <a 
-              href={`https://basescan.org/address/${data.address}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="detail-value contract-address"
-            >
-              {formatAddress(data.address)}
-            </a>
+            <span className="detail-value">{`https://basescan.org/address/${data.address}`}</span>
           </div>
           
           <div className="detail-row">
