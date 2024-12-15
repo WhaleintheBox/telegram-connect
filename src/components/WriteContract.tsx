@@ -6,6 +6,7 @@ import {
   useSimulateContract
 } from 'wagmi';
 import { parseAbi, formatEther } from 'viem';
+import confetti from 'canvas-confetti';
 
 export interface WriteContractData {
   chainId: number;
@@ -28,15 +29,76 @@ const CHAIN_NAMES: Record<number, string> = {
   8453: 'Base',
 };
 
-function formatAddress(address: string): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
+const triggerConfetti = () => {
+  confetti({
+    particleCount: 100,
+    spread: 70,
+    origin: { y: 0.6 },
+    colors: ['#bb0000', '#ffffff', '#00bb00', '#0000bb', '#ffaa00', '#00aaff'],
+  });
+};
+
+const TransactionStatus = ({ 
+  hash, 
+  isConfirming, 
+  isConfirmed, 
+  error,
+  userRejected 
+}: { 
+  hash: `0x${string}` | undefined;
+  isConfirming: boolean;
+  isConfirmed: boolean;
+  error: Error | null;
+  userRejected: boolean;
+}) => (
+  <div className="mt-4 rounded-xl bg-white p-4 shadow-lg">
+    {isConfirming && (
+      <div className="flex items-center justify-center gap-3 text-blue-600">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"/>
+        <span className="font-medium">Confirming transaction...</span>
+      </div>
+    )}
+    
+    {isConfirmed && (
+      <div className="flex items-center justify-center gap-2 text-emerald-600">
+        <span className="text-xl">✅</span>
+        <span className="font-medium">Transaction confirmed!</span>
+      </div>
+    )}
+    
+    {error && !userRejected && (
+      <div className="text-center text-red-600">
+        <span className="text-xl">❌</span>
+        <p className="font-medium">
+          {(error as BaseError).shortMessage || 'Transaction failed'}
+        </p>
+      </div>
+    )}
+    
+    {userRejected && (
+      <div className="text-center text-orange-600">
+        <span className="text-xl">⚠️</span>
+        <p className="font-medium">Transaction rejected</p>
+      </div>
+    )}
+    
+    {hash && (
+      <a 
+        href={`https://basescan.org/tx/${hash}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-3 block text-center text-sm text-blue-500 hover:text-blue-600 transition-colors"
+      >
+        View on Block Explorer →
+      </a>
+    )}
+  </div>
+);
 
 export function WriteContract(data: WriteContractProps) {
   const { sendEvent } = data;
   const [userRejected, setUserRejected] = useState(false);
-  
-  // Simuler la transaction d'abord
+
   const { isError: isSimulateError, error: simulateError } = useSimulateContract({
     address: data.address,
     abi: parseAbi(data.abi),
@@ -55,10 +117,24 @@ export function WriteContract(data: WriteContractProps) {
     hash,
   });
 
-  // Gérer tous les types d'erreurs
   const error = writeError || confirmError || (isSimulateError ? simulateError : null);
+  const isProcessing = isPending || isConfirming;
+  
+  const chainName = CHAIN_NAMES[data.chainId] || `Chain ID: ${data.chainId}`;
+  const displayValue = data.value ? formatEther(BigInt(data.value)) : '0';
 
-  async function submit() {
+  useEffect(() => {
+    if (isConfirmed) {
+      triggerConfetti();
+      sendEvent({ confirmed: true });
+    } else if (hash) {
+      sendEvent({ hash });
+    } else if (error && !userRejected) {
+      sendEvent({ error });
+    }
+  }, [hash, error, isConfirmed, sendEvent, userRejected]);
+  
+  const submit = async () => {
     setUserRejected(false);
     try {
       if (isSimulateError) {
@@ -66,15 +142,7 @@ export function WriteContract(data: WriteContractProps) {
         return;
       }
 
-      let transactionValue;
-      if (data.value) {
-        try {
-          transactionValue = BigInt(data.value);
-        } catch (err) {
-          console.error('Invalid value format:', err);
-          return;
-        }
-      }
+      const transactionValue = data.value ? BigInt(data.value) : undefined;
 
       await writeContractAsync({
         address: data.address,
@@ -83,131 +151,66 @@ export function WriteContract(data: WriteContractProps) {
         args: data.args,
         value: transactionValue,
       });
-    } catch (err: any) {  // Typage explicite de l'erreur
+    } catch (err: any) {
       console.error('Contract write error:', err);
-      // Vérification sécurisée du message d'erreur
-      if (typeof err === 'object' && err !== null && 'message' in err) {
-        if (err.message.includes('user rejected transaction')) {
-          setUserRejected(true);
-        }
+      if (typeof err === 'object' && err?.message?.includes('user rejected')) {
+        setUserRejected(true);
       }
     }
-  }
+  };
 
-  useEffect(() => {
-    if (isConfirmed) {
-      sendEvent({ confirmed: true });
-    } else if (hash) {
-      sendEvent({ hash });
-    } else if (error && !userRejected) {
-      sendEvent({ error });
-    }
-  }, [hash, error, isConfirmed, sendEvent, userRejected]);
-
-  const chainName = CHAIN_NAMES[data.chainId] || `Chain ID: ${data.chainId}`;
-  const isProcessing = isPending || isConfirming;
-
-  const displayValue = data.value ? 
-    formatEther(BigInt(data.value)) : 
-    '0 ETH';
+  const getButtonText = () => {
+    if (isProcessing) return 'Processing...';
+    if (isSimulateError) return 'Transaction Will Fail';
+    return data.functionName === 'createBet' ? 'Confirm Bet' : 'Sign Transaction';
+  };
 
   return (
-    <>
-      <div className="container">
-        <div className="header">
-          <img src="public/images/logo.png" alt="Whale in the Box" className="header-logo" />
-        </div>
-        
-        <div className="transaction-info">
-          <div className="detail-row">
-            <span className="detail-label">Network:</span>
-            <span className="detail-value">{chainName}</span>
-          </div>
-          
-          <div className="detail-row">
-            <span className="detail-label">Contract:</span>
-            <a 
-              href={`https://basescan.org/address/${data.address}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="detail-value contract-address"
-            >
-              {formatAddress(data.address)}
-            </a>
-          </div>
-          
-          <div className="detail-row">
-            <span className="detail-label">Function:</span>
-            <span className="detail-value">{data.functionName}</span>
-          </div>
-          
-          {data.args && data.args.length > 0 && (
-            <div className="detail-row">
-              <span className="detail-label">Arguments:</span>
-              <span className="detail-value">{data.args.join(', ')}</span>
-            </div>
-          )}
+    <div className="max-w-md mx-auto px-4 py-6">
+      <div className="bg-white rounded-xl p-6 shadow-lg">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold mb-2">
+            {data.functionName === 'createBet' ? 'Confirm Your Bet' : 'Confirm Transaction'}
+          </h2>
           
           {data.value && Number(data.value) > 0 && (
-            <div className="detail-row">
-              <span className="detail-label">Bet Amount:</span>
-              <span className="detail-value amount">
-                {displayValue} ETH
-              </span>
+            <div className="text-3xl font-bold text-blue-600">
+              {displayValue} ETH
             </div>
           )}
+          
+          <div className="mt-2 text-sm text-gray-600">
+            on {chainName}
+          </div>
         </div>
 
-        <div className="buttonContainer">
-          <button
-            className={`transactionButton ${isSimulateError ? 'error' : ''}`}
-            disabled={isProcessing || isSimulateError}
-            onClick={submit}
-          >
-            {isProcessing ? 'Processing...' : 
-             isSimulateError ? 'Transaction Will Fail' : 
-             'Sign Transaction'}
-          </button>
-        </div>
+        <button
+          onClick={submit}
+          disabled={isProcessing || isSimulateError}
+          className={`
+            w-full py-4 px-6 rounded-xl font-bold text-white text-lg
+            transition-all transform active:scale-98
+            ${isProcessing 
+              ? 'bg-gray-400 cursor-not-allowed' 
+              : isSimulateError
+                ? 'bg-red-500 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
+            }
+          `}
+        >
+          {getButtonText()}
+        </button>
       </div>
 
       {(hash || isConfirming || isConfirmed || error) && (
-        <div className="container transaction-status">
-          {hash && (
-            <div className="status-row">
-              <span className="status-label">Transaction:</span>
-              <a 
-                href={`https://basescan.org/tx/${hash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hash-link"
-              >
-                {formatAddress(hash)}
-              </a>
-            </div>
-          )}
-          {isConfirming && (
-            <div className="status-message pending">
-              Waiting for confirmation...
-            </div>
-          )}
-          {isConfirmed && (
-            <div className="status-message success">
-              Transaction confirmed! ✅
-            </div>
-          )}
-          {error && !userRejected && (
-            <div className="status-message error">
-              Error: {(error as BaseError).shortMessage || (error as Error).message || 'Transaction failed'}
-            </div>
-          )}
-          {userRejected && (
-            <div className="status-message warning">
-              Transaction rejected by user
-            </div>
-          )}
-        </div>
+        <TransactionStatus
+          hash={hash}
+          isConfirming={isConfirming}
+          isConfirmed={isConfirmed}
+          error={error as Error}
+          userRejected={userRejected}
+        />
       )}
-    </>
+    </div>
   );
 }
