@@ -51,14 +51,16 @@ export function Connect() {
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-md mx-auto pt-16 px-4 sm:px-6 lg:px-8">
+        {/* Logo Section */}
         <div className="flex justify-center mb-12">
-          <img 
-            src="/logo-witb.png" 
+          <img
+            src="/logo-witb.png"
             alt="Whale in the Box"
             className="h-20 w-auto"
           />
         </div>
-
+  
+        {/* Connection Section */}
         <div className="bg-white rounded-2xl shadow-xl p-6 space-y-6">
           <ConnectButton.Custom>
             {({
@@ -71,9 +73,9 @@ export function Connect() {
             }) => {
               const ready = mounted;
               const connected = ready && account && chain;
-
+  
               if (!ready) return null;
-              
+  
               if (!connected) {
                 return (
                   <button
@@ -81,11 +83,13 @@ export function Connect() {
                     disabled={isConnecting}
                     className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
-                    {isConnecting ? 'Connecting...' : `Connect ${platform === 'mobile' ? 'Mobile' : 'Desktop'} Wallet`}
+                    {isConnecting
+                      ? 'Connecting...'
+                      : `Connect ${platform === 'mobile' ? 'Mobile' : 'Desktop'} Wallet`}
                   </button>
                 );
               }
-
+  
               if (chain.unsupported) {
                 return (
                   <button
@@ -96,9 +100,10 @@ export function Connect() {
                   </button>
                 );
               }
-
+  
               return (
                 <div className="flex gap-4">
+                  {/* Chain Info */}
                   <button
                     onClick={openChainModal}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all duration-200"
@@ -112,20 +117,25 @@ export function Connect() {
                     )}
                     {chain.name}
                   </button>
+  
+                  {/* Account Info */}
                   <button
                     onClick={openAccountModal}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all duration-200"
                   >
                     <span className="truncate">
                       {account.displayName}
-                      {account.displayBalance ? ` (${account.displayBalance})` : ''}
+                      {account.displayBalance
+                        ? ` (${account.displayBalance})`
+                        : ''}
                     </span>
                   </button>
                 </div>
               );
             }}
           </ConnectButton.Custom>
-
+  
+          {/* Error Message */}
           {error && (
             <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl relative">
               <div className="text-red-700 text-sm">{error}</div>
@@ -141,5 +151,5 @@ export function Connect() {
         </div>
       </div>
     </div>
-  );
+  );  
 }

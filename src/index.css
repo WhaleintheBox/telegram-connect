@@ -2321,3 +2321,35 @@ button:disabled {
 .animate-fade-in {
   animation: fade-in 0.3s ease-out forwards;
 }
+
+.connect-button-container {
+  display: flex;
+  justify-content: center; /* Centrage horizontal */
+  align-items: center; /* Centrage vertical */
+  width: 100%; /* S'adapte au conteneur parent */
+  margin-top: 16px; /* Ajout d'espacement avec le reste du contenu */
+}
+
+.connect-button {
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background-color: #3b82f6; /* Couleur primaire */
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.connect-button:hover {
+  background-color: #2563eb; /* Couleur de survol */
+  transform: translateY(-2px); /* Animation de survol */
+}
+
+.connect-button:disabled {
+  background-color: #d1d5db;
+  cursor: not-allowed;
+  box-shadow: none;
+}
