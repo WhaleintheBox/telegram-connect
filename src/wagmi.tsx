@@ -30,44 +30,26 @@ const baseTransport = fallback(
   }))
 );
 
-// Créer un storage persistant avec gestion de l'expiration
+// Storage configuration simplifiée
 const storage = createStorage({
-  storage: cookieStorage,
-  key: 'witb-wallet-storage',
-  deserialize: (value) => {
-    try {
-      const data = JSON.parse(value);
-      // Vérifier si la session a expiré (24h)
-      if (data.timestamp && Date.now() - data.timestamp > 24 * 60 * 60 * 1000) {
-        return null;
-      }
-      return data.value;
-    } catch {
-      return null;
-    }
-  },
-  serialize: (value) => {
-    return JSON.stringify({
-      value,
-      timestamp: Date.now(),
-    });
-  },
+  storage: cookieStorage
 });
 
-export const wagmiAdapter = new WagmiAdapter({
+// Configuration de base pour les adaptateurs
+const commonConfig = {
   projectId: REOWN_PROJECT_ID,
   networks: [base],
-  storage,
   transports: {
     [base.id]: baseTransport
-  },
+  }
+};
+
+// Wagmi adapter configuration
+export const wagmiAdapter = new WagmiAdapter({
+  ...commonConfig,
+  storage,
   connectors: [
-    injected({ 
-      target: 'metaMask'
-    }),
-    injected({ 
-      target: 'phantom'
-    }),
+    injected(),
     metaMask(),
     coinbaseWallet({
       appName: metadata.name,
@@ -76,6 +58,7 @@ export const wagmiAdapter = new WagmiAdapter({
   ]
 });
 
+// AppKit configuration
 export const appKit = createAppKit({
   adapters: [wagmiAdapter],
   networks: [base],
@@ -88,14 +71,14 @@ export const appKit = createAppKit({
   }
 });
 
+// RainbowKit configuration
 export const rainbowConfig = getDefaultConfig({
-  appName: "Whale in the Box",
+  appName: metadata.name,
   projectId: WALLETCONNECT_PROJECT_ID,
   chains: [base],
   transports: {
     [base.id]: baseTransport
-  },
-  storage
+  }
 });
 
 export const config = wagmiAdapter.wagmiConfig;
