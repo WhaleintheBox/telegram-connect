@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
-import { openConnectModal } from '../../Context';
+import { useConnectModal } from '../../Context';
 
 export default function AuthCallback() {
+  const { openConnectModal } = useConnectModal();
+
   useEffect(() => {
     const handleCallback = async () => {
       try {
@@ -11,7 +13,7 @@ export default function AuthCallback() {
         const searchParams = new URLSearchParams(window.location.search);
         const redirectUrl = searchParams.get('callback') || '/';
 
-        // Ouvrir le modal de connexion
+        // Utiliser la fonction openConnectModal du hook
         await openConnectModal();
         
         // Redirection vers la page de callback
@@ -24,7 +26,7 @@ export default function AuthCallback() {
     };
 
     handleCallback();
-  }, []);
+  }, [openConnectModal]); // Ajouter openConnectModal dans les dépendances
 
   return (
     <div className="flex items-center justify-center min-h-screen">
