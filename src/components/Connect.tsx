@@ -2,14 +2,12 @@
 
 import * as React from 'react';
 import { useAccount, useChainId } from 'wagmi';
+import { modal } from '../Context';
 import { base } from '@reown/appkit/networks';
-import { useAppKit } from '@reown/appkit/react';
+import { MetaMaskProvider, useSDK } from '@metamask/sdk-react';
 
-// Constants
 const BASE_CHAIN_ID = base.id;
 const SUCCESS_TOAST_DURATION = 1500;
-const DEBOUNCE_DELAY = 1000;
-const ERROR_DISPLAY_DURATION = 3000;
 
 type ConnectionStatus = 'idle' | 'connecting' | 'switching' | 'connected' | 'error';
 type PlatformType = 'telegram' | 'ios' | 'android' | 'desktop' | 'unknown';
@@ -18,232 +16,167 @@ interface ConnectorButtonProps {
   name: string;
   onClick: () => Promise<void>;
   isPending?: boolean;
-  isMobile?: boolean;
-  customIcon?: React.ReactNode;
+  icon?: string;
+  className?: string;
 }
 
-// Helpers
-const requestAccounts = async (provider: Record<string, unknown>) => {
-  if (typeof provider.request !== 'function') {
-    throw new Error('Invalid provider');
+// Détecte la plateforme
+const detectPlatform = (): PlatformType => {
+  if (typeof window === 'undefined') return 'unknown';
+  
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  
+  if ('Telegram' in window || window.location.href.includes('tg://')) {
+    return 'telegram';
   }
-  return provider.request({ 
-    method: 'eth_requestAccounts' 
-  }) as Promise<string[]>;
+  
+  if (/iphone|ipad|ipod/.test(userAgent)) return 'ios';
+  if (/android/.test(userAgent)) return 'android';
+  if (window.innerWidth >= 768 && !(/mobile|tablet/.test(userAgent))) return 'desktop';
+  
+  return 'unknown';
 };
 
-// Platform detection with cache
-const detectPlatform = (() => {
-  let cachedPlatform: PlatformType | null = null;
-  return (): PlatformType => {
-    if (cachedPlatform) return cachedPlatform;
-    if (typeof window === 'undefined') return 'unknown';
+// Gère la redirection vers le wallet sur mobile
+const handleWalletRedirect = (walletType: 'metamask' | 'phantom') => {
+  const platform = detectPlatform();
+  const currentUrl = encodeURIComponent(window.location.href);
 
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    
-    if ('Telegram' in window || window.location.href.includes('tg://')) {
-      cachedPlatform = 'telegram';
-    } else if (/iphone|ipad|ipod/.test(userAgent)) {
-      cachedPlatform = 'ios';
-    } else if (/android/.test(userAgent)) {
-      cachedPlatform = 'android';
-    } else if (window.innerWidth >= 768 && !(/mobile|tablet/.test(userAgent))) {
-      cachedPlatform = 'desktop';
-    } else {
-      cachedPlatform = 'unknown';
+  // Liens universels / fallback
+  const urls = {
+    metamask: {
+      ios: 'https://apps.apple.com/app/metamask/id1438144202',
+      android: 'https://play.google.com/store/apps/details?id=io.metamask',
+      universal: `metamask://dapp/${currentUrl}`
+    },
+    phantom: {
+      ios: 'https://apps.apple.com/app/phantom-crypto-wallet/id1598432977',
+      android: 'https://play.google.com/store/apps/details?id=app.phantom',
+      // Tentative d'ouvrir directement l'app phantom si installée
+      universal: `phantom://browse/${currentUrl}`
     }
-    return cachedPlatform;
   };
-})();
 
-const getConnectorIcon = (name: string): string => {
-  const lowercaseName = name.toLowerCase();
-  if (lowercaseName.includes('metamask')) return '🦊';
-  if (lowercaseName.includes('phantom')) return '👻';
-  if (lowercaseName.includes('walletconnect')) return '🔗';
-  if (lowercaseName.includes('switch')) return '🔄';
-  return '👛';
+  let url = urls[walletType].universal;
+  
+  // Si on est sur iOS ou Android, on tente d'abord le lien universel
+  // Si l'application n'est pas installée, l'utilisateur pourra installer via l'App/Play Store
+  // On peut éventuellement mettre un setTimeout pour rediriger vers le store si l'app n'est pas détectée
+  if (platform === 'ios' && walletType === 'phantom') {
+    // On va tenter phantom:// directement. Si l'utilisateur n'a pas Phantom, iOS devrait proposer l'installation
+    url = urls[walletType].universal;
+  } else if (platform === 'android' && walletType === 'phantom') {
+    // Idem pour Android
+    url = urls[walletType].universal;
+  }
+
+  if (platform === 'ios' && walletType === 'metamask') {
+    url = urls[walletType].universal;
+  } else if (platform === 'android' && walletType === 'metamask') {
+    url = urls[walletType].universal;
+  }
+
+  // Redirection
+  window.location.href = url;
 };
 
-export function Connect() {
-  const { isConnected, address } = useAccount();
+function ConnectInner() {
+  const { isConnected } = useAccount();
   const chainId = useChainId();
-  const appKit = useAppKit();
+  const { sdk } = useSDK();
   const [status, setStatus] = React.useState<ConnectionStatus>('idle');
   const [error, setError] = React.useState<string | null>(null);
-  const [showSuccessToast, setShowSuccessToast] = React.useState(false);
-  const lastAttemptRef = React.useRef<number>(0);
+  const [showSuccess, setShowSuccess] = React.useState(false);
   
   const platform = React.useMemo(() => detectPlatform(), []);
   const isMobile = platform !== 'desktop';
   const isTelegram = platform === 'telegram';
   
   const isWrongNetwork = React.useMemo(() => (
-    Boolean(isConnected && chainId !== BASE_CHAIN_ID)
+    isConnected && chainId !== BASE_CHAIN_ID
   ), [isConnected, chainId]);
 
-  // Vérification de la connexion
-  React.useEffect(() => {
-    if (!address || !isConnected) return;
-
-    const checkConnection = async () => {
-      try {
-        const provider = window?.ethereum;
-        if (!provider) return;
-
-        const accounts = await requestAccounts(provider);
-        
-        if (Array.isArray(accounts) && accounts[0]?.toLowerCase() !== address?.toLowerCase()) {
-          setStatus('idle');
-        }
-      } catch (err) {
-        console.error('Connection check failed:', err);
-      }
-    };
-
-    const interval = setInterval(checkConnection, 5000);
-    return () => clearInterval(interval);
-  }, [address, isConnected]);
-
-  // Gestion de Telegram
-  React.useEffect(() => {
-    if (!isTelegram) return;
-
-    const saveReturnUrl = () => {
-      const currentUrl = window.location.href;
-      localStorage.setItem('telegram_return_url', currentUrl);
-    };
-
-    const handleTelegramReturn = () => {
-      const now = Date.now();
-      if (now - lastAttemptRef.current < DEBOUNCE_DELAY) return;
-      lastAttemptRef.current = now;
-
-      const returnUrl = localStorage.getItem('telegram_return_url');
-      if (returnUrl) {
-        localStorage.removeItem('telegram_return_url');
-        window.location.href = returnUrl;
-      }
-    };
-
-    saveReturnUrl();
-    window.addEventListener('focus', handleTelegramReturn);
-    return () => window.removeEventListener('focus', handleTelegramReturn);
-  }, [isTelegram]);
-
-  // Gestion de l'état de connexion
-  React.useEffect(() => {
-    if (!isConnected) return;
-    
-    setStatus('connected');
-    setShowSuccessToast(true);
-    setError(null);
-    
-    const timer = setTimeout(() => {
-      setShowSuccessToast(false);
-    }, SUCCESS_TOAST_DURATION);
-    
-    return () => clearTimeout(timer);
-  }, [isConnected]);
-
-  const handleMetaMaskConnect = async () => {
+  const connectMetaMask = async () => {
     if (status === 'connecting') return;
-    
-    const now = Date.now();
-    if (now - lastAttemptRef.current < DEBOUNCE_DELAY) return;
-    lastAttemptRef.current = now;
     
     try {
       setStatus('connecting');
       
-      if (isTelegram) {
-        const url = new URL(window.location.href);
-        url.searchParams.set('action', 'connect');
-        window.open(url.toString(), '_blank');
-        return;
-      }
-
-      const provider = window?.ethereum;
-      if (!provider) {
+      if (!sdk) {
         if (isMobile) {
-          const currentUrl = encodeURIComponent(window.location.href);
-          window.location.href = `https://metamask.app.link/dapp/${currentUrl}`;
+          handleWalletRedirect('metamask');
           return;
         }
-        throw new Error('Please install MetaMask');
+        throw new Error('MetaMask non installé sur ce navigateur.');
       }
 
-      const accounts = await requestAccounts(provider);
-
-      if (!Array.isArray(accounts) || !accounts[0]) {
-        throw new Error('No accounts found');
-      }
-
-      setStatus('connected');
-    } catch (err) {
-      console.error('Connection error:', err);
+      await sdk.connect();
+      setShowSuccess(true);
+    } catch (err: any) {
+      setError(err?.message || 'Échec de la connexion à MetaMask.');
       setStatus('error');
-      setError(err instanceof Error ? err.message : 'Connection failed');
-      setTimeout(() => {
-        setStatus('idle');
-        setError(null);
-      }, ERROR_DISPLAY_DURATION);
+    } finally {
+      setStatus('idle');
     }
   };
 
-  const handleConnect = React.useCallback(async () => {
+  const connectPhantom = async () => {
     if (status === 'connecting') return;
     
-    const now = Date.now();
-    if (now - lastAttemptRef.current < DEBOUNCE_DELAY) return;
-    lastAttemptRef.current = now;
+    try {
+      setStatus('connecting');
+      // @ts-ignore
+      const provider = window.phantom?.ethereum;
+      
+      if (!provider) {
+        if (isMobile) {
+          handleWalletRedirect('phantom');
+          return;
+        }
+        throw new Error('Phantom non installé sur ce navigateur.');
+      }
+
+      await provider.request({ method: 'eth_requestAccounts' });
+      setShowSuccess(true);
+    } catch (err: any) {
+      setError(err?.message || 'Échec de la connexion à Phantom.');
+      setStatus('error');
+    } finally {
+      setStatus('idle');
+    }
+  };
+
+  const connectWalletConnect = async () => {
+    if (status === 'connecting') return;
     
     try {
       setStatus('connecting');
       
       if (isTelegram) {
-        const url = new URL(window.location.href);
-        url.searchParams.set('action', 'connect');
-        window.open(url.toString(), '_blank');
+        // Ouvre dans un navigateur externe (Telegram WebApp est limité)
+        window.open(window.location.href, '_blank');
         return;
       }
       
-      await appKit.open({
+      await modal.open({
         view: 'Connect'
       });
-    } catch (err) {
-      console.error('Connection error:', err);
+      
+      setShowSuccess(true);
+    } catch (err: any) {
+      setError(err?.message || 'Échec de la connexion via WalletConnect.');
       setStatus('error');
-      setError(err instanceof Error ? err.message : 'Connection failed');
-      setTimeout(() => {
-        setStatus('idle');
-        setError(null);
-      }, ERROR_DISPLAY_DURATION);
+    } finally {
+      setStatus('idle');
     }
-  }, [status, isTelegram, appKit]);
+  };
 
-  const handleSwitchNetwork = React.useCallback(async () => {
-    if (status === 'switching') return;
-    
-    const now = Date.now();
-    if (now - lastAttemptRef.current < DEBOUNCE_DELAY) return;
-    lastAttemptRef.current = now;
-    
-    try {
-      setStatus('switching');
-      await appKit.open({
-        view: 'Networks'
-      });
-    } catch (err) {
-      console.error('Network switch error:', err);
-      setStatus('error');
-      setError(err instanceof Error ? err.message : 'Network switch failed');
-      setTimeout(() => {
-        setStatus('idle');
-        setError(null);
-      }, ERROR_DISPLAY_DURATION);
+  React.useEffect(() => {
+    if (showSuccess) {
+      const timer = setTimeout(() => setShowSuccess(false), SUCCESS_TOAST_DURATION);
+      return () => clearTimeout(timer);
     }
-  }, [status, appKit]);
+  }, [showSuccess]);
 
   if (isConnected && !isWrongNetwork) {
     return null;
@@ -252,50 +185,52 @@ export function Connect() {
   return (
     <div className="container mx-auto px-4">
       <div className="max-w-md mx-auto space-y-4">
-        {!isWrongNetwork && !isTelegram && (
+        {!isWrongNetwork && (
           <>
             <ConnectorButton
               name="MetaMask"
-              onClick={handleMetaMaskConnect}
+              onClick={connectMetaMask}
               isPending={status === 'connecting'}
-              isMobile={isMobile}
+              icon="🦊"
+            />
+            
+            <ConnectorButton
+              name="Phantom"
+              onClick={connectPhantom}
+              isPending={status === 'connecting'}
+              icon="👻"
             />
 
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
+                <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white text-gray-500">
-                  {isMobile ? 'More options' : 'Or connect with'}
+                  Plus d'options
                 </span>
               </div>
             </div>
+
+            <ConnectorButton
+              name="WalletConnect"
+              onClick={connectWalletConnect}
+              isPending={status === 'connecting'}
+              icon="🔗"
+              className="bg-blue-600 hover:bg-blue-700"
+            />
           </>
         )}
 
-        <ConnectorButton
-          name={isWrongNetwork ? 'Switch to Base' : isTelegram ? 'Connect Wallet' : 'Other Wallets'}
-          onClick={isWrongNetwork ? handleSwitchNetwork : handleConnect}
-          isPending={status === 'connecting' || status === 'switching'}
-          isMobile={isMobile}
-        />
-
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm text-center">
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
             {error}
           </div>
         )}
 
-        {status === 'connecting' && (
-          <div className="mt-4 w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full w-full bg-blue-600 rounded-full animate-pulse" />
-          </div>
-        )}
-
-        {showSuccessToast && (
+        {showSuccess && (
           <div className="fixed top-4 right-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 shadow-lg animate-fade-in">
-            Successfully connected! ✅
+            Connecté avec succès ! ✅
           </div>
         )}
       </div>
@@ -303,45 +238,54 @@ export function Connect() {
   );
 }
 
-const ConnectorButton = React.memo<ConnectorButtonProps>(({ 
-  name, 
-  onClick, 
-  isPending, 
-  isMobile,
-  customIcon 
-}) => {
-  const handleClick = React.useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    if (!isPending) onClick();
-  }, [onClick, isPending]);
+const ConnectorButton: React.FC<ConnectorButtonProps> = React.memo(({
+  name,
+  onClick,
+  isPending,
+  icon,
+  className = "bg-blue-600 hover:bg-blue-700"
+}) => (
+  <button
+    onClick={(e) => {
+      e.preventDefault();
+      if (!isPending) onClick();
+    }}
+    disabled={isPending}
+    className={`
+      w-full px-4 py-3
+      font-semibold rounded-lg
+      flex items-center justify-center gap-2
+      transition-all duration-200
+      text-white
+      ${isPending ? 'bg-gray-400 cursor-not-allowed' : className}
+    `}
+  >
+    {isPending ? (
+      <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+    ) : (
+      <span className="text-xl">{icon}</span>
+    )}
+    <span>
+      {isPending ? 'Connexion...' : name}
+    </span>
+  </button>
+));
 
+export function Connect() {
   return (
-    <button
-      onClick={handleClick}
-      disabled={isPending}
-      className={`
-        w-full px-4 py-3 
-        font-semibold rounded-lg
-        flex items-center justify-center gap-2
-        transition-all duration-200 ease-out
-        ${isPending 
-          ? 'bg-gray-400 cursor-not-allowed' 
-          : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
-        }
-        ${isMobile ? 'text-lg active:scale-98 touch-manipulation' : 'text-base'}
-        text-white
-      `}
+    <MetaMaskProvider
+      debug={false}
+      sdkOptions={{
+        dappMetadata: {
+          name: "Whale in the Box",
+          url: typeof window !== 'undefined' ? window.location.origin : "https://whaleinthebox.github.io/telegram-connect/dist/",
+        },
+        checkInstallationImmediately: false,
+        preferDesktop: false,
+        useDeeplink: true
+      }}
     >
-      {isPending ? (
-        <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
-      ) : (
-        customIcon || <span className="text-xl select-none">{getConnectorIcon(name)}</span>
-      )}
-      <span>
-        {isPending ? (name.includes('Switch') ? 'Switching...' : 'Connecting...') : name}
-      </span>
-    </button>
+      <ConnectInner />
+    </MetaMaskProvider>
   );
-});
-
-ConnectorButton.displayName = 'ConnectorButton';
+}
