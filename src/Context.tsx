@@ -9,6 +9,7 @@ import { config } from './wagmi'; // Importez chains au lieu de APP_CONFIG
 import { useAppKit } from '@reown/appkit/react';
 import { useAccount } from 'wagmi';
 import type { ReactNode } from 'react';
+import { ethers } from 'ethers';
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,18 @@ type ModalContextType = {
   openConnectModal: () => Promise<void>;
   isSessionActive: boolean;
   platform: Platform;
+  executeMobileTransaction: (config: {
+    to: string;
+    data: string;
+    value?: string;
+    gasLimit?: number;
+  }) => Promise<any>;
+  executeMobileTokenApproval: (
+    tokenAddress: string,
+    spenderAddress: string,
+    amount: string,
+    tokenAbi: any
+  ) => Promise<any>;
 };
 
 const ModalContext = createContext<ModalContextType | null>(null);
@@ -109,6 +122,68 @@ export function ContextProvider({ children }: { children: ReactNode }) {
     }
   }, [open, updateSession]);
 
+  const executeMobileTransaction = useCallback(async (config: {
+    to: string;
+    data: string;
+    value?: string;
+    gasLimit?: number;
+  }) => {
+    try {
+      if (!window.ethereum) {
+        throw new Error('No wallet detected');
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const gasLimit = platform === 'mobile' ? 400000 : 300000;
+
+      const tx = await signer.sendTransaction({
+        to: config.to,
+        data: config.data,
+        value: config.value || '0',
+        gasLimit: config.gasLimit || gasLimit
+      });
+
+      return {
+        hash: tx.hash,
+        wait: () => tx.wait()
+      };
+    } catch (err: any) {
+      console.error('Transaction error:', err);
+      throw err;
+    }
+  }, [platform]);
+
+  const executeMobileTokenApproval = useCallback(async (
+    tokenAddress: string,
+    spenderAddress: string,
+    amount: string,
+    tokenAbi: any
+  ) => {
+    try {
+      if (!window.ethereum) {
+        throw new Error('No wallet detected');
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
+      const gasLimit = platform === 'mobile' ? 150000 : 100000;
+
+      const tx = await tokenContract.approve(spenderAddress, amount, {
+        gasLimit
+      });
+
+      return {
+        hash: tx.hash,
+        wait: () => tx.wait()
+      };
+    } catch (err: any) {
+      console.error('Approval error:', err);
+      throw err;
+    }
+  }, [platform]);
+
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
@@ -127,7 +202,13 @@ export function ContextProvider({ children }: { children: ReactNode }) {
             })
           }}
         >
-          <ModalContext.Provider value={{ openConnectModal, isSessionActive, platform }}>
+          <ModalContext.Provider value={{ 
+            openConnectModal, 
+            isSessionActive, 
+            platform,
+            executeMobileTransaction,
+            executeMobileTokenApproval 
+          }}>
             {children}
           </ModalContext.Provider>
         </RainbowKitProvider>

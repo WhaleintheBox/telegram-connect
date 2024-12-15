@@ -10,7 +10,7 @@ import { formatEther } from 'viem';
 import { ERC20_ABI, BOX_ABI } from './constants/contracts';
 import { useCache } from './components/cacheService';
 import { useState, useEffect, useCallback } from 'react';  // Ajout de useCallback
-
+import { useConnectModal } from './Context'; 
 
 type SportsType = {
   [key in 'SOCCER' | 'F1' | 'MMA' | 'NFL' | 'BASKETBALL']: boolean;
@@ -347,6 +347,7 @@ export default function App() {
   };
 
   const BettingSection = ({ box }: { box: Box }) => {
+    const { executeMobileTransaction, executeMobileTokenApproval } = useConnectModal();
     const { address } = useAccount();
     const [winningsAmount, setWinningsAmount] = useState<string>('0');
     const [hasUserClaimed, setHasUserClaimed] = useState(false);
@@ -592,29 +593,23 @@ export default function App() {
       setIsProcessing(true);
       
       try {
-        const provider = new ethers.BrowserProvider(window.ethereum as unknown as ethers.Eip1193Provider);
-        const signer = await provider.getSigner();
         const amountInWei = ethers.parseEther(customAmount);
         const prediction = selectedBetType === 'hunt' ? "true" : "false";
-    
-        // Check if it's ETH (null address or 0x000...)
         const isEthToken = !box.tokenData.address || box.tokenData.address === '0x0000000000000000000000000000000000000000';
     
         setTransactionStatus('betting');
-        const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
     
         if (isEthToken) {
-          // Direct ETH transaction
-          const tx = await boxContract.createBet(prediction, {
-            value: amountInWei,
-            gasLimit: 300000 // Fixed gas limit for ETH transactions
+          const tx = await executeMobileTransaction({
+            to: box.address,
+            data: new ethers.Interface(BOX_ABI).encodeFunctionData('createBet', [prediction]),
+            value: amountInWei.toString()
           });
           
           setCurrentTxHash(tx.hash);
           await tx.wait();
         } else {
-          // ERC20 token transaction
-          await handleERC20Bet(signer, prediction, amountInWei);
+          await handleERC20Bet(prediction, amountInWei);
         }
     
         setTransactionStatus('complete');
@@ -630,30 +625,30 @@ export default function App() {
       }
     };
     
-    // Fonction séparée pour gérer les paris en ERC20
-    const handleERC20Bet = async (signer: ethers.Signer, prediction: string, amountInWei: bigint) => {
-      const tokenContract = new ethers.Contract(
-        box.tokenData.address!,
-        ERC20_ABI,
-        signer
-      );
-      
+    const handleERC20Bet = async (prediction: string, amountInWei: bigint) => {
       if (isApprovalRequired) {
         setTransactionStatus('approving');
-        const approveTx = await tokenContract.approve(box.address, amountInWei);
+        const approveTx = await executeMobileTokenApproval(
+          box.tokenData.address!,
+          box.address,
+          amountInWei.toString(),
+          ERC20_ABI
+        );
         setCurrentTxHash(approveTx.hash);
         await approveTx.wait();
       }
     
       setTransactionStatus('betting');
-      const boxContract = new ethers.Contract(box.address, BOX_ABI, signer);
-      const betTx = await boxContract.createBetWithAmount(
-        prediction,
-        amountInWei
-      );
+      const tx = await executeMobileTransaction({
+        to: box.address,
+        data: new ethers.Interface(BOX_ABI).encodeFunctionData('createBetWithAmount', [
+          prediction,
+          amountInWei.toString()
+        ])
+      });
       
-      setCurrentTxHash(betTx.hash);
-      await betTx.wait();
+      setCurrentTxHash(tx.hash);
+      await tx.wait();
     };
 
     if (box.isCancelled) {
