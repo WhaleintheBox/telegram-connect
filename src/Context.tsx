@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState, createContext, useContext, useCallback } from 'react';
 import { config, rainbowConfig } from './wagmi';
 import { useAppKit } from '@reown/appkit/react';
+import { useAccount, useConnect } from 'wagmi';
 import type { ReactNode } from 'react';
 
 const queryClient = new QueryClient();
@@ -40,9 +41,62 @@ type ProviderProps = {
 export function ContextProvider({ children }: ProviderProps) {
   const [platform, setPlatform] = useState<'mobile' | 'desktop'>('desktop');
   const { open } = useAppKit();
+  const { isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+
+  // Gestion de la reconnexion automatique
+  useEffect(() => {
+    if (!isConnected && typeof window !== 'undefined') {
+      const lastConnector = localStorage.getItem('witb-last-connector');
+      const lastTimestamp = localStorage.getItem('witb-connection-timestamp');
+      
+      if (lastConnector && lastTimestamp) {
+        // Vérifier si la connexion n'a pas expiré (24h)
+        const timestamp = parseInt(lastTimestamp);
+        if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+          const connector = connectors.find(c => c.id === lastConnector);
+          if (connector) {
+            connect({ connector });
+          }
+        } else {
+          // Nettoyer les données expirées
+          localStorage.removeItem('witb-last-connector');
+          localStorage.removeItem('witb-connection-timestamp');
+        }
+      }
+    }
+  }, [isConnected, connect, connectors]);
+
+  // Gestion de la visibilité de la page
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const lastConnector = localStorage.getItem('witb-last-connector');
+        if (lastConnector && !isConnected) {
+          const connector = connectors.find(c => c.id === lastConnector);
+          if (connector) {
+            connect({ connector });
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isConnected, connect, connectors]);
 
   const openConnectModal = useCallback(async () => {
-    await open({ view: 'Connect' });
+    try {
+      await open({ view: 'Connect' });
+      // Sauvegarder les informations de connexion
+      localStorage.setItem('witb-connection-timestamp', Date.now().toString());
+    } catch (error) {
+      console.error('Connection error:', error);
+      localStorage.removeItem('witb-last-connector');
+      localStorage.removeItem('witb-connection-timestamp');
+    }
   }, [open]);
 
   useEffect(() => {

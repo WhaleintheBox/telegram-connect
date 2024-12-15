@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount } from 'wagmi';
+import { useAccount, useConnect } from 'wagmi';
 import { useConnectModal } from '../Context';
 
 type Platform = 'mobile' | 'desktop';
@@ -16,6 +16,7 @@ const detectPlatform = (): Platform => {
 export function Connect() {
   const { isConnected } = useAccount();
   const { openConnectModal } = useConnectModal();
+  const { connect, connectors } = useConnect();
   const [platform, setPlatform] = React.useState<Platform>('desktop');
   const [error, setError] = React.useState<string | null>(null);
   const [isConnecting, setIsConnecting] = React.useState(false);
@@ -24,15 +25,57 @@ export function Connect() {
     setPlatform(detectPlatform());
   }, []);
 
+  // Gestion de la reconnexion automatique
+  React.useEffect(() => {
+    if (!isConnected && typeof window !== 'undefined') {
+      const lastConnector = localStorage.getItem('witb-last-connector');
+      const lastTimestamp = localStorage.getItem('witb-connection-timestamp');
+      
+      if (lastConnector && lastTimestamp) {
+        // Vérifier si la connexion n'a pas expiré (24h)
+        const timestamp = parseInt(lastTimestamp);
+        if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+          const connector = connectors.find(c => c.id === lastConnector);
+          if (connector) {
+            connect({ connector });
+          }
+        } else {
+          // Nettoyer les données expirées
+          localStorage.removeItem('witb-last-connector');
+          localStorage.removeItem('witb-connection-timestamp');
+        }
+      }
+    }
+  }, [isConnected, connect, connectors]);
+
   const handleDesktopConnect = async () => {
     try {
       setIsConnecting(true);
       setError(null);
       await openConnectModal();
+      // Sauvegarder le timestamp de connexion
+      localStorage.setItem('witb-connection-timestamp', Date.now().toString());
     } catch (err: any) {
       setError(err?.message || 'Failed to connect wallet');
+      // Nettoyer en cas d'erreur
+      localStorage.removeItem('witb-last-connector');
+      localStorage.removeItem('witb-connection-timestamp');
     } finally {
       setIsConnecting(false);
+    }
+  };
+
+  const handleMobileConnect = async (openModalFn: () => void, connectorId?: string) => {
+    try {
+      if (connectorId) {
+        localStorage.setItem('witb-last-connector', connectorId);
+        localStorage.setItem('witb-connection-timestamp', Date.now().toString());
+      }
+      openModalFn();
+    } catch (err: any) {
+      setError(err?.message || 'Failed to connect wallet');
+      localStorage.removeItem('witb-last-connector');
+      localStorage.removeItem('witb-connection-timestamp');
     }
   };
 
@@ -70,7 +113,7 @@ export function Connect() {
                 if (!connected) {
                   return (
                     <button
-                      onClick={openConnectModal}
+                      onClick={() => handleMobileConnect(openConnectModal)}
                       className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     >
                       Connect Mobile Wallet
