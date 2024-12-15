@@ -10,13 +10,6 @@ import { formatEther } from 'viem';
 import { ERC20_ABI, BOX_ABI } from './constants/contracts';
 import { useCache } from './components/cacheService';
 import { useState, useEffect, useCallback } from 'react';  // Ajout de useCallback
-import { MetaMaskProvider } from '@metamask/sdk-react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { WagmiProvider } from 'wagmi';
-import { config } from './wagmi';
-
-const queryClient = new QueryClient();
-
 
 
 type SportsType = {
@@ -1267,32 +1260,6 @@ export default function App() {
   }, []);
 
   return (
-    <WagmiProvider config={config}>
-    <QueryClientProvider client={queryClient}>
-      <MetaMaskProvider
-        debug={true}
-        sdkOptions={{
-          checkInstallationImmediately: true, // Important pour la détection mobile
-          dappMetadata: {
-            name: "Whale in the Box",
-            url: window.location.origin, // Utilisez origin au lieu de host
-            iconUrl: "https://whaleinthebox.com/_next/image?url=%2Fimg%2Flogos%2Flogo-wtib.png&w=828&q=75"
-          },
-          preferDesktop: false,
-          useDeeplink: true, // Important pour le deep linking mobile
-          modals: {      // Important pour gérer les redirections
-            otp: ({ onDisconnect }) => {
-              return {
-                mount: () => {},
-                unmount: () => {
-                  if (onDisconnect) onDisconnect();
-                },
-                updateOTPValue: () => {}
-              };
-            }
-          }
-        }}
-      >
     <>
       {isConnected && !schemaError && (
         <Account 
@@ -1671,8 +1638,5 @@ export default function App() {
           </div>
         )}
         </>
-      </MetaMaskProvider>
-    </QueryClientProvider>
-  </WagmiProvider>
   );
 }

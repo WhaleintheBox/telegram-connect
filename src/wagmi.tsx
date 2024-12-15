@@ -1,12 +1,12 @@
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { cookieStorage, createStorage, http, fallback } from 'wagmi';
 import { base } from '@reown/appkit/networks';
-import { walletConnect, coinbaseWallet, injected } from 'wagmi/connectors';
+import { coinbaseWallet, injected, metaMask } from 'wagmi/connectors'; // Supprimé walletConnect car non utilisé
 import { createAppKit } from '@reown/appkit/react';
+import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 
-export const projectId = "1558da14b9f93fe89954b32c5e17e840";
-
-if (!projectId) throw new Error("Project ID is not defined");
+export const REOWN_PROJECT_ID = "1558da14b9f93fe89954b32c5e17e840";
+export const WALLETCONNECT_PROJECT_ID = "1558da14b9f93fe89954b32c5e17e840";
 
 const metadata = {
   name: "Whale in the Box",
@@ -15,7 +15,6 @@ const metadata = {
   icons: ["https://imagedelivery.net/_aTEfDRm7z3tKgu9JhfeKA/e64de848-991b-4de3-787a-5e6008473800/sm"]
 };
 
-// RPC URLs de secours pour Base
 const baseRpcUrls = [
   'https://mainnet.base.org',
   'https://1rpc.io/base',
@@ -23,49 +22,6 @@ const baseRpcUrls = [
   'https://base.meowrpc.com'
 ];
 
-// Configure les connecteurs
-const connectors = [
-  walletConnect({ 
-    projectId, 
-    metadata,
-    showQrModal: true,
-    qrModalOptions: {
-      themeMode: 'dark',
-      explorerExcludedWalletIds: [],
-      explorerRecommendedWalletIds: [],
-      mobileWallets: [
-        {
-          id: 'metamask',
-          name: 'MetaMask',
-          links: {
-            native: 'metamask://',
-            universal: 'https://metamask.app.link'
-          }
-        }
-      ],
-      desktopWallets: [
-        {
-          id: 'metamask',
-          name: 'MetaMask',
-          links: {
-            native: 'metamask://',
-            universal: 'https://metamask.io'
-          }
-        }
-      ]
-    }
-  }),
-  injected({ 
-    shimDisconnect: true
-  }),
-  coinbaseWallet({
-    appName: metadata.name,
-    appLogoUrl: metadata.icons[0],
-    headlessMode: false
-  })
-];
-
-// Crée un transport avec fallback pour Base
 const baseTransport = fallback(
   baseRpcUrls.map(url => http(url, {
     timeout: 10000,
@@ -74,9 +30,8 @@ const baseTransport = fallback(
   }))
 );
 
-// Setup wagmi adapter
 export const wagmiAdapter = new WagmiAdapter({
-  projectId,
+  projectId: REOWN_PROJECT_ID,
   networks: [base],
   storage: createStorage({
     storage: cookieStorage
@@ -84,21 +39,28 @@ export const wagmiAdapter = new WagmiAdapter({
   transports: {
     [base.id]: baseTransport
   },
-  connectors
+  connectors: [
+    injected({ target: 'metaMask' }),
+    injected({ target: 'phantom' }),
+    metaMask(),
+    coinbaseWallet()
+  ]
 });
 
-// Create AppKit instance
-createAppKit({
+export const appKit = createAppKit({
   adapters: [wagmiAdapter],
   networks: [base],
   metadata,
-  projectId,
-  themeMode: 'dark',
-  themeVariables: {
-    '--w3m-color-mix': '#2563eb',
-    '--w3m-color-mix-strength': 20
+  projectId: REOWN_PROJECT_ID
+});
+
+export const rainbowConfig = getDefaultConfig({
+  appName: "Whale in the Box",
+  projectId: WALLETCONNECT_PROJECT_ID,
+  chains: [base],
+  transports: {
+    [base.id]: baseTransport
   }
 });
 
-// Export la config wagmi pour l'application
 export const config = wagmiAdapter.wagmiConfig;

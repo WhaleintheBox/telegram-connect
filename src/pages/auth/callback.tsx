@@ -1,5 +1,7 @@
+'use client';
+
 import { useEffect } from 'react';
-import { modal } from '../../Context';
+import { openConnectModal } from '../../Context';
 
 export default function AuthCallback() {
   useEffect(() => {
@@ -9,10 +11,8 @@ export default function AuthCallback() {
         const searchParams = new URLSearchParams(window.location.search);
         const redirectUrl = searchParams.get('callback') || '/';
 
-        // Ouvrir le modal avec les paramètres d'authentification
-        await modal.open({
-          view: 'Connect'
-        });
+        // Ouvrir le modal de connexion
+        await openConnectModal();
         
         // Redirection vers la page de callback
         window.location.href = redirectUrl;

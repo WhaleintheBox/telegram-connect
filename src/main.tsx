@@ -4,11 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
 import App from './App.tsx';
 import './index.css';
-import { config } from './wagmi';
-import { modal } from './Context';
+import { config, appKit } from './wagmi';
+import { ContextProvider } from './Context';
 
 // Initialise AppKit globalement
-if (modal) {
+if (appKit) {
   // L'AppKit est configuré et prêt à être utilisé
   console.log('AppKit initialized');
 }
@@ -19,7 +19,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <App />
+        <ContextProvider>
+          <App />
+        </ContextProvider>
       </QueryClientProvider>
     </WagmiProvider>
   </React.StrictMode>

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@metamask/sdk-react": "^0.31.2",
+    "@rainbow-me/rainbowkit": "^2.2.1",
     "@reown/appkit": "^1.6.0",
     "@reown/appkit-adapter-wagmi": "^1.6.0",
     "@tanstack/react-query": "^5.62.7",
