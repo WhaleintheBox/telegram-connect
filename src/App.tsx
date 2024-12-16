@@ -1170,15 +1170,18 @@ export default function App() {
 
   const getFilteredBoxes = (boxes: Box[]) => {
     if (!Array.isArray(boxes)) return [];
-    
+    const NFL_SPORT_ID = 'NFL';
+
     let filteredBoxes = boxes.filter(box => {
       if (!box || !box.sportData || !box.tokenData) return false;
 
       try {
         // Sport filtering
         const sportId = String(box.sportId || '').toUpperCase();
-        const sportMatch = filters.sports[sportId as keyof SportsType];
-        
+        const sportMatch = sportId === NFL_SPORT_ID ? 
+          filters.sports[NFL_SPORT_ID] : 
+          filters.sports[sportId as keyof SportsType];
+
         // Token filtering - Allow multiple token selections
         const isEth = !box.tokenData.address || box.tokenData.address === '0x0000000000000000000000000000000000000000';
         const isKrill = box.tokenData.symbol === 'KRILL';
