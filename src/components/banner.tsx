@@ -142,7 +142,7 @@ export const Banner = () => {
             padding: 0;
             height: 2.5rem;
             line-height: 2.5rem;
-            position: relative;
+            position: fixed; top
             z-index: 1;
           }
 
