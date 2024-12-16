@@ -1145,17 +1145,10 @@ export default function App() {
   }, [cacheData, updateCache, setUpdatedBoxes]); // Ajoutez les dépendances ici
 
   useEffect(() => {
-    // Permettre au moins un chargement initial
     fetchBoxes();
-    
-    // Ensuite gérer les updates
-    if (!isInBettingMode) {
-      const interval = setInterval(fetchBoxes, 30000);
-      return () => clearInterval(interval);
-    }
-    
-    return undefined;
-  }, [fetchBoxes, isInBettingMode]);
+    const interval = setInterval(fetchBoxes, 30000);
+    return () => clearInterval(interval);
+  }, [fetchBoxes]); 
 
   const formatAddress = (address: string): string => 
     `${address.slice(0, 6)}...${address.slice(-4)}`;
