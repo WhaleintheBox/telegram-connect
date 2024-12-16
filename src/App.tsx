@@ -468,7 +468,7 @@ export default function App() {
     // Fetch balances on mount
     useEffect(() => {
       const fetchBalances = async () => {
-        if (!window.ethereum || !address) return;
+        if (!window.ethereum || !address || isInBettingMode) return;
         
         try {
           const provider = new ethers.BrowserProvider(window.ethereum as unknown as ethers.Eip1193Provider);
@@ -517,7 +517,7 @@ export default function App() {
       };
       
       fetchBalances();
-    }, [box.tokenData.address, address]);
+    }, [box.tokenData.address, address, isInBettingMode]);
 
     // Check approval requirements
     useEffect(() => {
@@ -545,7 +545,7 @@ export default function App() {
     useEffect(() => {
       const checkWinnings = async () => {
         // Check aussi quand la box est cancelled
-        if (!window.ethereum || !address || (!box.isSettled && !box.isCancelled)) return;
+        if (!window.ethereum || !address || (!box.isSettled && !box.isCancelled || isInBettingMode)) return;
         try {
           const provider = new ethers.BrowserProvider(window.ethereum as unknown as ethers.Eip1193Provider);
           const boxContract = new ethers.Contract(box.address, BOX_ABI, provider);
@@ -562,7 +562,7 @@ export default function App() {
       };
       
       checkWinnings();
-    }, [address, box.address, box.isSettled, box.isCancelled]); // Add box.isCancelled to dependencies
+    }, [address, box.address, box.isSettled, box.isCancelled, isInBettingMode]); // Add box.isCancelled to dependencies
     
     const handleClaim = async () => {
       if (!window.ethereum || !address) return;
@@ -632,29 +632,37 @@ export default function App() {
     };
     
     const handleERC20Bet = async (prediction: string, amountInWei: bigint) => {
-      if (isApprovalRequired) {
-        setTransactionStatus('approving');
-        const approveTx = await executeMobileTokenApproval(
-          box.tokenData.address!,
-          box.address,
-          amountInWei.toString(),
-          ERC20_ABI
-        );
-        setCurrentTxHash(approveTx.hash);
-        await approveTx.wait();
-      }
-    
-      setTransactionStatus('betting');
-      const tx = await executeMobileTransaction({
-        to: box.address,
-        data: new ethers.Interface(BOX_ABI).encodeFunctionData('createBetWithAmount', [
-          prediction,
-          amountInWei.toString()
-        ])
-      });
+      setIsInBettingMode(true); // Ajouter ici au début
       
-      setCurrentTxHash(tx.hash);
-      await tx.wait();
+      try {
+        if (isApprovalRequired) {
+          setTransactionStatus('approving');
+          const approveTx = await executeMobileTokenApproval(
+            box.tokenData.address!,
+            box.address,
+            amountInWei.toString(),
+            ERC20_ABI
+          );
+          setCurrentTxHash(approveTx.hash);
+          await approveTx.wait();
+        }
+    
+        setTransactionStatus('betting');
+        const tx = await executeMobileTransaction({
+          to: box.address,
+          data: new ethers.Interface(BOX_ABI).encodeFunctionData('createBetWithAmount', [
+            prediction,
+            amountInWei.toString()
+          ])
+        });
+        
+        setCurrentTxHash(tx.hash);
+        await tx.wait();
+      } catch (error) {
+        // Gérer l'erreur
+      } finally {
+        setIsInBettingMode(false); // Et ici dans le finally
+      }
     };
 
     if (box.isCancelled) {
