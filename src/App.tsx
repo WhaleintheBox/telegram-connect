@@ -1464,14 +1464,24 @@ export default function App() {
                               className="box-image"
                             />
                             <div className="event-details-popup">
-                              <EventDetailsPopup box={{
-                                sportId: box.sportId,
-                                sportData: {
-                                  ...box.sportData,
-                                  status: box.sportData?.status || { long: 'Unknown', short: 'UNK' },
-                                  formattedStatus: box.sportData?.formattedStatus || ''
-                                }
-                              }} />                       
+                            <EventDetailsPopup box={{
+                              sportId: box.sportId,
+                              sportData: {
+                                ...box.sportData,
+                                status: box.sportData?.status || { long: 'Unknown', short: 'UNK' },
+                                formattedStatus: box.sportData?.formattedStatus || '',
+                                scores: box.sportData?.scores ? {
+                                  home: {
+                                    current: box.sportData.scores.home?.current || 0,
+                                    total: box.sportData.scores.home?.total || 0
+                                  },
+                                  away: {
+                                    current: box.sportData.scores.away?.current || 0,
+                                    total: box.sportData.scores.away?.total || 0
+                                  }
+                                } : undefined
+                              }
+                            }} />                    
                             </div>
                           </div>
                         )}
