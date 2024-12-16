@@ -711,7 +711,7 @@ export default function App() {
     
       // Vérifier si la box est résolue
       if (box.isSettled || 
-        ['FT', 'AET', 'PEN', 'FIN'].includes(box.sportData?.status?.short || '')) {
+        ['FT', 'AET', 'PEN', 'FIN', 'FINISHED'].includes(box.sportData?.status?.short || '')) {
         if (hasUserClaimed) {
           return (
             <div className="flex gap-2 px-4 pt-2 pb-4">
@@ -750,7 +750,7 @@ export default function App() {
     
       // Vérifier si le match est terminé mais non résolu
       const isScheduled = box.sportData?.scheduled && new Date(box.sportData.scheduled).getTime() <= Date.now();
-      const isFinished = ['FT', 'AET', 'PEN', 'FIN'].includes(box.sportData?.status?.short || '');
+      const isFinished = ['FT', 'AET', 'PEN', 'FIN', 'FINISHED'].includes(box.sportData?.status?.short || '');
       
       if (isScheduled || isFinished) {
         return (
@@ -769,7 +769,8 @@ export default function App() {
         // Ne montrer les boutons Hunt/Fish que si la box est vraiment ouverte
       const isBoxOpen = box.sportData?.status?.short === 'SCH' || 
                         box.sportData?.status?.short === 'NS' || 
-                        box.sportData?.status?.short === 'TBD' ||  // Ajouter TBD
+                        box.sportData?.status?.short === 'TBD' || 
+                        box.sportData?.status?.short === 'UPCOMING' ||  // Ajouter TBD
                         !box.isSettled && !box.isCancelled && new Date(box.sportData?.scheduled || '').getTime() > Date.now();
 
       if (!isBoxOpen) {
