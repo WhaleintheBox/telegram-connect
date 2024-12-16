@@ -597,7 +597,8 @@ export default function App() {
     const handleBet = async () => {
       if (!window.ethereum || !customAmount || !address) return;
       setIsProcessing(true);
-      
+      setIsInBettingMode(true);
+
       try {
         const amountInWei = ethers.parseEther(customAmount);
         const prediction = selectedBetType === 'hunt' ? "true" : "false";
@@ -625,15 +626,14 @@ export default function App() {
         handleBetError(error);
       } finally {
         setIsProcessing(false);
+        setIsInBettingMode(false); 
         if (transactionStatus === 'complete') {
           setTimeout(resetBettingState, 2000);
         }
       }
     };
     
-    const handleERC20Bet = async (prediction: string, amountInWei: bigint) => {
-      setIsInBettingMode(true); // Ajouter ici au début
-      
+    const handleERC20Bet = async (prediction: string, amountInWei: bigint) => {      
       try {
         if (isApprovalRequired) {
           setTransactionStatus('approving');
