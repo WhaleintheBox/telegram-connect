@@ -160,10 +160,12 @@ const EventDetailsPopup: React.FC<{ box: BoxType }> = ({ box }) => {
         }
         
         // Si le score est un objet
+        const displayScore = score.total ? `${score.current}/${score.total}` : score.current.toString();
+        
         return (
             <div className="relative">
                 <p className="text-4xl font-bold bg-gradient-to-b from-blue-300 to-blue-500 bg-clip-text text-transparent">
-                    {score.current}
+                    {displayScore}
                 </p>
                 <div className="absolute inset-0 backdrop-blur-sm -z-10" />
             </div>
