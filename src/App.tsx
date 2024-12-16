@@ -11,7 +11,7 @@ import { ERC20_ABI, BOX_ABI } from './constants/contracts';
 import { useCache } from './components/cacheService';
 import { useState, useEffect, useCallback } from 'react';  // Ajout de useCallback
 import { useConnectModal } from './Context'; 
-
+import {  Banner } from './components/banner';
 type SportsType = {
   [key in 'SOCCER' | 'F1' | 'MMA' | 'NFL' | 'BASKETBALL']: boolean;
 };
@@ -1261,6 +1261,7 @@ export default function App() {
 
   return (
     <>
+      <Banner />
       {isConnected && !schemaError && (
         <Account 
           myGames={filters.myGames} 
