@@ -74,19 +74,28 @@ const STATUS_MAP = {
     'CANC': { long: 'Cancelled', short: 'CANC' }
   },
   NFL: {
-    'SCHEDULED': { long: 'Scheduled', short: 'SCH' },
-    'INPROGRESS': { long: 'Live', short: 'LIVE' },
-    'HALFTIME': { long: 'Halftime', short: 'HT' },
-    'FINAL': { long: 'Finished', short: 'FIN' },
-    'SUSPENDED': { long: 'Suspended', short: 'SUSP' },
-    'POSTPONED': { long: 'Postponed', short: 'PST' },
-    'CANCELLED': { long: 'Cancelled', short: 'CANC' }
+    'NS': { long: 'Not Started', short: 'NS' },
+    'Q1': { long: 'First Quarter', short: 'Q1' },
+    'Q2': { long: 'Second Quarter', short: 'Q2' },
+    'Q3': { long: 'Third Quarter', short: 'Q3' }, 
+    'Q4': { long: 'Fourth Quarter', short: 'Q4' },
+    'HT': { long: 'Halftime', short: 'HT' },
+    'FT': { long: 'Finished', short: 'FT' },
+    'OT': { long: 'Overtime', short: 'OT' },
+    'CANC': { long: 'Cancelled', short: 'CANC' },
+    'PST': { long: 'Postponed', short: 'PST' }
   },
+  
   MMA: {
-    'SCHEDULED': { long: 'Scheduled', short: 'SCH' },
-    'STARTED': { long: 'Live', short: 'LIVE' },
-    'FINISHED': { long: 'Finished', short: 'FIN' },
-    'CANCELLED': { long: 'Cancelled', short: 'CANC' }
+    'NS': {'long': 'Scheduled', 'short': 'SCH'},
+    'IN': {'long': 'Live', 'short': 'LIVE'},
+    'PF': {'long': 'Live', 'short': 'LIVE'},
+    'LIVE': {'long': 'Live', 'short': 'LIVE'},
+    'WO': {'long': 'Live', 'short': 'LIVE'},
+    'EOR': {'long': 'Live', 'short': 'LIVE'},
+    'FT': {'long': 'Finished', 'short': 'FIN'},
+    'CANC': {'long': 'Cancelled', 'short': 'CANC'},
+    'PST': {'long': 'Postponed', 'short': 'PST'}
   },
   F1: {
     'UPCOMING': { long: 'Scheduled', short: 'SCH' },
