@@ -280,6 +280,8 @@ export default function App() {
   const { isConnected, address } = useAccount();
   const [sortOption, setSortOption] = useState<SortOption>('latest');
   const { cacheData, updateCache, updatedBoxes, setUpdatedBoxes, isLoading: cacheLoading } = useCache();
+  const [isInBettingMode, setIsInBettingMode] = useState(false);
+
 
 
   // Core states
@@ -361,6 +363,7 @@ export default function App() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [transactionStatus, setTransactionStatus] = useState<'initial' | 'approving' | 'approved' | 'betting' | 'complete'>('initial');
     const [currentTxHash, setCurrentTxHash] = useState<string | null>(null);
+    
     const handleBetError = (error: any) => {
       console.error('Betting error:', error);
       setTransactionStatus('initial');
@@ -383,6 +386,7 @@ export default function App() {
       setCustomAmount('');
       setTransactionStatus('initial');
       setCurrentTxHash(null);
+      setIsInBettingMode(false);
     };
   
     const handleApproval = async () => {
@@ -563,6 +567,7 @@ export default function App() {
     const handleClaim = async () => {
       if (!window.ethereum || !address) return;
       setIsProcessing(true);
+      setIsInBettingMode(true); 
       
       try {
         const provider = new ethers.BrowserProvider(window.ethereum as unknown as ethers.Eip1193Provider);
@@ -585,6 +590,7 @@ export default function App() {
         }
       } finally {
         setIsProcessing(false);
+        setIsInBettingMode(false); 
       }
     };
   
@@ -778,6 +784,7 @@ export default function App() {
             onClick={() => {
               setSelectedBetType('hunt');
               setActiveBetBox(box);
+              setIsInBettingMode(true); 
             }}
             className="hunt-button h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all flex-1"
             disabled={isProcessing}
@@ -792,6 +799,7 @@ export default function App() {
             onClick={() => {
               setSelectedBetType('fish');
               setActiveBetBox(box);
+              setIsInBettingMode(true); 
             }}
             className="fish-button h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all flex-1"
             disabled={isProcessing}
@@ -1129,6 +1137,7 @@ export default function App() {
   }, [cacheData, updateCache, setUpdatedBoxes]); // Ajoutez les dépendances ici
 
   useEffect(() => {
+    if (isInBettingMode) return;
     fetchBoxes();
     const interval = setInterval(fetchBoxes, 30000);
     return () => clearInterval(interval);
@@ -1432,7 +1441,7 @@ export default function App() {
                 <div className="boxes-grid">
                   {getFilteredBoxes(boxes).map((box) => {
                     const hunterPercentage = calculateHunterPercentage(box.bets);
-                    const isUpdated = updatedBoxes.has(box.address);
+                    const isUpdated = !isInBettingMode && updatedBoxes.has(box.address);
                     
                     return (
                       <div 
