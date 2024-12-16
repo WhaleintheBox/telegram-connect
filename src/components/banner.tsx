@@ -88,6 +88,7 @@ export const Banner = () => {
     };
   }, []);
 
+
   useEffect(() => {
     const glitch = () => {
       setGlitchIndex((prev) => (prev + 1) % 3);
@@ -108,7 +109,7 @@ export const Banner = () => {
             background: white;
             overflow: hidden;
             box-sizing: content-box;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
           }
 
           .confetti-canvas {
@@ -152,7 +153,7 @@ export const Banner = () => {
 
           @media (max-width: 768px) {
             .ticker {
-              animation-duration: 20s;
+              animation-duration: 45s;
             }
             .ticker-item {
               font-size: 0.9rem;
@@ -161,7 +162,7 @@ export const Banner = () => {
 
           @media (max-width: 480px) {
             .ticker {
-              animation-duration: 15s;
+              animation-duration: 60s;
             }
             .ticker-item {
               font-size: 0.85rem;
@@ -172,24 +173,6 @@ export const Banner = () => {
       <div className="ticker-wrap">
         <canvas ref={canvasRef} className="confetti-canvas" />
         
-        <div 
-          className="absolute inset-0 opacity-10"
-          style={{
-            background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.03) 10px, rgba(0,0,0,0.03) 20px)'
-          }}
-        />
-        
-        <div className="absolute inset-0">
-          <div 
-            className="absolute inset-0 border-t border-b"
-            style={{
-              borderColor: glitchColors[glitchIndex],
-              boxShadow: `0 0 8px ${shadowColors[glitchIndex]}`,
-              opacity: 0.3
-            }}
-          />
-        </div>
-
         <div className="ticker">
           <div 
             className="ticker-item font-mono tracking-wider font-medium"
