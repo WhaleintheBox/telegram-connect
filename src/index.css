@@ -258,6 +258,7 @@ button:disabled {
 
 
 .account-container {
+  margin-top: 40px !important; /* Hauteur du bandeau fixe */
   background-color: #ffffff;
   border-radius: 12px;
   border: 1px solid #e4e4e7;
@@ -2323,6 +2324,7 @@ button:disabled {
 }
 
 .connect-container {
+  margin-top: 40px !important; /* Hauteur du bandeau fixe */
   background-color: #ffffff;
   border-radius: 12px;
   border: 1px solid #e4e4e7;
