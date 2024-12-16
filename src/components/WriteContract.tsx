@@ -44,7 +44,7 @@ const transactionGifs = [
 export function WriteContract(data: WriteContractProps) {
   const { sendEvent } = data;
   const [userRejected, setUserRejected] = useState(false);
-  const [selectedGif, setSelectedGif] = useState('');
+  const [selectedGif, setSelectedGif] = useState<string | null>(null);
   
   // Simuler la transaction d'abord
   const { isError: isSimulateError, error: simulateError } = useSimulateContract({
@@ -69,6 +69,7 @@ export function WriteContract(data: WriteContractProps) {
   const error = writeError || confirmError || (isSimulateError ? simulateError : null);
 
   const selectRandomGif = () => {
+    if (!transactionGifs.length) return;
     const randomIndex = Math.floor(Math.random() * transactionGifs.length);
     setSelectedGif(transactionGifs[randomIndex]);
   };
