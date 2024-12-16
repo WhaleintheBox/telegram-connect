@@ -280,8 +280,6 @@ export default function App() {
   const { isConnected, address } = useAccount();
   const [sortOption, setSortOption] = useState<SortOption>('latest');
   const { cacheData, updateCache, updatedBoxes, setUpdatedBoxes, isLoading: cacheLoading } = useCache();
-  const [isInBettingMode, setIsInBettingMode] = useState(false);
-
 
 
   // Core states
@@ -363,6 +361,7 @@ export default function App() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [transactionStatus, setTransactionStatus] = useState<'initial' | 'approving' | 'approved' | 'betting' | 'complete'>('initial');
     const [currentTxHash, setCurrentTxHash] = useState<string | null>(null);
+
     
     const handleBetError = (error: any) => {
       console.error('Betting error:', error);
@@ -386,7 +385,6 @@ export default function App() {
       setCustomAmount('');
       setTransactionStatus('initial');
       setCurrentTxHash(null);
-      setIsInBettingMode(false);
     };
   
     const handleApproval = async () => {
@@ -468,7 +466,7 @@ export default function App() {
     // Fetch balances on mount
     useEffect(() => {
       const fetchBalances = async () => {
-        if (!window.ethereum || !address || isInBettingMode) return;
+        if (!window.ethereum || !address) return;
         
         try {
           const provider = new ethers.BrowserProvider(window.ethereum as unknown as ethers.Eip1193Provider);
@@ -517,7 +515,7 @@ export default function App() {
       };
       
       fetchBalances();
-    }, [box.tokenData.address, address, isInBettingMode]);
+    }, [box.tokenData.address, address]);
 
     // Check approval requirements
     useEffect(() => {
@@ -545,7 +543,7 @@ export default function App() {
     useEffect(() => {
       const checkWinnings = async () => {
         // Check aussi quand la box est cancelled
-        if (!window.ethereum || !address || (!box.isSettled && !box.isCancelled || isInBettingMode)) return;
+        if (!window.ethereum || !address || (!box.isSettled && !box.isCancelled)) return;
         try {
           const provider = new ethers.BrowserProvider(window.ethereum as unknown as ethers.Eip1193Provider);
           const boxContract = new ethers.Contract(box.address, BOX_ABI, provider);
@@ -562,12 +560,11 @@ export default function App() {
       };
       
       checkWinnings();
-    }, [address, box.address, box.isSettled, box.isCancelled, isInBettingMode]); // Add box.isCancelled to dependencies
+    }, [address, box.address, box.isSettled, box.isCancelled]); // Add box.isCancelled to dependencies
     
     const handleClaim = async () => {
       if (!window.ethereum || !address) return;
       setIsProcessing(true);
-      setIsInBettingMode(true); 
       
       try {
         const provider = new ethers.BrowserProvider(window.ethereum as unknown as ethers.Eip1193Provider);
@@ -590,15 +587,13 @@ export default function App() {
         }
       } finally {
         setIsProcessing(false);
-        setIsInBettingMode(false); 
       }
     };
   
     const handleBet = async () => {
       if (!window.ethereum || !customAmount || !address) return;
       setIsProcessing(true);
-      setIsInBettingMode(true);
-
+      
       try {
         const amountInWei = ethers.parseEther(customAmount);
         const prediction = selectedBetType === 'hunt' ? "true" : "false";
@@ -626,43 +621,36 @@ export default function App() {
         handleBetError(error);
       } finally {
         setIsProcessing(false);
-        setIsInBettingMode(false); 
         if (transactionStatus === 'complete') {
           setTimeout(resetBettingState, 2000);
         }
       }
     };
     
-    const handleERC20Bet = async (prediction: string, amountInWei: bigint) => {      
-      try {
-        if (isApprovalRequired) {
-          setTransactionStatus('approving');
-          const approveTx = await executeMobileTokenApproval(
-            box.tokenData.address!,
-            box.address,
-            amountInWei.toString(),
-            ERC20_ABI
-          );
-          setCurrentTxHash(approveTx.hash);
-          await approveTx.wait();
-        }
-    
-        setTransactionStatus('betting');
-        const tx = await executeMobileTransaction({
-          to: box.address,
-          data: new ethers.Interface(BOX_ABI).encodeFunctionData('createBetWithAmount', [
-            prediction,
-            amountInWei.toString()
-          ])
-        });
-        
-        setCurrentTxHash(tx.hash);
-        await tx.wait();
-      } catch (error) {
-        // Gérer l'erreur
-      } finally {
-        setIsInBettingMode(false); // Et ici dans le finally
+    const handleERC20Bet = async (prediction: string, amountInWei: bigint) => {
+      if (isApprovalRequired) {
+        setTransactionStatus('approving');
+        const approveTx = await executeMobileTokenApproval(
+          box.tokenData.address!,
+          box.address,
+          amountInWei.toString(),
+          ERC20_ABI
+        );
+        setCurrentTxHash(approveTx.hash);
+        await approveTx.wait();
       }
+    
+      setTransactionStatus('betting');
+      const tx = await executeMobileTransaction({
+        to: box.address,
+        data: new ethers.Interface(BOX_ABI).encodeFunctionData('createBetWithAmount', [
+          prediction,
+          amountInWei.toString()
+        ])
+      });
+      
+      setCurrentTxHash(tx.hash);
+      await tx.wait();
     };
 
     if (box.isCancelled) {
@@ -792,7 +780,6 @@ export default function App() {
             onClick={() => {
               setSelectedBetType('hunt');
               setActiveBetBox(box);
-              setIsInBettingMode(true); 
             }}
             className="hunt-button h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all flex-1"
             disabled={isProcessing}
@@ -807,7 +794,6 @@ export default function App() {
             onClick={() => {
               setSelectedBetType('fish');
               setActiveBetBox(box);
-              setIsInBettingMode(true); 
             }}
             className="fish-button h-14 font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transform transition-all flex-1"
             disabled={isProcessing}
@@ -1448,7 +1434,7 @@ export default function App() {
                 <div className="boxes-grid">
                   {getFilteredBoxes(boxes).map((box) => {
                     const hunterPercentage = calculateHunterPercentage(box.bets);
-                    const isUpdated = !isInBettingMode && updatedBoxes.has(box.address);
+                    const isUpdated = updatedBoxes.has(box.address);
                     
                     return (
                       <div 
@@ -1463,24 +1449,25 @@ export default function App() {
                               className="box-image"
                             />
                             <div className="event-details-popup">
-                            <EventDetailsPopup box={{
-                              sportId: box.sportId,
-                              sportData: {
-                                ...box.sportData,
-                                status: box.sportData?.status || { long: 'Unknown', short: 'UNK' },
-                                formattedStatus: box.sportData?.formattedStatus || '',
-                                scores: box.sportData?.scores ? {
-                                  home: {
-                                    current: box.sportData.scores.home?.current || 0,
-                                    total: box.sportData.scores.home?.total || 0
-                                  },
-                                  away: {
-                                    current: box.sportData.scores.away?.current || 0,
-                                    total: box.sportData.scores.away?.total || 0
+                              <EventDetailsPopup box={{
+                                sportId: box.sportId,
+                                sportData: {
+                                  ...box.sportData,
+                                  status: box.sportData?.status || { long: 'Unknown', short: 'UNK' },
+                                  formattedStatus: box.sportData?.formattedStatus || '',
+                                  // Si vous affichez des scores, assurez-vous de les passer comme ceci :
+                                  scores: box.sportData?.scores && {
+                                    home: {
+                                      current: box.sportData.scores.home?.current || 0,
+                                      total: box.sportData.scores.home?.total || 0
+                                    },
+                                    away: {
+                                      current: box.sportData.scores.away?.current || 0,
+                                      total: box.sportData.scores.away?.total || 0
+                                    }
                                   }
-                                } : undefined
-                              }
-                            }} />                    
+                                },
+                              }} />                       
                             </div>
                           </div>
                         )}
