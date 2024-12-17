@@ -55,9 +55,17 @@ const normalizeStatus = (status: any): NormalizedStatus => {
         'CANCELLED': { long: 'Cancelled', short: 'CAN' },
         'POSTPONED': { long: 'Postponed', short: 'PST' },
         'NOT STARTED': { long: 'Not Started', short: 'NS' },
-        'IN_PROGRESS': { long: 'In Progress', short: 'IP' },
-        'IN PROGRESS': { long: 'In Progress', short: 'IP' },
-        'ENDED': { long: 'Ended', short: 'END' }
+        'IN_PROGRESS': { long: 'In Progress', short: 'LIVE' },
+        'IN PROGRESS': { long: 'In Progress', short: 'LIVE' },
+        'ENDED': { long: 'Ended', short: 'END' },
+        'NS': { long: 'Scheduled', short: 'SCH' },
+        'IN': { long: 'Live', short: 'LIVE' },
+        'PF': { long: 'Live', short: 'LIVE' },
+        'WO': { long: 'Live', short: 'LIVE' },
+        'EOR': { long: 'Live', short: 'LIVE' },
+        'FT': { long: 'Finished', short: 'FIN' },
+        'CANC': { long: 'Cancelled', short: 'CANC' },
+        'PST': { long: 'Postponed', short: 'PST' }
     };
 
     return statusMap[statusStr] || { long: String(status), short: 'UNK' };

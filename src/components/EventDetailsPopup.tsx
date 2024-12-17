@@ -112,6 +112,10 @@ const EventDetailsPopup: React.FC<{ box: BoxType }> = ({ box }) => {
     const StatusBadge = ({ status }: { status: Status }) => {
         const getStatusStyle = () => {
             switch (status.short) {
+                case 'IN':
+                case 'PF':
+                case 'WO':
+                case 'EOR':
                 case 'LIVE':
                     return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
                 case 'FIN':
@@ -120,7 +124,11 @@ const EventDetailsPopup: React.FC<{ box: BoxType }> = ({ box }) => {
                 case 'PEN':
                     return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
                 case 'CANC':
+                case 'PST':
                     return 'bg-red-500/20 text-red-400 border-red-500/30';
+                case 'SCH':
+                case 'NS':
+                    return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
                 default:
                     return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
             }
