@@ -1249,7 +1249,7 @@ export default function App() {
       
         // Status filtering
         const scheduledTime = box.sportData?.scheduled ? new Date(box.sportData.scheduled).getTime() : 0;
-        const isBoxOpen = scheduledTime > Date.now() && !box.isSettled;
+        const isBoxOpen = box.timeRemaining && box.timeRemaining > 0 && !box.isSettled;
         const isBoxClosed = box.isSettled || scheduledTime <= Date.now();
         
         const statusMatch = (filters.status.open && isBoxOpen) ||
@@ -1597,13 +1597,13 @@ export default function App() {
                               <span className={`status-badge ${
                                 box.isCancelled 
                                   ? 'cancelled'
-                                  : box.isSettled || new Date(box.sportData?.scheduled || '').getTime() <= Date.now() 
+                                  : box.isSettled || !box.timeRemaining || box.timeRemaining <= 0
                                     ? 'settled' 
                                     : 'active'
                               }`}>
                                 {box.isCancelled 
                                   ? '⚠️ Cancelled'
-                                  : box.isSettled || new Date(box.sportData?.scheduled || '').getTime() <= Date.now() 
+                                  : box.isSettled || !box.timeRemaining || box.timeRemaining <= 0
                                     ? '🔴 Closed' 
                                     : '🟢 Open'
                                 }
