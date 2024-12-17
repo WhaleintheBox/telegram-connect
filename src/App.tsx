@@ -749,7 +749,7 @@ export default function App() {
   
     if (!isActive) {
       // Si le match est en direct - Modifier pour utiliser la nouvelle structure de status
-      if (box.sportData?.status?.short === 'LIVE') {
+      if (['LIVE', 'HT', 'Q1', 'Q2', 'Q3', 'Q4', 'IN', 'PF', 'WO', 'EOR', 'INPROGRESS', '2OT', 'OT'].includes(box.sportData?.status?.short || ''))  {
         return (
           <div className="flex gap-2 px-4 pt-2 pb-4">
             <div className="w-full py-3 text-center bg-yellow-50 text-yellow-800 font-semibold rounded-xl">
@@ -761,7 +761,7 @@ export default function App() {
     
       // Vérifier si la box est résolue
       if (box.isSettled || 
-        ['FT', 'AET', 'PEN', 'FIN', 'FINISHED'].includes(box.sportData?.status?.short || '')) {
+        ['FT', 'AET', 'PEN', 'FIN', 'FINISHED', 'AOT', 'ABD'].includes(box.sportData?.status?.short || '')) {
         if (hasUserClaimed) {
           return (
             <div className="flex gap-2 px-4 pt-2 pb-4">
@@ -800,7 +800,7 @@ export default function App() {
     
       // Vérifier si le match est terminé mais non résolu
       const isScheduled = box.sportData?.scheduled && new Date(box.sportData.scheduled).getTime() <= Date.now();
-      const isFinished = ['FT', 'AET', 'PEN', 'FIN', 'FINISHED'].includes(box.sportData?.status?.short || '');
+      const isFinished = ['FT', 'AET', 'PEN', 'FIN', 'FINISHED', 'AOT', 'ABD'].includes(box.sportData?.status?.short || '');
       
       if (isScheduled || isFinished) {
         return (
@@ -815,12 +815,23 @@ export default function App() {
           </div>
         );
       }
+      
+      if (['SUSP', 'INT', 'PST', 'DEL'].includes(box.sportData?.status?.short || '')) {
+        return (
+          <div className="flex gap-2 px-4 pt-2 pb-4">
+            <div className="w-full py-3 text-center bg-orange-50 text-orange-800 font-semibold rounded-xl">
+              ⚠️ Game Interrupted
+            </div>
+          </div>
+        );
+      }
 
         // Ne montrer les boutons Hunt/Fish que si la box est vraiment ouverte
       const isBoxOpen = box.sportData?.status?.short === 'SCH' || 
                         box.sportData?.status?.short === 'NS' || 
                         box.sportData?.status?.short === 'TBD' || 
-                        box.sportData?.status?.short === 'UPCOMING' ||  // Ajouter TBD
+                        box.sportData?.status?.short === 'UPCOMING' || 
+                        box.sportData?.status?.short === 'SCHEDULED' ||  // Ajouter TBD
                         !box.isSettled && !box.isCancelled && new Date(box.sportData?.scheduled || '').getTime() > Date.now();
 
       if (!isBoxOpen) {
