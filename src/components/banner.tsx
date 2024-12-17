@@ -134,11 +134,11 @@ export const Banner = () => {
       const root = document.documentElement;
   
       if (screenWidth > 1024) {
-        root.style.setProperty('--ticker-duration', '60s'); // Desktop
+        root.style.setProperty('--ticker-duration', '120s'); // Desktop
       } else if (screenWidth > 768) {
-        root.style.setProperty('--ticker-duration', '40s'); // Tablettes
+        root.style.setProperty('--ticker-duration', '90s'); // Tablettes
       } else {
-        root.style.setProperty('--ticker-duration', '30s'); // Mobile
+        root.style.setProperty('--ticker-duration', '60s'); // Mobile
       }
     };
   
