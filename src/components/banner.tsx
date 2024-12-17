@@ -15,8 +15,19 @@ export const Banner = () => {
   const [glitchIndex, setGlitchIndex] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const confettiRef = useRef<Confetti[]>([]);
-  
-  const message = "🎯 AI-POWERED DECENTRALIZED SPORTS BETTING 🤖          🌐 ZERO FEES × ZERO TAX × PURE P2P 💫          🔵 POWERED ON BASE NETWORK          ⚡ JOIN OUR TELEGRAM FOR FULL ACCESS ⚡          ";
+
+  const message = `
+    *"Football is a simple game: 22 men chase a ball for 90 minutes, and at the end, the Germans win."* - Gary Lineker          
+    *"Float like a butterfly, sting like a bee."* - Muhammad Ali          
+    *"You miss 100% of the shots you don’t take."* - Wayne Gretzky          
+    *"If you no longer go for a gap that exists, you’re no longer a racing driver."* - Ayrton Senna          
+    *"Winning isn’t everything, it’s the only thing."* - Vince Lombardi          
+    *"Everyone has a plan until they get punched in the mouth."* - Mike Tyson          
+    *"I think, therefore I play."* - Andrea Pirlo          
+    *"Hard work beats talent when talent doesn’t work hard."* - Tim Tebow          
+    *"Leave me alone, I know what I’m doing!"* - Kimi Räikkönen          
+    *"Talent wins games, but teamwork and intelligence win championships."* - Michael Jordan          
+  `;
 
   const glitchColors = ['#00875A', '#B800B8', '#0088CC'];
   const shadowColors = ['rgba(0, 135, 90, 0.3)', 'rgba(184, 0, 184, 0.3)', 'rgba(0, 136, 204, 0.3)'];
@@ -43,7 +54,6 @@ export const Banner = () => {
       return confetti;
     };
 
-    // Initialiser les confettis
     confettiRef.current = Array(30).fill(null).map(createConfetti);
 
     const resizeCanvas = () => {
@@ -87,7 +97,6 @@ export const Banner = () => {
       cancelAnimationFrame(animationFrame);
     };
   }, []);
-
 
   useEffect(() => {
     const glitch = () => {
@@ -135,6 +144,7 @@ export const Banner = () => {
             animation-name: ticker;
             -webkit-animation-duration: 30s;
             animation-duration: 30s;
+            font-style: italic; /* Ajout pour italique */
           }
 
           .ticker-item {
@@ -181,7 +191,6 @@ export const Banner = () => {
               textShadow: `0 0 1px ${shadowColors[glitchIndex]}`,
             }}
           >
-            {message}
             {message}
           </div>
         </div>
