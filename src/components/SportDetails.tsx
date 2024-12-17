@@ -65,7 +65,7 @@ const normalizeStatus = (status: any): NormalizedStatus => {
         'EOR': { long: 'Live', short: 'LIVE' },
         'FT': { long: 'Finished', short: 'FIN' },
         'CANC': { long: 'Cancelled', short: 'CANC' },
-        'PST': { long: 'Postponed', short: 'PST' }
+        'PST': { long: 'Postponed', short: 'PST' },
     };
 
     return statusMap[statusStr] || { long: String(status), short: 'UNK' };

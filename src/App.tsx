@@ -74,16 +74,30 @@ const STATUS_MAP = {
     'CANC': { long: 'Cancelled', short: 'CANC' }
   },
   NFL: {
-    'NS': {'long': 'Not Started', 'short': 'NS'},
-    'Q1': {'long': 'First Quarter', 'short': 'Q1'},
-    'Q2': {'long': 'Second Quarter', 'short': 'Q2'},
-    'Q3': {'long': 'Third Quarter', 'short': 'Q3'},
-    'Q4': {'long': 'Fourth Quarter', 'short': 'Q4'},
-    'HT': {'long': 'Halftime', 'short': 'HT'},
-    'FT': {'long': 'Finished', 'short': 'FT'},
-    'OT': {'long': 'Overtime', 'short': 'OT'},
-    'CANC': {'long': 'Cancelled', 'short': 'CANC'},
-    'PST': {'long': 'Postponed', 'short': 'PST'}
+    // Phase pré-match
+    'NS': { long: 'Not Started', short: 'NS' },
+    'SCHEDULED': { long: 'Scheduled', short: 'SCH' },
+    'PST': { long: 'Postponed', short: 'PST' },
+    'CANC': { long: 'Cancelled', short: 'CANC' },
+    
+    // Phases en cours
+    'Q1': { long: 'First Quarter', short: 'Q1' }, 
+    'Q2': { long: 'Second Quarter', short: 'Q2' },
+    'Q3': { long: 'Third Quarter', short: 'Q3' },
+    'Q4': { long: 'Fourth Quarter', short: 'Q4' },
+    'HT': { long: 'Halftime', short: 'HT' },
+    'OT': { long: 'Overtime', short: 'OT' },
+    '2OT': { long: 'Double Overtime', short: '2OT' },
+    
+    // Phases intermédiaires
+    'SUSP': { long: 'Suspended', short: 'SUSP' },
+    'INT': { long: 'Interrupted', short: 'INT' },
+    'DEL': { long: 'Delayed', short: 'DEL' },
+    
+    // Phases finales
+    'FT': { long: 'Finished', short: 'FT' },
+    'AOT': { long: 'After Overtime', short: 'AOT' },
+    'ABANDONED': { long: 'Abandoned', short: 'ABD' }
   },
   
   MMA: {
@@ -156,7 +170,6 @@ export const useEventStatus = (sportData?: { status?: any, scheduled?: string })
 export const StatusBadge: React.FC<{ status: Status }> = ({ status }) => {
   const getStatusStyle = () => {
     switch (status.short) {
-
       // Live statuses - Green theme
       case 'LIVE':
       case 'Q1':
@@ -169,6 +182,8 @@ export const StatusBadge: React.FC<{ status: Status }> = ({ status }) => {
       case 'WO':
       case 'INPROGRESS':
       case 'HT':
+      case '2OT': // Ajout pour NFL
+      case 'AOT': // Ajout pour NFL
         return 'bg-green-500/20 text-green-400 border-green-500/30';
       
       // Finished statuses - Gray theme
@@ -178,6 +193,7 @@ export const StatusBadge: React.FC<{ status: Status }> = ({ status }) => {
       case 'OT':
       case 'PEN':
       case 'FINISHED':
+      case 'ABD': // Ajout pour NFL (Abandoned)
         return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
       
       // Cancelled/Postponed statuses - Red theme
@@ -187,6 +203,7 @@ export const StatusBadge: React.FC<{ status: Status }> = ({ status }) => {
       case 'POSTPONED':
       case 'SUSP':
       case 'INT':
+      case 'DEL': // Ajout pour NFL (Delayed)
         return 'bg-red-500/20 text-red-400 border-red-500/30';
       
       // Scheduled/Not Started statuses - Blue theme
@@ -194,6 +211,7 @@ export const StatusBadge: React.FC<{ status: Status }> = ({ status }) => {
       case 'TBD':
       case 'SCH':
       case 'UPCOMING':
+      case 'SCHEDULED': // Ajout pour NFL
         return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       
       // Default fallback

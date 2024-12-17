@@ -112,23 +112,51 @@ const EventDetailsPopup: React.FC<{ box: BoxType }> = ({ box }) => {
     const StatusBadge = ({ status }: { status: Status }) => {
         const getStatusStyle = () => {
             switch (status.short) {
+                // Live statuses - Green theme
+                case 'LIVE':
+                case 'Q1':
+                case 'Q2':
+                case 'Q3':
+                case 'Q4':
                 case 'IN':
                 case 'PF':
-                case 'WO':
                 case 'EOR':
-                case 'LIVE':
-                    return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
-                case 'FIN':
+                case 'WO':
+                case 'INPROGRESS':
+                case 'HT':
+                case '2OT': // Ajout pour NFL
+                case 'AOT': // Ajout pour NFL
+                    return 'bg-green-500/20 text-green-400 border-green-500/30';
+                
+                // Finished statuses - Gray theme
                 case 'FT':
+                case 'FIN':
                 case 'AET':
+                case 'OT':
                 case 'PEN':
+                case 'FINISHED':
+                case 'ABD': // Ajout pour NFL (Abandoned)
                     return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+                
+                // Cancelled/Postponed statuses - Red theme
                 case 'CANC':
                 case 'PST':
+                case 'CANCELLED':
+                case 'POSTPONED':
+                case 'SUSP':
+                case 'INT':
+                case 'DEL': // Ajout pour NFL (Delayed)
                     return 'bg-red-500/20 text-red-400 border-red-500/30';
-                case 'SCH':
+                
+                // Scheduled/Not Started statuses - Blue theme
                 case 'NS':
+                case 'TBD':
+                case 'SCH':
+                case 'UPCOMING':
+                case 'SCHEDULED': // Ajout pour NFL
                     return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+                
+                // Default fallback
                 default:
                     return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
             }
@@ -140,7 +168,6 @@ const EventDetailsPopup: React.FC<{ box: BoxType }> = ({ box }) => {
             </span>
         );
     };
-
 
     const TeamScore = ({ score }: { score?: number | { current: number; total: number } | null }) => {
         // Composant de rendu du score
