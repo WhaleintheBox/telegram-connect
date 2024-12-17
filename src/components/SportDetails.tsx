@@ -30,6 +30,7 @@ interface NormalizedStatus {
 }
 
 const normalizeStatus = (status: any): NormalizedStatus => {
+    // If no status provided, return default
     if (!status) return { long: 'Unknown', short: 'UNK' };
     
     // If status is already in the correct format, return it
@@ -37,7 +38,14 @@ const normalizeStatus = (status: any): NormalizedStatus => {
         return status as NormalizedStatus;
     }
 
-    // Convert to string and normalize
+    // If status is a dictionary but not in our format, try to extract status
+    if (typeof status === 'object') {
+        const shortStatus = status.short || status.code || 'UNK';
+        const longStatus = status.long || status.description || 'Unknown';
+        return { long: longStatus, short: shortStatus };
+    }
+
+    // Convert string status to normalized format
     const statusStr = String(status).toUpperCase();
     const statusMap: Record<string, NormalizedStatus> = {
         'LIVE': { long: 'Live', short: 'LIVE' },
@@ -48,6 +56,7 @@ const normalizeStatus = (status: any): NormalizedStatus => {
         'POSTPONED': { long: 'Postponed', short: 'PST' },
         'NOT STARTED': { long: 'Not Started', short: 'NS' },
         'IN_PROGRESS': { long: 'In Progress', short: 'IP' },
+        'IN PROGRESS': { long: 'In Progress', short: 'IP' },
         'ENDED': { long: 'Ended', short: 'END' }
     };
 
