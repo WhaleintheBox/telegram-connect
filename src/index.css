@@ -2410,3 +2410,24 @@ button:disabled {
 .error-dismiss:hover {
   color: #dc2626;
 }
+
+@keyframes ticker {
+  0% { transform: translate3d(100%, 0, 0); }
+  100% { transform: translate3d(-100%, 0, 0); }
+}
+
+.ticker {
+  animation-duration: 30s; /* Vitesse par défaut */
+}
+
+@media (max-width: 768px) {
+  .ticker {
+    animation-duration: 15s; /* Accélérer l'animation sur mobile */
+  }
+}
+
+@media (max-width: 480px) {
+  .ticker {
+    animation-duration: 12s; /* Encore plus rapide pour les très petits écrans */
+  }
+}
