@@ -74,16 +74,16 @@ const STATUS_MAP = {
     'CANC': { long: 'Cancelled', short: 'CANC' }
   },
   NFL: {
-    'NS': { long: 'Not Started', short: 'NS' },
-    'Q1': { long: 'First Quarter', short: 'Q1' },
-    'Q2': { long: 'Second Quarter', short: 'Q2' },
-    'Q3': { long: 'Third Quarter', short: 'Q3' }, 
-    'Q4': { long: 'Fourth Quarter', short: 'Q4' },
-    'HT': { long: 'Halftime', short: 'HT' },
-    'FT': { long: 'Finished', short: 'FT' },
-    'OT': { long: 'Overtime', short: 'OT' },
-    'CANC': { long: 'Cancelled', short: 'CANC' },
-    'PST': { long: 'Postponed', short: 'PST' }
+    'NS': {'long': 'Not Started', 'short': 'NS'},
+    'Q1': {'long': 'First Quarter', 'short': 'Q1'},
+    'Q2': {'long': 'Second Quarter', 'short': 'Q2'},
+    'Q3': {'long': 'Third Quarter', 'short': 'Q3'},
+    'Q4': {'long': 'Fourth Quarter', 'short': 'Q4'},
+    'HT': {'long': 'Halftime', 'short': 'HT'},
+    'FT': {'long': 'Finished', 'short': 'FT'},
+    'OT': {'long': 'Overtime', 'short': 'OT'},
+    'CANC': {'long': 'Cancelled', 'short': 'CANC'},
+    'PST': {'long': 'Postponed', 'short': 'PST'}
   },
   
   MMA: {
@@ -156,15 +156,47 @@ export const useEventStatus = (sportData?: { status?: any, scheduled?: string })
 export const StatusBadge: React.FC<{ status: Status }> = ({ status }) => {
   const getStatusStyle = () => {
     switch (status.short) {
+
+      // Live statuses - Green theme
       case 'LIVE':
+      case 'Q1':
+      case 'Q2':
+      case 'Q3':
+      case 'Q4':
+      case 'IN':
+      case 'PF':
+      case 'EOR':
+      case 'WO':
+      case 'INPROGRESS':
+      case 'HT':
         return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'FIN':
+      
+      // Finished statuses - Gray theme
       case 'FT':
+      case 'FIN':
       case 'AET':
+      case 'OT':
       case 'PEN':
+      case 'FINISHED':
         return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+      
+      // Cancelled/Postponed statuses - Red theme
       case 'CANC':
+      case 'PST':
+      case 'CANCELLED':
+      case 'POSTPONED':
+      case 'SUSP':
+      case 'INT':
         return 'bg-red-500/20 text-red-400 border-red-500/30';
+      
+      // Scheduled/Not Started statuses - Blue theme
+      case 'NS':
+      case 'TBD':
+      case 'SCH':
+      case 'UPCOMING':
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      
+      // Default fallback
       default:
         return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
     }
