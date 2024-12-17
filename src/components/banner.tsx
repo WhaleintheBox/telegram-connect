@@ -17,16 +17,38 @@ export const Banner = () => {
   const confettiRef = useRef<Confetti[]>([]);
 
   const message = `
-    *"Football is a simple game: 22 men chase a ball for 90 minutes, and at the end, the Germans win."* - Gary Lineker          
-    *"Float like a butterfly, sting like a bee."* - Muhammad Ali          
-    *"You miss 100% of the shots you don’t take."* - Wayne Gretzky          
-    *"If you no longer go for a gap that exists, you’re no longer a racing driver."* - Ayrton Senna          
-    *"Winning isn’t everything, it’s the only thing."* - Vince Lombardi          
-    *"Everyone has a plan until they get punched in the mouth."* - Mike Tyson          
-    *"I think, therefore I play."* - Andrea Pirlo          
-    *"Hard work beats talent when talent doesn’t work hard."* - Tim Tebow          
-    *"Leave me alone, I know what I’m doing!"* - Kimi Räikkönen          
-    *"Talent wins games, but teamwork and intelligence win championships."* - Michael Jordan          
+    "Football is a simple game: 22 men chase a ball for 90 minutes, and at the end, the Germans win." - Gary Lineker ⚽  
+    "Float like a butterfly, sting like a bee." - Muhammad Ali 🥊  
+    "You miss 100% of the shots you don’t take." - Wayne Gretzky 🏒  
+    "If you no longer go for a gap that exists, you’re no longer a racing driver." - Ayrton Senna 🏎️  
+    "Winning isn’t everything, it’s the only thing." - Vince Lombardi 🏈  
+    "Everyone has a plan until they get punched in the mouth." - Mike Tyson 🥊  
+    "I think, therefore I play." - Andrea Pirlo ⚽  
+    "Hard work beats talent when talent doesn’t work hard." - Tim Tebow 🏈  
+    "Leave me alone, I know what I’m doing!" - Kimi Räikkönen 🏎️  
+    "Talent wins games, but teamwork and intelligence win championships." - Michael Jordan 🏀  
+
+    "I hated every minute of training, but I said, 'Don’t quit. Suffer now and live the rest of your life as a champion.'" - Muhammad Ali 🥊  
+    "The more difficult the victory, the greater the happiness in winning." - Pelé ⚽  
+    "I’ve failed over and over and over again in my life. And that is why I succeed." - Michael Jordan 🏀  
+    "Speed is not just about going fast; it’s about getting the job done right." - Lewis Hamilton 🏎️  
+    "Champions keep playing until they get it right." - Billie Jean King 🎾  
+    "Success is no accident. It is hard work, perseverance, learning, studying, sacrifice, and most of all, love of what you are doing." - Pelé ⚽  
+    "You cannot win if you’re not willing to lose." - Kareem Abdul-Jabbar 🏀  
+    "To be the man, you’ve got to beat the man." - Ric Flair 🤼  
+    "The harder the battle, the sweeter the victory." - Les Brown 🏈  
+    "A winner is someone who recognizes his God-given talents, works his tail off to develop them into skills, and uses these skills to accomplish his goals." - Larry Bird 🏀  
+
+    "Drive fast, but never forget safety first." - Niki Lauda 🏎️  
+    "Football is not just about scoring goals; it's about creating chances." - Thierry Henry ⚽  
+    "A man who wins is a man who thinks he can." - Vince Lombardi 🏈  
+    "I don't believe skill was, or ever will be, the result of coaches. It is a result of a love affair between the child and the ball." - Roy Keane ⚽  
+    "Winners never quit, and quitters never win." - Vince Lombardi 🏈  
+    "The fight is won or lost far away from witnesses—behind the lines, in the gym, and out there on the road, long before I dance under those lights." - Muhammad Ali 🥊  
+    "Good players inspire themselves. Great players inspire others." - Unknown 🏀  
+    "You can’t put a limit on anything. The more you dream, the farther you get." - Michael Phelps 🏊  
+    "The most important thing in football is what you do when you don’t have the ball." - Johan Cruyff ⚽  
+    "The race is not always to the swift, but to those who keep on running." - Unknown 🏃‍♂️  
   `;
 
   const glitchColors = ['#00875A', '#B800B8', '#0088CC'];
