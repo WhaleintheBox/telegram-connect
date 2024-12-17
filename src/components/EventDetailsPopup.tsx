@@ -135,41 +135,41 @@ const EventDetailsPopup: React.FC<{ box: BoxType }> = ({ box }) => {
 
 
     const TeamScore = ({ score }: { score?: number | { current: number; total: number } | null }) => {
-        // Si le score est null ou undefined, retourner un placeholder
-        if (!score) {
-            return (
-                <div className="relative">
-                    <p className="text-4xl font-bold bg-gradient-to-b from-blue-300 to-blue-500 bg-clip-text text-transparent">
-                        0
-                    </p>
-                    <div className="absolute inset-0 backdrop-blur-sm -z-10" />
-                </div>
-            );
-        }
-        
-        // Si le score est un nombre
-        if (typeof score === 'number') {
-            return (
-                <div className="relative">
-                    <p className="text-4xl font-bold bg-gradient-to-b from-blue-300 to-blue-500 bg-clip-text text-transparent">
-                        {score}
-                    </p>
-                    <div className="absolute inset-0 backdrop-blur-sm -z-10" />
-                </div>
-            );
-        }
-        
-        // Si le score est un objet
-        const displayScore = score.total ? `${score.current}/${score.total}` : score.current.toString();
-        
-        return (
+        // Composant de rendu du score
+        const ScoreDisplay = ({ displayValue }: { displayValue: string }) => (
             <div className="relative">
                 <p className="text-4xl font-bold bg-gradient-to-b from-blue-300 to-blue-500 bg-clip-text text-transparent">
-                    {displayScore}
+                    {displayValue}
                 </p>
                 <div className="absolute inset-0 backdrop-blur-sm -z-10" />
             </div>
         );
+    
+        // Si le score est null ou undefined, retourner un placeholder
+        if (!score) {
+            return <ScoreDisplay displayValue="0" />;
+        }
+        
+        // Si le score est un nombre
+        if (typeof score === 'number') {
+            return <ScoreDisplay displayValue={score.toString()} />;
+        }
+        
+        // Si le score est un objet, vérifier sa structure
+        if (typeof score === 'object' && 'current' in score) {
+            try {
+                const displayScore = 'total' in score && score.total 
+                    ? `${score.current}/${score.total}`
+                    : score.current.toString();
+                return <ScoreDisplay displayValue={displayScore} />;
+            } catch (error) {
+                console.error('Error formatting score:', error);
+                return <ScoreDisplay displayValue="0" />;
+            }
+        }
+        
+        // Fallback par défaut pour tout autre cas
+        return <ScoreDisplay displayValue="0" />;
     };
     
 
