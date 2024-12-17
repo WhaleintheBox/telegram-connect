@@ -128,78 +128,76 @@ export const Banner = () => {
     return () => clearInterval(glitchEffect);
   }, []);
 
+  useEffect(() => {
+    const adjustTickerSpeed = () => {
+      const screenWidth = window.innerWidth;
+      const root = document.documentElement;
+  
+      if (screenWidth > 1024) {
+        root.style.setProperty('--ticker-duration', '30s'); // Desktop
+      } else if (screenWidth > 768) {
+        root.style.setProperty('--ticker-duration', '20s'); // Tablettes
+      } else {
+        root.style.setProperty('--ticker-duration', '15s'); // Mobile
+      }
+    };
+  
+    adjustTickerSpeed(); // Initial call
+    window.addEventListener('resize', adjustTickerSpeed);
+  
+    return () => window.removeEventListener('resize', adjustTickerSpeed);
+  }, []);
+
   return (
     <>
       <style>
         {`
-          .ticker-wrap {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            height: 2.5rem;
-            background: white;
-            overflow: hidden;
-            box-sizing: content-box;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-          }
+        .ticker-wrap {
+          position: fixed;
+          top: 0;
+          width: 100%;
+          height: 2.5rem;
+          background: white;
+          overflow: hidden;
+          box-sizing: content-box;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
 
-          .confetti-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-          }
+        .confetti-canvas {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+        }
 
-          .ticker {
-            display: inline-block;
-            height: 2.5rem;
-            white-space: nowrap;
-            padding-right: 100%;
-            box-sizing: content-box;
-            -webkit-animation-iteration-count: infinite;
-            animation-iteration-count: infinite;
-            -webkit-animation-timing-function: linear;
-            animation-timing-function: linear;
-            -webkit-animation-name: ticker;
-            animation-name: ticker;
-            -webkit-animation-duration: 30s;
-            animation-duration: 30s;
-            font-style: italic; /* Ajout pour italique */
-          }
+        :root {
+          --ticker-duration: 30s; /* Valeur par défaut */
+        }
 
-          .ticker-item {
-            display: inline-block;
-            padding: 0;
-            height: 2.5rem;
-            line-height: 2.5rem;
-            position: fixed; top
-            z-index: 1;
-          }
+        .ticker {
+          display: inline-block;
+          height: 2.5rem;
+          white-space: nowrap;
+          padding-right: 100%;
+          box-sizing: content-box;
+          animation: ticker var(--ticker-duration) linear infinite;
+          font-style: italic;
+        }
 
-          @keyframes ticker {
-            0% { transform: translate3d(100%, 0, 0); }
-            100% { transform: translate3d(-100%, 0, 0); }
-          }
+        .ticker-item {
+          display: inline-block;
+          padding: 0;
+          height: 2.5rem;
+          line-height: 2.5rem;
+          z-index: 1;
+        }
 
-          @media (max-width: 768px) {
-            .ticker {
-              animation-duration: 45s;
-            }
-            .ticker-item {
-              font-size: 0.9rem;
-            }
-          }
-
-          @media (max-width: 480px) {
-            .ticker {
-              animation-duration: 60s;
-            }
-            .ticker-item {
-              font-size: 0.85rem;
-            }
-          }
+        @keyframes ticker {
+          0% { transform: translate3d(100%, 0, 0); }
+          100% { transform: translate3d(-100%, 0, 0); }
+        }
         `}
       </style>
       <div className="ticker-wrap">
