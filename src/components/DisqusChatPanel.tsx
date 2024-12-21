@@ -52,7 +52,7 @@ const chatWindowStyle = (isOpen: boolean, isMinimized: boolean): React.CSSProper
   bottom: '0px',
   right: '24px',
   width: '380px',
-  height: isMinimized ? '40px' : '600px',
+  height: isMinimized ? '40px' : '580px',
   backgroundColor: 'white',
   borderRadius: '16px 16px 0 0',
   boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.08)',
@@ -167,8 +167,10 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
     },
     chatWindowStyle: {
       width: '100%',
+      maxWidth: '600px',
+      margin: '0 auto',
       right: 0,
-      height: '100vh',
+      height: '80vh',
       borderRadius: 0
     }
   } : {};
