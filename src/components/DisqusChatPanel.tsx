@@ -158,10 +158,10 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
 
   const disqusCustomStyle = `
     #disqus_thread {
-      height: calc(100% - 20px) !important;
       padding: 16px !important;
       font-size: 13px !important;
-      margin-bottom: 20px !important;
+      height: 100% !important;
+      overflow-y: visible !important;
     }
     .dq-powered {
       display: none !important;
@@ -244,7 +244,9 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
               overflow: 'hidden', 
               backgroundColor: 'white', 
               height: 'calc(100% - 40px)',
-              position: 'relative'
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column'
             }}>
               <style>{disqusCustomStyle}</style>
               <Suspense fallback={
@@ -262,13 +264,13 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
                 </div>
               }>
                 <div style={{ 
-                  height: '100%', 
+                  flex: '1 1 auto',
                   overflowY: 'auto',
                   overflowX: 'hidden',
                   WebkitOverflowScrolling: 'touch',
                   scrollbarWidth: 'thin',
                   scrollbarColor: '#CBD5E1 transparent',
-                  paddingBottom: '20px'
+                  minHeight: 0
                 }}>
                   <DiscussionEmbed
                     shortname={shortname}
