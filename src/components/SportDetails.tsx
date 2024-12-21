@@ -1,503 +1,537 @@
 import React from 'react';
-import { Trophy, Timer, MapPin, Calendar, ThermometerSun, Users, TrendingUp, Activity } from 'lucide-react';
+import {
+  Trophy,
+  Timer,
+  MapPin,
+  Calendar,
+  ThermometerSun,
+  Users,
+  TrendingUp,
+  Activity
+} from 'lucide-react';
+
 import { SportDataType } from './EventDetailsPopup';
 
+// ===================================
+//       PROPS & INTERFACES
+// ===================================
+
 interface SportDetailsProps {
-    sportData: SportDataType;
-    TeamScore: React.FC<{ 
-        score?: number | { 
-            current: number; 
-            total: number 
-        } 
-    }>;
-    StatsCard: React.FC<{ 
-        icon: React.FC<any>;
-        label: string;
-        value: string | number;
-    }>;
-    BettingChart: React.FC;
+  sportData: SportDataType;
+  TeamScore: React.FC<{
+    score?:
+      | number
+      | {
+          current: number;
+          total: number;
+        };
+  }>;
+  StatsCard: React.FC<{
+    icon: React.FC<any>;
+    label: string;
+    value: string | number;
+  }>;
+  BettingChart: React.FC;
 }
 
 interface ActivityItem {
-    type: 'hunt' | 'fish';
-    amount: number;
-    timestamp: string;
+  type: 'hunt' | 'fish';
+  amount: number;
+  timestamp: string;
 }
 
 interface NormalizedStatus {
-    long: string;
-    short: string;
+  long: string;
+  short: string;
 }
 
+// ===================================
+//       FONCTIONS UTILITAIRES
+// ===================================
+
+/**
+ * Normalise un statut vers { long, short } pour l'affichage
+ */
 const normalizeStatus = (status: any): NormalizedStatus => {
-    // If no status provided, return default
-    if (!status) return { long: 'Unknown', short: 'UNK' };
-    
-    // If status is already in the correct format, return it
-    if (typeof status === 'object' && 'long' in status && 'short' in status) {
-        return status as NormalizedStatus;
-    }
+  // If no status provided, return default
+  if (!status) return { long: 'Unknown', short: 'UNK' };
 
-    // If status is a dictionary but not in our format, try to extract status
-    if (typeof status === 'object') {
-        const shortStatus = status.short || status.code || 'UNK';
-        const longStatus = status.long || status.description || 'Unknown';
-        return { long: longStatus, short: shortStatus };
-    }
+  // If status is already correct, return it
+  if (typeof status === 'object' && 'long' in status && 'short' in status) {
+    return status as NormalizedStatus;
+  }
 
-    // Convert string status to normalized format
-    const statusStr = String(status).toUpperCase();
-    const statusMap: Record<string, NormalizedStatus> = {
-        'LIVE': { long: 'Live', short: 'LIVE' },
-        'FINISHED': { long: 'Finished', short: 'FIN' },
-        'SCHEDULED': { long: 'Scheduled', short: 'SCH' },
-        'CANCELED': { long: 'Canceled', short: 'CAN' },
-        'CANCELLED': { long: 'Cancelled', short: 'CAN' },
-        'POSTPONED': { long: 'Postponed', short: 'PST' },
-        'NOT STARTED': { long: 'Not Started', short: 'NS' },
-        'IN_PROGRESS': { long: 'In Progress', short: 'LIVE' },
-        'IN PROGRESS': { long: 'In Progress', short: 'LIVE' },
-        'ENDED': { long: 'Ended', short: 'END' },
-        'NS': { long: 'Scheduled', short: 'SCH' },
-        'IN': { long: 'Live', short: 'LIVE' },
-        'PF': { long: 'Live', short: 'LIVE' },
-        'WO': { long: 'Live', short: 'LIVE' },
-        'EOR': { long: 'Live', short: 'LIVE' },
-        'FT': { long: 'Finished', short: 'FIN' },
-        'CANC': { long: 'Cancelled', short: 'CANC' },
-        'PST': { long: 'Postponed', short: 'PST' },
-    };
+  // If status is a dictionary but not in our format
+  if (typeof status === 'object') {
+    const shortStatus = status.short || status.code || 'UNK';
+    const longStatus = status.long || status.description || 'Unknown';
+    return { long: longStatus, short: shortStatus };
+  }
 
-    return statusMap[statusStr] || { long: String(status), short: 'UNK' };
+  // If status is just a string
+  const statusStr = String(status).toUpperCase();
+
+  const statusMap: Record<string, NormalizedStatus> = {
+    LIVE: { long: 'Live', short: 'LIVE' },
+    FINISHED: { long: 'Finished', short: 'FIN' },
+    SCHEDULED: { long: 'Scheduled', short: 'SCH' },
+    CANCELED: { long: 'Cancelled', short: 'CANC' },
+    CANCELLED: { long: 'Cancelled', short: 'CANC' },
+    POSTPONED: { long: 'Postponed', short: 'PST' },
+    'NOT STARTED': { long: 'Not Started', short: 'NS' },
+    IN_PROGRESS: { long: 'In Progress', short: 'LIVE' },
+    'IN PROGRESS': { long: 'In Progress', short: 'LIVE' },
+    ENDED: { long: 'Ended', short: 'END' },
+    NS: { long: 'Scheduled', short: 'SCH' },
+    IN: { long: 'Live', short: 'LIVE' },
+    PF: { long: 'Live', short: 'LIVE' },
+    WO: { long: 'Live', short: 'LIVE' },
+    EOR: { long: 'Live', short: 'LIVE' },
+    FT: { long: 'Finished', short: 'FIN' },
+    CANC: { long: 'Cancelled', short: 'CANC' },
+    PST: { long: 'Postponed', short: 'PST' }
+  };
+
+  return statusMap[statusStr] || { long: String(status), short: 'UNK' };
 };
 
-export const StatusBadge: React.FC<{ status: NormalizedStatus }> = ({ status }) => (
-    <div className={`px-3 py-1 rounded-full text-sm font-medium inline-flex items-center gap-2
-        ${status.short === 'LIVE' ? 'bg-green-500/20 text-green-400' :
-        status.short === 'FIN' ? 'bg-gray-500/20 text-gray-400' :
-        'bg-blue-500/20 text-blue-400'}`}
+/**
+ * Petit composant de badge de statut
+ */
+export const StatusBadge: React.FC<{ status: NormalizedStatus }> = ({ status }) => {
+  return (
+    <div
+      className={`px-3 py-1 rounded-full text-sm font-medium inline-flex items-center gap-2
+      ${
+        status.short === 'LIVE'
+          ? 'bg-green-500/20 text-green-400'
+          : status.short === 'FIN'
+          ? 'bg-gray-500/20 text-gray-400'
+          : status.short === 'CANC'
+          ? 'bg-red-500/20 text-red-400'
+          : 'bg-blue-500/20 text-blue-400'
+      }`}
     >
-        {status.short === 'LIVE' ? '🔴' : '⚪'} {status.long}
+      {status.short === 'LIVE' ? '🔴' : '⚪'} {status.long}
     </div>
-);
+  );
+};
 
+/**
+ * Historique d'activité récent
+ */
 const RecentActivity: React.FC<{ activities: ActivityItem[] }> = ({ activities }) => (
-    <div className="bg-white/5 backdrop-blur-sm p-4 rounded-xl border border-white/10">
-        <h3 className="text-white/90 font-semibold mb-3">Recent Activity</h3>
-        <div className="space-y-2 max-h-48 overflow-y-auto">
-            {activities?.map((activity, i) => (
-                <div 
-                    key={i} 
-                    className={`flex items-center justify-between p-3 rounded-lg ${
-                        activity.type === 'hunt' 
-                            ? 'bg-emerald-500/10 border border-emerald-500/20' 
-                            : 'bg-rose-500/10 border border-rose-500/20'
-                    }`}
-                >
-                    <div className="flex items-center gap-2">
-                        <span className="text-xl">
-                            {activity.type === 'hunt' ? '🎯' : '🎣'}
-                        </span>
-                        <span className={`font-medium ${
-                            activity.type === 'hunt' 
-                                ? 'text-emerald-400' 
-                                : 'text-rose-400'
-                        }`}>
-                            {activity.amount} ETH
-                        </span>
-                    </div>
-                    <span className="text-white/60 text-sm">
-                        {new Date(activity.timestamp).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })}
-                    </span>
-                </div>
-            ))}
+  <div className="bg-white/5 backdrop-blur-sm p-4 rounded-xl border border-white/10">
+    <h3 className="text-white/90 font-semibold mb-3">Recent Activity</h3>
+    <div className="space-y-2 max-h-48 overflow-y-auto">
+      {activities?.map((activity, i) => (
+        <div
+          key={i}
+          className={`flex items-center justify-between p-3 rounded-lg ${
+            activity.type === 'hunt'
+              ? 'bg-emerald-500/10 border border-emerald-500/20'
+              : 'bg-rose-500/10 border border-rose-500/20'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{activity.type === 'hunt' ? '🎯' : '🎣'}</span>
+            <span
+              className={`font-medium ${
+                activity.type === 'hunt' ? 'text-emerald-400' : 'text-rose-400'
+              }`}
+            >
+              {activity.amount} ETH
+            </span>
+          </div>
+          <span className="text-white/60 text-sm">
+            {new Date(activity.timestamp).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </span>
         </div>
+      ))}
     </div>
+  </div>
 );
 
+// ===================================
+//       SOCCER DETAILS
+// ===================================
 
-
-export const SoccerDetails: React.FC<SportDetailsProps> = ({ 
-    sportData, 
-    TeamScore, 
-    StatsCard, 
-    BettingChart 
+export const SoccerDetails: React.FC<SportDetailsProps> = ({
+  sportData,
+  TeamScore,
+  StatsCard,
+  BettingChart
 }) => {
-    const status = React.useMemo(() => normalizeStatus(sportData?.status), [sportData?.status]);
+  const status = React.useMemo(() => normalizeStatus(sportData?.status), [sportData?.status]);
 
-    return (
-        <div className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-                <StatusBadge status={status} />
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <StatusBadge status={status} />
+      </div>
+
+      {/* Score board */}
+      <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
+        <div className="grid grid-cols-3 items-center">
+          <div className="text-center">
+            <p className="text-white font-bold mb-3 text-xl">{sportData?.home_team}</p>
+            <TeamScore score={sportData?.home_score} />
+          </div>
+          <div className="text-center">
+            <div className="px-4 py-2 bg-white/10 rounded-full">
+              <span className="text-white/80 font-bold">VS</span>
             </div>
-
-            <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
-                <div className="grid grid-cols-3 items-center">
-                    <div className="text-center">
-                        <p className="text-white font-bold mb-3 text-xl">{sportData?.home_team}</p>
-                        <TeamScore score={sportData?.home_score} />
-                    </div>
-                    <div className="text-center">
-                        <div className="px-4 py-2 bg-white/10 rounded-full">
-                            <span className="text-white/80 font-bold">VS</span>
-                        </div>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-white font-bold mb-3 text-xl">{sportData?.away_team}</p>
-                        <TeamScore score={sportData?.away_score} />
-                    </div>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-                <StatsCard 
-                    icon={MapPin} 
-                    label="Venue" 
-                    value={sportData?.venue || 'TBA'} 
-                />
-                <StatsCard 
-                    icon={Users} 
-                    label="Unique Bettors" 
-                    value={sportData?.uniqueBettors || 0} 
-                />
-                <StatsCard 
-                    icon={TrendingUp} 
-                    label="Avg Bet Size" 
-                    value={`${sportData?.averageBetSize || 0} ETH`} 
-                />
-                <StatsCard 
-                    icon={Activity} 
-                    label="Total Bets" 
-                    value={sportData?.totalBets || 0} 
-                />
-            </div>
-
-            <BettingChart />
-
-            <RecentActivity activities={sportData?.recentActivity || []} />
+          </div>
+          <div className="text-center">
+            <p className="text-white font-bold mb-3 text-xl">{sportData?.away_team}</p>
+            <TeamScore score={sportData?.away_score} />
+          </div>
         </div>
-    );
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-4">
+        <StatsCard icon={MapPin} label="Venue" value={sportData?.venue || 'TBA'} />
+        <StatsCard
+          icon={Users}
+          label="Unique Bettors"
+          value={sportData?.uniqueBettors || 0}
+        />
+        <StatsCard
+          icon={TrendingUp}
+          label="Avg Bet Size"
+          value={`${sportData?.averageBetSize || 0} ETH`}
+        />
+        <StatsCard icon={Activity} label="Total Bets" value={sportData?.totalBets || 0} />
+      </div>
+
+      <BettingChart />
+
+      <RecentActivity activities={sportData?.recentActivity || []} />
+    </div>
+  );
 };
 
-export const F1Details: React.FC<SportDetailsProps> = ({ 
-    sportData, 
-    StatsCard, 
-    BettingChart 
+// ===================================
+//       F1 DETAILS
+// ===================================
+
+export const F1Details: React.FC<SportDetailsProps> = ({
+  sportData,
+  StatsCard,
+  BettingChart
 }) => {
-    const status = React.useMemo(() => normalizeStatus(sportData?.status), [sportData?.status]);
+  const status = React.useMemo(() => normalizeStatus(sportData?.status), [sportData?.status]);
 
-    return (
-        <div className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-                <StatusBadge status={status} />
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <StatusBadge status={status} />
+      </div>
+
+      {sportData?.circuit && (
+        <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
+          <div className="grid gap-6">
+            <div>
+              <h3 className="text-white/60 text-sm mb-2">Circuit</h3>
+              <p className="text-white font-bold text-xl">{sportData.circuit.name}</p>
             </div>
-
-            {sportData?.circuit && (
-                <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
-                    <div className="grid gap-6">
-                        <div>
-                            <h3 className="text-white/60 text-sm mb-2">Circuit</h3>
-                            <p className="text-white font-bold text-xl">{sportData.circuit.name}</p>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                            {sportData.circuit.length && (
-                                <div>
-                                    <p className="text-white/60 text-sm">Track Length</p>
-                                    <p className="text-white font-bold">{sportData.circuit.length} km</p>
-                                </div>
-                            )}
-                            {sportData.circuit.laps && (
-                                <div>
-                                    <p className="text-white/60 text-sm">Race Distance</p>
-                                    <p className="text-white font-bold">{sportData.circuit.laps} laps</p>
-                                </div>
-                            )}
-                            {sportData.circuit.lap_record && (
-                                <div className="col-span-2">
-                                    <p className="text-white/60 text-sm">Lap Record</p>
-                                    <p className="text-white font-bold">{sportData.circuit.lap_record}</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
 
             <div className="grid grid-cols-2 gap-4">
-                {sportData?.location_details && (
-                    <StatsCard 
-                        icon={MapPin} 
-                        label="Location" 
-                        value={`${sportData.location_details.city || ''}, ${sportData.location_details.country || ''}`} 
-                    />
-                )}
-                {sportData?.season && sportData?.round && (
-                    <StatsCard 
-                        icon={Calendar} 
-                        label="Season" 
-                        value={`${sportData.season} - Round ${sportData.round}`} 
-                    />
-                )}
-                {sportData?.weather?.temperature !== undefined && (
-                    <StatsCard 
-                        icon={ThermometerSun} 
-                        label="Temperature" 
-                        value={`${sportData.weather.temperature}°C`} 
-                    />
-                )}
-                {sportData?.weather?.description && (
-                    <StatsCard 
-                        icon={Timer} 
-                        label="Weather" 
-                        value={sportData.weather.description} 
-                    />
-                )}
-            </div>
-
-            {sportData?.sprint && (
-                <div className="bg-yellow-500/20 p-4 rounded-xl border border-yellow-500/30">
-                    <div className="flex items-center gap-3">
-                        <Trophy className="text-yellow-400" size={24} />
-                        <span className="text-yellow-400 font-bold">Sprint Race Weekend</span>
-                    </div>
+              {sportData.circuit.length && (
+                <div>
+                  <p className="text-white/60 text-sm">Track Length</p>
+                  <p className="text-white font-bold">
+                    {sportData.circuit.length} km
+                  </p>
                 </div>
-            )}
-
-            <BettingChart />
+              )}
+              {sportData.circuit.laps && (
+                <div>
+                  <p className="text-white/60 text-sm">Race Distance</p>
+                  <p className="text-white font-bold">{sportData.circuit.laps} laps</p>
+                </div>
+              )}
+              {sportData.circuit.lap_record && (
+                <div className="col-span-2">
+                  <p className="text-white/60 text-sm">Lap Record</p>
+                  <p className="text-white font-bold">{sportData.circuit.lap_record}</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-    );
+      )}
+
+      <div className="grid grid-cols-2 gap-4">
+        {sportData?.location_details && (
+          <StatsCard
+            icon={MapPin}
+            label="Location"
+            value={`${sportData.location_details.city || ''}, ${
+              sportData.location_details.country || ''
+            }`}
+          />
+        )}
+        {sportData?.season && sportData?.round && (
+          <StatsCard
+            icon={Calendar}
+            label="Season"
+            value={`${sportData.season} - Round ${sportData.round}`}
+          />
+        )}
+        {sportData?.weather?.temperature !== undefined && (
+          <StatsCard
+            icon={ThermometerSun}
+            label="Temperature"
+            value={`${sportData.weather.temperature}°C`}
+          />
+        )}
+        {sportData?.weather?.description && (
+          <StatsCard icon={Timer} label="Weather" value={sportData.weather.description} />
+        )}
+      </div>
+
+      {sportData?.sprint && (
+        <div className="bg-yellow-500/20 p-4 rounded-xl border border-yellow-500/30">
+          <div className="flex items-center gap-3">
+            <Trophy className="text-yellow-400" size={24} />
+            <span className="text-yellow-400 font-bold">Sprint Race Weekend</span>
+          </div>
+        </div>
+      )}
+
+      <BettingChart />
+    </div>
+  );
 };
 
-export const MMADetails: React.FC<SportDetailsProps> = ({ 
-    sportData, 
-    StatsCard, 
-    BettingChart 
+// ===================================
+//       MMA DETAILS
+// ===================================
+
+export const MMADetails: React.FC<SportDetailsProps> = ({
+  sportData,
+  StatsCard,
+  BettingChart
 }) => {
-    const status = React.useMemo(() => normalizeStatus(sportData?.status), [sportData?.status]);
+  const status = React.useMemo(() => normalizeStatus(sportData?.status), [sportData?.status]);
 
-    return (
-        <div className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-                <StatusBadge status={status} />
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <StatusBadge status={status} />
+      </div>
+
+      <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
+        <div className="grid grid-cols-3 items-center gap-6">
+          <div className="text-center">
+            <div className="mb-4">
+              <p className="text-white/60 text-sm mb-2">Fighter 1</p>
+              <p className="text-white font-bold text-xl">
+                {sportData?.fighter1 || 'TBA'}
+              </p>
             </div>
-
-            <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
-                <div className="grid grid-cols-3 items-center gap-6">
-                    <div className="text-center">
-                        <div className="mb-4">
-                            <p className="text-white/60 text-sm mb-2">Fighter 1</p>
-                            <p className="text-white font-bold text-xl">{sportData?.fighter1 || 'TBA'}</p>
-                        </div>
-                    </div>
-                    <div className="text-center">
-                        <div className="px-4 py-2 bg-white/10 rounded-full">
-                            <span className="text-white/80 font-bold">VS</span>
-                        </div>
-                    </div>
-                    <div className="text-center">
-                        <div className="mb-4">
-                            <p className="text-white/60 text-sm mb-2">Fighter 2</p>
-                            <p className="text-white font-bold text-xl">{sportData?.fighter2 || 'TBA'}</p>
-                        </div>
-                    </div>
-                </div>
+          </div>
+          <div className="text-center">
+            <div className="px-4 py-2 bg-white/10 rounded-full">
+              <span className="text-white/80 font-bold">VS</span>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-                <StatsCard 
-                    icon={Trophy} 
-                    label="Weight Class" 
-                    value={sportData?.weight_class || 'N/A'} 
-                />
-                <StatsCard 
-                    icon={Timer} 
-                    label="Rounds" 
-                    value={`${sportData?.rounds || 0} Rounds`} 
-                />
-                <StatsCard 
-                    icon={MapPin} 
-                    label="Venue" 
-                    value={sportData?.venue || 'TBA'} 
-                />
-                {sportData?.method && (
-                    <StatsCard 
-                        icon={Activity} 
-                        label="Method" 
-                        value={sportData.method} 
-                    />
-                )}
+          </div>
+          <div className="text-center">
+            <div className="mb-4">
+              <p className="text-white/60 text-sm mb-2">Fighter 2</p>
+              <p className="text-white font-bold text-xl">
+                {sportData?.fighter2 || 'TBA'}
+              </p>
             </div>
-
-            {sportData?.is_main && (
-                <div className="bg-yellow-500/20 p-4 rounded-xl border border-yellow-500/30">
-                    <div className="flex items-center gap-3">
-                        <Trophy className="text-yellow-400" size={24} />
-                        <span className="text-yellow-400 font-bold">Main Event</span>
-                    </div>
-                </div>
-            )}
-
-            <BettingChart />
+          </div>
         </div>
-    );
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <StatsCard
+          icon={Trophy}
+          label="Weight Class"
+          value={sportData?.weight_class || 'N/A'}
+        />
+        <StatsCard
+          icon={Timer}
+          label="Rounds"
+          value={`${sportData?.rounds || 0} Rounds`}
+        />
+        <StatsCard icon={MapPin} label="Venue" value={sportData?.venue || 'TBA'} />
+        {sportData?.method && (
+          <StatsCard icon={Activity} label="Method" value={sportData.method} />
+        )}
+      </div>
+
+      {sportData?.is_main && (
+        <div className="bg-yellow-500/20 p-4 rounded-xl border border-yellow-500/30">
+          <div className="flex items-center gap-3">
+            <Trophy className="text-yellow-400" size={24} />
+            <span className="text-yellow-400 font-bold">Main Event</span>
+          </div>
+        </div>
+      )}
+
+      <BettingChart />
+    </div>
+  );
 };
 
-export const NFLDetails: React.FC<SportDetailsProps> = ({ 
-    sportData, 
-    TeamScore, 
-    StatsCard, 
-    BettingChart 
+// ===================================
+//       NFL DETAILS
+// ===================================
+
+export const NFLDetails: React.FC<SportDetailsProps> = ({
+  sportData,
+  TeamScore,
+  StatsCard,
+  BettingChart
 }) => {
-    const status = React.useMemo(() => normalizeStatus(sportData?.status), [sportData?.status]);
+  const status = React.useMemo(() => normalizeStatus(sportData?.status), [sportData?.status]);
 
-    return (
-        <div className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-                <StatusBadge status={status} />
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <StatusBadge status={status} />
+      </div>
+
+      <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
+        <div className="grid grid-cols-3 items-center">
+          <div className="text-center">
+            <p className="text-white font-bold mb-3 text-xl">{sportData?.home_team}</p>
+            <TeamScore score={sportData?.home_score} />
+          </div>
+          <div className="text-center">
+            <div className="px-4 py-2 bg-white/10 rounded-full">
+              <span className="text-white/80 font-bold">VS</span>
             </div>
-
-            <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
-                <div className="grid grid-cols-3 items-center">
-                    <div className="text-center">
-                        <p className="text-white font-bold mb-3 text-xl">{sportData?.home_team}</p>
-                        <TeamScore score={sportData?.home_score} />
-                    </div>
-                    <div className="text-center">
-                        <div className="px-4 py-2 bg-white/10 rounded-full">
-                            <span className="text-white/80 font-bold">VS</span>
-                        </div>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-white font-bold mb-3 text-xl">{sportData?.away_team}</p>
-                        <TeamScore score={sportData?.away_score} />
-                    </div>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-                {sportData?.week && sportData?.season && (
-                    <StatsCard 
-                        icon={Calendar} 
-                        label="Week" 
-                        value={`Week ${sportData.week}, ${sportData.season}`} 
-                    />
-                )}
-                {sportData?.venue && (
-                    <StatsCard 
-                        icon={MapPin} 
-                        label="Venue" 
-                        value={sportData.venue} 
-                    />
-                )}
-                <StatsCard 
-                    icon={Users} 
-                    label="Unique Bettors" 
-                    value={sportData?.uniqueBettors || 0} 
-                />
-                <StatsCard 
-                    icon={TrendingUp} 
-                    label="Largest Bet" 
-                    value={`${sportData?.largestBet || 0} ETH`} 
-                />
-            </div>
-
-            <BettingChart />
-
-            {sportData?.recentActivity && sportData.recentActivity.length > 0 && (
-                <RecentActivity activities={sportData.recentActivity} />
-            )}
-
-            <div className="bg-white/5 backdrop-blur-sm p-4 rounded-xl border border-white/10">
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <p className="text-white/60 text-sm mb-1">Total Betting Volume</p>
-                        <p className="text-white font-bold text-xl">
-                            {((sportData?.uniqueBettors || 0) * (sportData?.averageBetSize || 0)).toFixed(2)} ETH
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-white/60 text-sm mb-1">Average Bet Size</p>
-                        <p className="text-white font-bold text-xl">
-                            {(sportData?.averageBetSize || 0).toFixed(2)} ETH
-                        </p>
-                    </div>
-                </div>
-            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-white font-bold mb-3 text-xl">{sportData?.away_team}</p>
+            <TeamScore score={sportData?.away_score} />
+          </div>
         </div>
-    );
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {sportData?.week && sportData?.season && (
+          <StatsCard
+            icon={Calendar}
+            label="Week"
+            value={`Week ${sportData.week}, ${sportData.season}`}
+          />
+        )}
+        {sportData?.venue && (
+          <StatsCard icon={MapPin} label="Venue" value={sportData.venue} />
+        )}
+        <StatsCard
+          icon={Users}
+          label="Unique Bettors"
+          value={sportData?.uniqueBettors || 0}
+        />
+        <StatsCard
+          icon={TrendingUp}
+          label="Largest Bet"
+          value={`${sportData?.largestBet || 0} ETH`}
+        />
+      </div>
+
+      <BettingChart />
+
+      {sportData?.recentActivity && sportData.recentActivity.length > 0 && (
+        <RecentActivity activities={sportData.recentActivity} />
+      )}
+
+      <div className="bg-white/5 backdrop-blur-sm p-4 rounded-xl border border-white/10">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-white/60 text-sm mb-1">Total Betting Volume</p>
+            <p className="text-white font-bold text-xl">
+              {(
+                (sportData?.uniqueBettors || 0) *
+                (sportData?.averageBetSize || 0)
+              ).toFixed(2)}{' '}
+              ETH
+            </p>
+          </div>
+          <div>
+            <p className="text-white/60 text-sm mb-1">Average Bet Size</p>
+            <p className="text-white font-bold text-xl">
+              {(sportData?.averageBetSize || 0).toFixed(2)} ETH
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
-export const BasketballDetails: React.FC<SportDetailsProps> = ({ 
-    sportData, 
-    TeamScore, 
-    StatsCard, 
-    BettingChart 
+// ===================================
+//       BASKETBALL DETAILS
+// ===================================
+
+export const BasketballDetails: React.FC<SportDetailsProps> = ({
+  sportData,
+  TeamScore,
+  StatsCard,
+  BettingChart
 }) => {
-    // Ensure status is treated as string or object with required shape
-    const status = React.useMemo(() => {
-        if (!sportData?.status) return normalizeStatus('Unknown');
-        if (typeof sportData.status === 'object' && 'long' in sportData.status && 'short' in sportData.status) {
-            return sportData.status;
-        }
-        return normalizeStatus(String(sportData.status));
-    }, [sportData?.status]);
+  const status = React.useMemo(() => normalizeStatus(sportData?.status), [sportData?.status]);
 
-    return (
-        <div className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-                <StatusBadge status={status} />
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <StatusBadge status={status} />
+      </div>
+
+      <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
+        <div className="grid grid-cols-3 items-center">
+          <div className="text-center">
+            <p className="text-white font-bold mb-3 text-xl">{sportData?.home_team}</p>
+            <TeamScore score={sportData?.home_score} />
+          </div>
+          <div className="text-center">
+            <div className="px-4 py-2 bg-white/10 rounded-full">
+              <span className="text-white/80 font-bold">VS</span>
             </div>
-
-            <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
-                <div className="grid grid-cols-3 items-center">
-                    <div className="text-center">
-                        <p className="text-white font-bold mb-3 text-xl">{sportData?.home_team}</p>
-                        <TeamScore score={sportData?.home_score} />
-                    </div>
-                    <div className="text-center">
-                        <div className="px-4 py-2 bg-white/10 rounded-full">
-                            <span className="text-white/80 font-bold">VS</span>
-                        </div>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-white font-bold mb-3 text-xl">{sportData?.away_team}</p>
-                        <TeamScore score={sportData?.away_score} />
-                    </div>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-                <StatsCard 
-                    icon={MapPin} 
-                    label="Venue" 
-                    value={sportData?.venue || 'TBA'} 
-                />
-                <StatsCard 
-                    icon={Calendar} 
-                    label="Tournament" 
-                    value={sportData?.tournament || 'N/A'} 
-                />
-                <StatsCard 
-                    icon={Users} 
-                    label="Unique Bettors" 
-                    value={sportData?.uniqueBettors || 0} 
-                />
-                <StatsCard 
-                    icon={TrendingUp} 
-                    label="Avg Bet Size" 
-                    value={`${sportData?.averageBetSize || 0} ETH`} 
-                />
-            </div>
-
-            <BettingChart />
-
-            {sportData?.recentActivity && sportData.recentActivity.length > 0 && (
-                <RecentActivity activities={sportData.recentActivity} />
-            )}
+          </div>
+          <div className="text-center">
+            <p className="text-white font-bold mb-3 text-xl">{sportData?.away_team}</p>
+            <TeamScore score={sportData?.away_score} />
+          </div>
         </div>
-    );
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <StatsCard icon={MapPin} label="Venue" value={sportData?.venue || 'TBA'} />
+        <StatsCard
+          icon={Calendar}
+          label="Tournament"
+          value={sportData?.tournament || 'N/A'}
+        />
+        <StatsCard
+          icon={Users}
+          label="Unique Bettors"
+          value={sportData?.uniqueBettors || 0}
+        />
+        <StatsCard
+          icon={TrendingUp}
+          label="Avg Bet Size"
+          value={`${sportData?.averageBetSize || 0} ETH`}
+        />
+      </div>
+
+      <BettingChart />
+
+      {sportData?.recentActivity && sportData.recentActivity.length > 0 && (
+        <RecentActivity activities={sportData.recentActivity} />
+      )}
+    </div>
+  );
 };
