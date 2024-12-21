@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, lazy } from 'react';
+import { useState, useEffect, Suspense, lazy, useRef } from 'react';
 import { MessageSquare, X, Loader, Minimize2, Maximize2 } from 'lucide-react';
 
 interface DisqusChatPanelProps {
@@ -52,7 +52,7 @@ const chatWindowStyle = (isOpen: boolean, isMinimized: boolean): React.CSSProper
   bottom: '0px',
   right: '24px',
   width: '380px',
-  height: isMinimized ? '40px' : '580px', // Increased height
+  height: isMinimized ? '40px' : '600px',
   backgroundColor: 'white',
   borderRadius: '16px 16px 0 0',
   boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.08)',
@@ -71,7 +71,8 @@ const headerStyle: React.CSSProperties = {
   backgroundColor: '#1a1a1a',
   color: 'white',
   borderBottom: '1px solid rgba(255,255,255,0.08)',
-  height: '40px'
+  height: '40px',
+  userSelect: 'none'
 } as const;
 
 const headerButtonStyle = (isHovered: boolean): React.CSSProperties => ({
@@ -100,6 +101,7 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
   const [isMobile, setIsMobile] = useState(false);
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const [isDisqusConnected, setIsDisqusConnected] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -134,18 +136,40 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const handleWheel = (e: WheelEvent) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // Get the actual scroll values
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const isAtTop = scrollTop === 0;
+    const isAtBottom = Math.ceil(scrollTop + clientHeight) >= scrollHeight;
+
+    // Handle touchpad/mouse wheel
+    if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
+      e.preventDefault();
+    }
+  };
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [isOpen]);
+
   const mobileStyles = isMobile ? {
     containerStyle: {
-      maxWidth: '100%',
-      bottom: 0,
-      right: 0,
+      maxWidth: '100%'
     },
     chatWindowStyle: {
       width: '100%',
-      maxWidth: '600px',
       right: 0,
-      margin: '0 auto',
-      height: '80vh',
+      height: '100vh',
+      borderRadius: 0
     }
   } : {};
 
@@ -153,15 +177,13 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
     url,
     identifier,
     title,
-    language: 'en' // Changed to English
+    language: 'en'
   };
 
   const disqusCustomStyle = `
     #disqus_thread {
       padding: 16px !important;
       font-size: 13px !important;
-      height: 100% !important;
-      overflow-y: visible !important;
     }
     .dq-powered {
       display: none !important;
@@ -176,15 +198,7 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
     }
     #placement-bottom {
       margin-bottom: 0 !important;
-      padding-bottom: 0 !important;
-    }
-    iframe[src*="disqus.com"] {
-      min-height: 0 !important;
-    }
-    @media (max-width: 768px) {
-      #disqus_thread {
-        height: calc(100% - 40px) !important;
-      }
+      padding-bottom: 16px !important;
     }
   `;
 
@@ -219,6 +233,7 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
                   onMouseLeave={() => setHoveredButton(null)}
                   style={headerButtonStyle(hoveredButton === 'minimize')}
                   title={isMinimized ? "Maximize" : "Minimize"}
+                  aria-label={isMinimized ? "Maximize" : "Minimize"}
                 >
                   {isMinimized ? 
                     <Maximize2 size={16} /> : 
@@ -232,6 +247,7 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
                 onMouseLeave={() => setHoveredButton(null)}
                 style={headerButtonStyle(hoveredButton === 'close')}
                 title="Close"
+                aria-label="Close"
               >
                 <X size={16} />
               </button>
@@ -240,13 +256,9 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
 
           {!isMinimized && (
             <div style={{ 
-              flex: 1, 
-              overflow: 'hidden', 
-              backgroundColor: 'white', 
-              height: 'calc(100% - 40px)',
               position: 'relative',
-              display: 'flex',
-              flexDirection: 'column'
+              height: 'calc(100% - 40px)',
+              backgroundColor: 'white'
             }}>
               <style>{disqusCustomStyle}</style>
               <Suspense fallback={
@@ -259,21 +271,19 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
                 }}>
                   <div style={{ textAlign: 'center' }}>
                     <Loader className="animate-spin" size={20} style={{ marginBottom: '8px', color: '#94a3b8' }} />
-                    <p style={{ color: '#64748b', fontSize: '13px' }}>⏳ Loading comments...</p>
+                    <p style={{ color: '#64748b', fontSize: '13px' }}>Loading comments...</p>
                   </div>
                 </div>
               }>
-                <div style={{ 
-                  flex: '1 1 auto',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  overflowY: 'scroll',
-                  overflowX: 'hidden',
-                  WebkitOverflowScrolling: 'touch'
-                }}>
+                <div
+                  ref={scrollContainerRef}
+                  style={{ 
+                    height: '100%',
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    WebkitOverflowScrolling: 'touch',
+                  }}
+                >
                   <DiscussionEmbed
                     shortname={shortname}
                     config={disqusConfig}
@@ -295,6 +305,7 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
               ? '0 6px 16px rgba(0, 0, 0, 0.2)' 
               : '0 4px 12px rgba(0, 0, 0, 0.15)'
           }}
+          aria-label="Open chat"
           title="Open chat"
         >
           <MessageSquare size={20} />
