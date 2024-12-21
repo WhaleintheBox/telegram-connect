@@ -1,5 +1,5 @@
-import { useState, useEffect, Suspense, lazy, useCallback, useRef } from 'react';
-import { X, Loader, Minimize2, Maximize2, MessageCircle } from 'lucide-react';
+import { useState, useEffect, Suspense, lazy } from 'react';
+import { MessageSquare, X, Loader, Minimize2, Maximize2 } from 'lucide-react';
 
 interface DisqusChatPanelProps {
   shortname: string;
@@ -8,24 +8,13 @@ interface DisqusChatPanelProps {
   title?: string;
 }
 
-interface DisqusConfig {
-  url: string;
-  identifier: string;
-  title: string;
-  language: string;
-  callbacks?: {
-    onReady?: () => void;
-    onNewComment?: (comment: any) => void;
-  };
-}
-
 const DiscussionEmbed = lazy(() =>
   import('disqus-react').then(module => ({
     default: module.DiscussionEmbed
   }))
 );
 
-// Styles optimisés
+// Styles optimisés pour desktop
 const containerStyle: React.CSSProperties = {
   position: 'fixed',
   bottom: '0px',
@@ -72,8 +61,7 @@ const chatWindowStyle = (isOpen: boolean, isMinimized: boolean): React.CSSProper
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   transform: isOpen ? 'translateY(0)' : 'translateY(100%)',
   opacity: isOpen ? 1 : 0,
-  pointerEvents: 'auto',
-  backdropFilter: 'blur(8px)'
+  pointerEvents: 'auto'
 } as const);
 
 const headerStyle: React.CSSProperties = {
@@ -102,24 +90,6 @@ const headerButtonStyle = (isHovered: boolean): React.CSSProperties => ({
   height: '28px'
 });
 
-const unreadBadgeStyle: React.CSSProperties = {
-  position: 'absolute',
-  top: '-4px',
-  right: '-4px',
-  backgroundColor: '#ef4444',
-  color: 'white',
-  fontSize: '10px',
-  fontWeight: 'bold',
-  padding: '2px 4px',
-  borderRadius: '10px',
-  minWidth: '16px',
-  height: '16px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  border: '2px solid white'
-};
-
 const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({ 
   shortname,
   url = window.location.href,
@@ -131,39 +101,33 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
   const [isMobile, setIsMobile] = useState(false);
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const [isDisqusConnected, setIsDisqusConnected] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [hasNewMessages, setHasNewMessages] = useState(false);
-  const lastActivityTime = useRef<number>(Date.now());
-  const chatContentRef = useRef<HTMLDivElement>(null);
 
-  // Observer for Disqus connection status
-  const checkDisqusConnection = useCallback(() => {
-    const observer = new MutationObserver(() => {
-      const frame = document.getElementById('disqus_thread');
-      if (frame) {
-        const loginSection = frame.querySelector('#disqus_login');
-        setIsDisqusConnected(!loginSection);
-      }
-    });
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true
-    });
-
-    return observer;
-  }, []);
-
-  // Setup Disqus connection observer
+  // Check Disqus connection status
   useEffect(() => {
-    if (isOpen) {
-      const observer = checkDisqusConnection();
-      return () => observer.disconnect();
-    }
-  }, [isOpen, checkDisqusConnection]);
+    if (!isOpen) return;
+    
+    const checkConnection = () => {
+      const observer = new MutationObserver(() => {
+        const frame = document.getElementById('disqus_thread');
+        if (frame) {
+          const loginSection = frame.querySelector('#disqus_login');
+          setIsDisqusConnected(!loginSection);
+        }
+      });
 
-  // Responsive handling
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+
+      return observer;
+    };
+
+    const observer = checkConnection();
+    return () => observer.disconnect();
+  }, [isOpen]);
+
+  // Gestion du responsive
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -173,71 +137,30 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mobile scroll lock
-  useEffect(() => {
-    if (isOpen && isMobile) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, isMobile]);
-
-  // Handle new messages and notifications
-  useEffect(() => {
-    if (!isOpen && hasNewMessages) {
-      const interval = setInterval(() => {
-        setUnreadCount((prev) => Math.min(prev + 1, 99));
-      }, 30000); // Simulate new messages every 30s
-      return () => clearInterval(interval);
-    }
-    return undefined;
-  }, [isOpen, hasNewMessages]);
-
-  const handleNewComment = useCallback(() => {
-    if (!isOpen || document.hidden) {
-      setHasNewMessages(true);
-      setUnreadCount((prev) => prev + 1);
-    }
-    lastActivityTime.current = Date.now();
-  }, [isOpen]);
-
-  const handleChatOpen = () => {
-    setIsOpen(true);
-    setUnreadCount(0);
-    setHasNewMessages(false);
-  };
-
   // Mobile styles
-  const getMobileStyles = () => {
-    if (!isMobile) return {};
-    return {
-      containerStyle: {
-        maxWidth: '100%'
-      },
-      chatWindowStyle: {
-        width: '100%',
-        right: '0px',
-        height: '100%',
-        borderRadius: '0px'
-      }
-    };
-  };
+  const mobileStyles = isMobile ? {
+    containerStyle: {
+      maxWidth: '100%',
+      bottom: 0,
+      right: 0,
+    },
+    chatWindowStyle: {
+      width: '100%',
+      maxWidth: '600px',
+      right: 0,
+      margin: '0 auto',
+      height: '80%',
+    }
+  } : {};
 
-  const disqusConfig: DisqusConfig = {
+  const disqusConfig = {
     url,
     identifier,
     title,
-    language: 'fr',
-    callbacks: {
-      onReady: () => console.log('Disqus ready'),
-      onNewComment: handleNewComment
-    }
+    language: 'fr'
   };
 
-  // Custom Disqus styling
+  // Style personnalisé pour le conteneur Disqus
   const disqusCustomStyle = `
     #disqus_thread {
       padding: 16px !important;
@@ -254,24 +177,12 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
       width: 32px !important;
       height: 32px !important;
     }
-    .loading {
-      font-size: 13px !important;
-    }
-    iframe[src*="disqus.com"] {
-      margin-bottom: 0 !important;
-    }
-    #dsq-2 {
-      margin-top: 0 !important;
-    }
-    .dq-share {
-      display: none !important;
-    }
   `;
 
   return (
-    <div style={{ ...containerStyle, ...getMobileStyles().containerStyle }}>
+    <div style={{ ...containerStyle, ...mobileStyles.containerStyle }}>
       {isOpen ? (
-        <div style={{ ...chatWindowStyle(isOpen, isMinimized), ...getMobileStyles().chatWindowStyle }}>
+        <div style={{ ...chatWindowStyle(isOpen, isMinimized), ...mobileStyles.chatWindowStyle }}>
           <div style={headerStyle}>
             <h2 style={{ 
               margin: 0, 
@@ -280,33 +191,17 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
               letterSpacing: '0.3px',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px'
+              gap: '6px'
             }}>
               <span style={{ 
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}>
-                <span style={{ 
-                  width: '8px', 
-                  height: '8px', 
-                  borderRadius: '50%', 
-                  backgroundColor: isDisqusConnected ? '#22c55e' : '#ef4444',
-                  transition: 'background-color 0.3s ease'
-                }} />
-                Ocean
-              </span>
-              {!isMinimized && (
-                <span style={{ 
-                  fontSize: '11px', 
-                  opacity: 0.7,
-                  fontWeight: 'normal'
-                }}>
-                  {isDisqusConnected ? 'Connected' : 'Not connected'}
-                </span>
-              )}
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: isDisqusConnected ? '#22c55e' : '#ef4444',
+                transition: 'background-color 0.3s ease'
+              }}/>
+              Ocean
             </h2>
-
             <div style={{ display: 'flex', gap: '4px' }}>
               {!isMobile && (
                 <button 
@@ -335,16 +230,13 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
           </div>
 
           {!isMinimized && (
-            <div 
-              ref={chatContentRef}
-              style={{ 
-                flex: 1, 
-                overflow: 'hidden', 
-                backgroundColor: 'white', 
-                height: 'calc(100% - 40px)',
-                position: 'relative'
-              }}
-            >
+            <div style={{ 
+              flex: 1, 
+              overflow: 'hidden', 
+              backgroundColor: 'white', 
+              height: 'calc(100% - 40px)',
+              position: 'relative'
+            }}>
               <style>{disqusCustomStyle}</style>
               <Suspense fallback={
                 <div style={{ 
@@ -366,8 +258,7 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
                   overflowX: 'hidden',
                   WebkitOverflowScrolling: 'touch',
                   scrollbarWidth: 'thin',
-                  scrollbarColor: '#CBD5E1 transparent',
-                  paddingBottom: '10px'
+                  scrollbarColor: '#CBD5E1 transparent'
                 }}>
                   <DiscussionEmbed
                     shortname={shortname}
@@ -380,7 +271,7 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
         </div>
       ) : (
         <button
-          onClick={handleChatOpen}
+          onClick={() => setIsOpen(true)}
           onMouseEnter={() => setHoveredButton('chat')}
           onMouseLeave={() => setHoveredButton(null)}
           style={{
@@ -392,14 +283,7 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
           }}
           title="Open chat"
         >
-          <div style={{ position: 'relative' }}>
-            <MessageCircle size={20} />
-            {unreadCount > 0 && (
-              <span style={unreadBadgeStyle}>
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </span>
-            )}
-          </div>
+          <MessageSquare size={20} />
         </button>
       )}
     </div>
