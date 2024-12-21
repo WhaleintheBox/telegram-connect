@@ -2431,3 +2431,166 @@ button:disabled {
     animation-duration: 12s; /* Encore plus rapide pour les très petits écrans */
   }
 }
+
+/* Chat Panel Styles */
+.chat-toggler {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999;
+  background-color: #3b82f6;
+  color: white;
+  border-radius: 8px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.chat-toggler:hover {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.chat-container {
+  position: fixed;
+  bottom: 0;
+  right: 24px;
+  width: 360px;
+  z-index: 1000;
+}
+
+.chat-window {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  width: 360px;
+  height: 520px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chat-window.closed {
+  transform: translateY(10px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chat-header {
+  padding: 16px;
+  background: #3b82f6;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.chat-content {
+  flex: 1;
+  overflow-y: auto;
+  background: #f8fafc;
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .chat-container {
+    bottom: 0;
+    right: 0;
+    width: 100%;
+  }
+
+  .chat-toggler {
+    bottom: 16px;
+    right: 16px;
+    padding: 12px 20px;
+    border-radius: 24px;
+  }
+
+  .chat-window {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    transform: translateY(100%);
+  }
+
+  .chat-window.open {
+    transform: translateY(0);
+  }
+
+  .chat-header {
+    border-radius: 0;
+    padding: 16px 20px;
+  }
+}
+
+/* Custom Scrollbar */
+.chat-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.chat-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.chat-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+
+/* Disqus Overrides */
+#disqus_thread {
+  padding: 16px;
+  height: 100%;
+}
+
+/* Z-index management */
+.disqus-chat {
+  z-index: 9999;
+  position: relative;
+}
+
+/* Animation */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+.chat-slide-enter {
+  animation: slideUp 0.3s ease-out forwards;
+}
+
+.chat-slide-exit {
+  animation: slideDown 0.3s ease-out forwards;
+}

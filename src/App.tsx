@@ -1709,11 +1709,11 @@ export default function App() {
           </div>
         )}
 
-      <DisqusChatPanel 
-        url={window.location.href}
-        identifier="whaleinthebox" // Un identifiant unique pour votre page
-        title="Chat"
-      />
+        <DisqusChatPanel 
+          url={window.location.href}
+          identifier="whaleinthebox" 
+          title="Chat"
+        />
     </>
   );
 }
