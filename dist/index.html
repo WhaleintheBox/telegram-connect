@@ -3,52 +3,104 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <meta name="description" content="Whale in the Box - Decentralized Betting Platform" />
+  <meta http-equiv="Permissions-Policy" content="interest-cohort=(), browsing-topics=()" />
+  <meta name="theme-color" content="#000000" />
+  
+  <!-- Open Graph / Social Media -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Whale in the Box" />
+  <meta property="og:description" content="Decentralized Betting Platform" />
+  <meta property="og:image" content="/images/og-image.png" />
+  
   <title>Whale in the Box</title>
+  
+  <!-- Prefetch Disqus -->
+  <link rel="dns-prefetch" href="//whaleinthebox.disqus.com" />
+  <link rel="preconnect" href="https://whaleinthebox.disqus.com" />
+  
+  <!-- Favicon -->
+  <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+  <link rel="apple-touch-icon" href="/logo192.png" />
+  
   <style>
-    /* Styles généraux */
+    /* Critical CSS */
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
     }
 
-    /* Logo sur desktop */
     #logo {
       position: absolute;
       top: 20px;
       left: 20px;
-      height: 80px; /* Taille du logo */
-      z-index: 1000; /* Assurez-vous que le logo est au-dessus des autres éléments */
+      height: 80px;
+      z-index: 1000;
+      transition: all 0.3s ease;
     }
 
-    /* Logo centré sur mobile */
     @media screen and (max-width: 768px) {
       #logo {
         position: relative;
         top: 0;
         left: 0;
-        margin: 16px auto; /* Centrage horizontal */
+        margin: 16px auto;
         display: block;
-        height: 60px; /* Taille ajustée pour mobile */
+        height: 60px;
       }
     }
+
+    /* Preloader style */
+    .preloader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
   </style>
-  <link rel="icon" src="public/favicon.ico" type="image/x-icon" />
-  <script type="module" crossorigin src="/telegram-connect/dist/assets/index-HyH_mdTt.js"></script>
+  <script type="module" crossorigin src="/telegram-connect/dist/assets/index-Dkq6qRu4.js"></script>
   <link rel="modulepreload" crossorigin href="/telegram-connect/dist/assets/vendor-CPWSMn38.js">
   <link rel="stylesheet" crossorigin href="/telegram-connect/dist/assets/index-BR5xKWvN.css">
 </head>
 <body>
+  <!-- Preloader -->
+  <div class="preloader" id="preloader">
+    <img src="/telegram-connect/dist/images/logo.png" alt="Loading..." style="width: 80px; height: 80px;" />
+  </div>
+
   <!-- Logo -->
   <img 
     id="logo" 
-    src="/telegram-connect/dist/assets/logo-BFjBgrQU.png" 
-    alt="Logo de Whale in the Box" 
+    src="/telegram-connect/dist/images/logo.png" 
+    alt="Whale in the Box Logo"
+    loading="eager"
   />
 
-  <!-- Conteneur principal de l'application -->
+  <!-- App Root -->
   <div id="root"></div>
 
-  <!-- Chargement du script principal -->
+  <!-- Remove preloader -->
+  <script>
+    window.addEventListener('load', () => {
+      const preloader = document.getElementById('preloader');
+      if (preloader) {
+        preloader.style.opacity = '0';
+        preloader.style.transition = 'opacity 0.5s ease';
+        setTimeout(() => preloader.remove(), 500);
+      }
+    });
+  </script>
+
+  <!-- Main App -->
 </body>
 </html>
