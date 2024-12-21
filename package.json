@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@metamask/sdk-react": "^0.31.2",
+    "@metamask/sdk-react": "^0.31.4",
     "@rainbow-me/rainbowkit": "^2.2.1",
     "@reown/appkit": "^1.6.0",
     "@reown/appkit-adapter-wagmi": "^1.6.0",

@@ -7,39 +7,49 @@ import { useConnectModal } from '../Context';
 
 const STORAGE_KEYS = {
   SESSION: 'witb-session',
-  LAST_CONNECT: 'witb-last-connect'
+  LAST_CONNECT: 'witb-last-connect',
 } as const;
 
-export function Connect() {
+interface ConnectProps {
+  onUserConnected?: (address: string) => void; // Callback to notify when user connects
+}
+
+export function Connect({ onUserConnected }: ConnectProps) {
   const { isConnected, address } = useAccount();
   const { platform, isSessionActive } = useConnectModal();
   const [error, setError] = React.useState<string | null>(null);
   const [isConnecting, setIsConnecting] = React.useState(false);
 
-  // Enregistrer le moment de la connexion 
+  // Register connection time and notify parent component
   React.useEffect(() => {
     if (isConnected && address && typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEYS.LAST_CONNECT, new Date().toISOString());
+      if (onUserConnected) {
+        onUserConnected(address);
+      }
     }
-  }, [isConnected, address]);
+  }, [isConnected, address, onUserConnected]);
 
   const handleConnect = async (openModalFn: () => void) => {
     try {
       setIsConnecting(true);
       setError(null);
-      
+
       if (!isSessionActive && typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify({
-          timestamp: Date.now(),
-          lastConnect: new Date().toISOString()
-        }));
+        localStorage.setItem(
+          STORAGE_KEYS.SESSION,
+          JSON.stringify({
+            timestamp: Date.now(),
+            lastConnect: new Date().toISOString(),
+          })
+        );
       }
-      
+
       openModalFn();
     } catch (err: any) {
       setError(err?.message || 'Failed to connect wallet');
       if (typeof window !== 'undefined') {
-        Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+        Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
       }
     } finally {
       setIsConnecting(false);
