@@ -137,6 +137,7 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
         </div>
       </div>
 
+
       {/* Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}

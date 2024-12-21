@@ -12,6 +12,8 @@ import { useCache } from './components/cacheService';
 import { useState, useEffect, useCallback } from 'react';  // Ajout de useCallback
 import { useConnectModal } from './Context'; 
 import {  Banner } from './components/banner';
+import DisqusChatPanel from './components/DisqusChatPanel';
+
 type SportsType = {
   [key in 'SOCCER' | 'F1' | 'MMA' | 'NFL' | 'BASKETBALL']: boolean;
 };
@@ -815,7 +817,7 @@ export default function App() {
           </div>
         );
       }
-      
+
       if (['SUSP', 'INT', 'PST', 'DEL'].includes(box.sportData?.status?.short || '')) {
         return (
           <div className="flex gap-2 px-4 pt-2 pb-4">
@@ -1706,6 +1708,13 @@ export default function App() {
             <pre>{JSON.stringify(callbackError, null, 2)}</pre>
           </div>
         )}
-        </>
+
+      <DisqusChatPanel 
+        url={window.location.href}
+        identifier="whaleinthebox" // Un identifiant unique pour votre page
+        title="Chat"
+      />
+    </>
   );
 }
+
