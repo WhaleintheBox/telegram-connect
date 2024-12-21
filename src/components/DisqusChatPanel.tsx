@@ -14,7 +14,6 @@ const DiscussionEmbed = lazy(() =>
   }))
 );
 
-// Styles optimisés pour desktop
 const containerStyle: React.CSSProperties = {
   position: 'fixed',
   bottom: '0px',
@@ -53,7 +52,7 @@ const chatWindowStyle = (isOpen: boolean, isMinimized: boolean): React.CSSProper
   bottom: '0px',
   right: '24px',
   width: '380px',
-  height: isMinimized ? '40px' : '520px',
+  height: isMinimized ? '40px' : '580px', // Increased height
   backgroundColor: 'white',
   borderRadius: '16px 16px 0 0',
   boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.08)',
@@ -102,7 +101,6 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const [isDisqusConnected, setIsDisqusConnected] = useState(false);
 
-  // Check Disqus connection status
   useEffect(() => {
     if (!isOpen) return;
     
@@ -127,7 +125,6 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
     return () => observer.disconnect();
   }, [isOpen]);
 
-  // Gestion du responsive
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -137,7 +134,6 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mobile styles
   const mobileStyles = isMobile ? {
     containerStyle: {
       maxWidth: '100%',
@@ -149,7 +145,7 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
       maxWidth: '600px',
       right: 0,
       margin: '0 auto',
-      height: '80%',
+      height: '80vh',
     }
   } : {};
 
@@ -157,14 +153,15 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
     url,
     identifier,
     title,
-    language: 'fr'
+    language: 'en' // Changed to English
   };
 
-  // Style personnalisé pour le conteneur Disqus
   const disqusCustomStyle = `
     #disqus_thread {
+      height: calc(100% - 20px) !important;
       padding: 16px !important;
       font-size: 13px !important;
+      margin-bottom: 20px !important;
     }
     .dq-powered {
       display: none !important;
@@ -176,6 +173,18 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
     .dq-avatar img {
       width: 32px !important;
       height: 32px !important;
+    }
+    #placement-bottom {
+      margin-bottom: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    iframe[src*="disqus.com"] {
+      min-height: 0 !important;
+    }
+    @media (max-width: 768px) {
+      #disqus_thread {
+        height: calc(100% - 40px) !important;
+      }
     }
   `;
 
@@ -258,7 +267,8 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
                   overflowX: 'hidden',
                   WebkitOverflowScrolling: 'touch',
                   scrollbarWidth: 'thin',
-                  scrollbarColor: '#CBD5E1 transparent'
+                  scrollbarColor: '#CBD5E1 transparent',
+                  paddingBottom: '20px'
                 }}>
                   <DiscussionEmbed
                     shortname={shortname}
