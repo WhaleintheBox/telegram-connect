@@ -1710,9 +1710,10 @@ export default function App() {
         )}
 
         <DisqusChatPanel 
-          url={window.location.href}
-          identifier="whaleinthebox" 
-          title="Chat"
+          shortname="whaleinthebox"
+          url="https://whaleinthebox.github.io/telegram-connect/dist/"
+          identifier="Ocean"
+          title="Whales Chat"
         />
     </>
   );
