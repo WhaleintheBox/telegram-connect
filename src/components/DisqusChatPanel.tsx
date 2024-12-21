@@ -265,12 +265,14 @@ const DisqusChatPanel: React.FC<DisqusChatPanelProps> = ({
               }>
                 <div style={{ 
                   flex: '1 1 auto',
-                  overflowY: 'auto',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  overflowY: 'scroll',
                   overflowX: 'hidden',
-                  WebkitOverflowScrolling: 'touch',
-                  scrollbarWidth: 'thin',
-                  scrollbarColor: '#CBD5E1 transparent',
-                  minHeight: 0
+                  WebkitOverflowScrolling: 'touch'
                 }}>
                   <DiscussionEmbed
                     shortname={shortname}
