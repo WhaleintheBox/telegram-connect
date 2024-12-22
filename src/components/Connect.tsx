@@ -2,7 +2,8 @@
 
 import * as React from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount } from 'wagmi';
+import { useAccount, useConnect } from 'wagmi';
+import { useAppKit } from '@reown/appkit/react';
 
 interface ConnectProps {
   onUserConnected?: (address: string) => void;
@@ -20,8 +21,46 @@ export function Connect({
   sendEvent 
 }: ConnectProps) {
   const { isConnected, address } = useAccount();
+  const { connectAsync, connectors } = useConnect();
   const [isConnecting, setIsConnecting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const { open } = useAppKit();
+
+  // Connecter avec MetaMask directement
+  const connectMetaMask = async (openConnectModal: () => void) => {
+    try {
+      setIsConnecting(true);
+      const connector = connectors.find(c => c.name === 'MetaMask');
+      if (connector) {
+        await connectAsync({ connector });
+      } else {
+        openConnectModal();
+      }
+    } catch (err) {
+      console.error('MetaMask connection error:', err);
+      openConnectModal();
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  // Connecter avec Phantom directement
+  const connectPhantom = async (openConnectModal: () => void) => {
+    try {
+      setIsConnecting(true);
+      const connector = connectors.find(c => c.name === 'Phantom');
+      if (connector) {
+        await connectAsync({ connector });
+      } else {
+        openConnectModal();
+      }
+    } catch (err) {
+      console.error('Phantom connection error:', err);
+      openConnectModal();
+    } finally {
+      setIsConnecting(false);
+    }
+  };
 
   // Notification au bot
   React.useEffect(() => {
@@ -33,7 +72,7 @@ export function Connect({
           type: 'connect_wallet',
           address: address,
           connect: true,
-          initData: telegramInitData // Added Telegram initData
+          initData: telegramInitData
         };
         
         sendEvent({ ...connectionData, uid });
@@ -87,17 +126,34 @@ export function Connect({
                   ) : (
                     <>
                       <span>🌈</span>
-                      <span>Connect Wallet</span>
+                      <span>RainbowKit</span>
                     </>
                   )}
                 </button>
 
-                {/* MetaMask Button */}
+                {/* Reown Button */}
                 <button
                   onClick={() => {
                     setIsConnecting(true);
-                    openConnectModal();
+                    open({ view: 'Connect' });
                   }}
+                  disabled={isConnecting}
+                  className={`
+                    w-full px-4 py-3 rounded-xl text-lg font-medium
+                    flex items-center justify-center gap-2
+                    transition-all duration-200
+                    ${isConnecting 
+                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:opacity-90'}
+                  `}
+                >
+                  <span>✨</span>
+                  <span>ReownKit</span>
+                </button>
+
+                {/* MetaMask Button */}
+                <button
+                  onClick={() => connectMetaMask(openConnectModal)}
                   disabled={isConnecting}
                   className={`
                     w-full px-4 py-3 rounded-xl text-lg font-medium
@@ -114,10 +170,7 @@ export function Connect({
 
                 {/* Phantom Button */}
                 <button
-                  onClick={() => {
-                    setIsConnecting(true);
-                    openConnectModal();
-                  }}
+                  onClick={() => connectPhantom(openConnectModal)}
                   disabled={isConnecting}
                   className={`
                     w-full px-4 py-3 rounded-xl text-lg font-medium
@@ -130,26 +183,6 @@ export function Connect({
                 >
                   <span>👻</span>
                   <span>Phantom</span>
-                </button>
-
-                {/* Injected Wallet Button */}
-                <button
-                  onClick={() => {
-                    setIsConnecting(true);
-                    openConnectModal();
-                  }}
-                  disabled={isConnecting}
-                  className={`
-                    w-full px-4 py-3 rounded-xl text-lg font-medium
-                    flex items-center justify-center gap-2
-                    transition-all duration-200
-                    ${isConnecting 
-                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:opacity-90'}
-                  `}
-                >
-                  <span>💼</span>
-                  <span>Browser Wallet</span>
                 </button>
               </div>
 
