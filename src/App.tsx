@@ -339,6 +339,7 @@ interface ApiResponse {
 
 export default function App() {
   const { isConnected, address } = useAccount();
+  const [telegramInitData, setTelegramInitData] = useState<string>('');
   const [sortOption, setSortOption] = useState<SortOption>('latest');
   const { cacheData, updateCache, updatedBoxes, setUpdatedBoxes, isLoading: cacheLoading } = useCache();
 
@@ -1311,6 +1312,16 @@ export default function App() {
   };
 
 
+  useEffect(() => {
+    if ((window as any).Telegram?.WebApp) {
+      const webApp = (window as any).Telegram.WebApp;
+      setTelegramInitData(webApp.initData || '');
+      
+      // Activer le bouton de retour
+      webApp.BackButton.show();
+      webApp.ready();
+    }
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1344,7 +1355,7 @@ export default function App() {
           }))} 
         />
       )}
-      {!isConnected && !schemaError && <Connect />}
+      {!isConnected && !schemaError && <Connect telegramInitData={telegramInitData} />}  {/* <-- ICI */}
 
       {(!transactionData && !signMessageData) && (
         <>

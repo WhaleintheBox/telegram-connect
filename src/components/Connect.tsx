@@ -12,9 +12,10 @@ const STORAGE_KEYS = {
 
 interface ConnectProps {
   onUserConnected?: (address: string) => void;
+  telegramInitData?: string;  // Ajout de la prop ici, optionnelle avec ?
 }
 
-export function Connect({ onUserConnected }: ConnectProps) {
+export function Connect({ onUserConnected, telegramInitData }: ConnectProps) {
   const { isConnected, address } = useAccount();
   const { openConnectModal, platform, isSessionActive } = useConnectModal();
   const [error, setError] = React.useState<string | null>(null);
@@ -28,14 +29,20 @@ export function Connect({ onUserConnected }: ConnectProps) {
       // Si l'objet Telegram.WebApp existe
       if ((window as any).Telegram?.WebApp) {
         try {
-          // Créer un objet de données simple que le bot peut facilement parser
+          // Créer un objet de données avec l'initData
           const dataToSend = JSON.stringify({
             type: 'connect_wallet',
-            address: address
+            address: address,
+            initData: telegramInitData
           });
           
           // Envoyer les données au bot via WebApp.sendData()
           (window as any).Telegram.WebApp.sendData(dataToSend);
+          
+          // Optionnel : Fermer la webapp après connexion
+          setTimeout(() => {
+            (window as any).Telegram.WebApp.close();
+          }, 1500);
           
           console.log('Data sent to Telegram:', dataToSend);
         } catch (err) {
@@ -47,7 +54,7 @@ export function Connect({ onUserConnected }: ConnectProps) {
       // Appeler le callback si fourni
       onUserConnected?.(address);
     }
-  }, [isConnected, address, onUserConnected]);
+  }, [isConnected, address, onUserConnected, telegramInitData]);
 
   const handleConnect = async () => {
     try {
