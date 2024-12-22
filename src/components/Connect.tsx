@@ -66,41 +66,46 @@ export function Connect({
   const processConnection = React.useCallback(
     async (addr: string) => {
       if (!addr || connectionState.isProcessing) return;
-
+  
       try {
+        // Get user ID from Telegram WebApp if available
+        const userId = (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id;
+        
         const connectionData = {
-          type: 'connect_wallet',  // Changer 'event' en 'type' pour matcher le bot
+          type: 'connect_wallet',
           address: addr,
-          initData: telegramInitData  // Renommer data en initData pour matcher le bot
+          initData: telegramInitData,
+          uid: userId ? String(userId) : undefined // Add the uid field
         };
-
+  
         console.log('Sending connection data:', connectionData);
-
-        // Envoyer via Telegram WebApp
+  
+        // Send via Telegram WebApp
         if ((window as any).Telegram?.WebApp) {
           console.log('Sending via Telegram WebApp:', connectionData);
           try {
             (window as any).Telegram.WebApp.sendData(JSON.stringify(connectionData));
             console.log('Data sent to Telegram WebApp successfully');
             
-            // Ne fermer qu'après confirmation
+            // Give some time for the data to be processed before closing
             setTimeout(() => {
-              (window as any).Telegram.WebApp?.close();
+              if (connectionData.uid) { // Only close if we had a valid user ID
+                (window as any).Telegram.WebApp?.close();
+              }
             }, 3000);
           } catch (err) {
             console.error('Error sending to Telegram WebApp:', err);
             throw err;
           }
         }
-
+  
         if (sendEvent) {
           sendEvent(connectionData);
         }
-
+  
         onUserConnected?.(addr);
         setHasProcessedInitialConnection(true);
-
-        // Mise à jour de l'état
+  
         setConnectionState((prev) => ({
           ...prev,
           isProcessing: false,
@@ -109,33 +114,20 @@ export function Connect({
         }));
       } catch (err) {
         console.error('Connection error:', err);
-        const errorMessage =
-          err instanceof Error ? err.message : 'Connection failed';
-
-        setConnectionState((prev) => {
-          const newRetryCount = prev.retryCount + 1;
-          if (newRetryCount < 3) {
-            retryTimeoutRef.current = setTimeout(() => {
-              processConnection(addr);
-            }, Math.min(1000 * Math.pow(2, newRetryCount), 5000));
-          }
-
-          return {
-            isProcessing: false,
-            error: errorMessage,
-            lastAttempt: Date.now(),
-            retryCount: newRetryCount
-          };
-        });
+        const errorMessage = err instanceof Error ? err.message : 'Connection failed';
+  
+        setConnectionState((prev) => ({
+          ...prev,
+          isProcessing: false,
+          error: errorMessage,
+          lastAttempt: Date.now(),
+          retryCount: 0
+        }));
       }
     },
-    [
-      telegramInitData,
-      onUserConnected,
-      sendEvent,
-      connectionState.isProcessing
-    ]
+    [telegramInitData, onUserConnected, sendEvent, connectionState.isProcessing]
   );
+  
 
   // Gérer la connexion initiale
   React.useEffect(() => {
