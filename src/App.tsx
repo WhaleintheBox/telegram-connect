@@ -343,6 +343,7 @@ export default function App() {
   const [sortOption, setSortOption] = useState<SortOption>('latest');
   const { cacheData, updateCache, updatedBoxes, setUpdatedBoxes, isLoading: cacheLoading } = useCache();
 
+  
 
   // Core states
   const [boxes, setBoxes] = useState<Box[]>([]);
@@ -1317,21 +1318,40 @@ export default function App() {
       console.log("Initializing Telegram WebApp");
       const webApp = (window as any).Telegram.WebApp;
       
-      // Activer le mode d'expansion et le bouton de retour
+      // Autorise l’expansion en plein écran et le bouton "Close"
       webApp.expand();
       webApp.enableClosingConfirmation();
       
-      // Récupérer l'initData
+      // Récupère les données d'initialisation
       const initData = webApp.initData;
       console.log("Telegram initData:", initData);
       setTelegramInitData(initData || '');
       
-      // Indiquer que l'app est prête
+      // Indique à Telegram que l’app est prête
       webApp.ready();
     } else {
       console.warn("Telegram WebApp not available");
     }
   }, []);
+
+    const handleSendData = useCallback(() => {
+      // Vérifier qu’on est bien dans Telegram
+      if ((window as any).Telegram?.WebApp) {
+        const dataToSend = {
+          type: 'connect_wallet',
+          address: address || '0x1234abcd...', // ou l'adresse si wagmi est connectée
+          initData: telegramInitData, 
+          uid: '123456789', // Remplacez par l’ID Telegram si besoin
+          randomValue: Math.floor(Math.random() * 1000),
+        };
+        console.log("Sending data to bot:", dataToSend);
+
+        // Envoi JSON au bot → le bot recevra update.message.web_app_data.data
+        (window as any).Telegram.WebApp.sendData(JSON.stringify(dataToSend));
+      } else {
+        alert("Telegram.WebApp n'est pas disponible. Ouvrez cette page depuis Telegram.");
+      }
+    }, [address, telegramInitData]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1376,7 +1396,21 @@ export default function App() {
           }}
         />
       )}
-
+      <div style={{ margin: '16px 0', textAlign: 'center' }}>
+        <button 
+          onClick={handleSendData}
+          style={{
+            background: '#0088cc',
+            color: '#fff',
+            padding: '12px 20px',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer'
+          }}
+        >
+          Connect to bot
+        </button>
+      </div>
       {(!transactionData && !signMessageData) && (
         <>
           {/* Stats Panel */}
