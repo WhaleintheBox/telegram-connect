@@ -20,12 +20,39 @@ export function Connect({ onUserConnected }: ConnectProps) {
   const [error, setError] = React.useState<string | null>(null);
   const [isConnecting, setIsConnecting] = React.useState(false);
 
+  // Fonction pour envoyer les données à Telegram
+  const notifyTelegramWebApp = React.useCallback((address: string) => {
+    if ((window as any).Telegram?.WebApp) {
+      try {
+        const data = {
+          event: 'wallet_connected',
+          address: address,
+          data: (window as any).Telegram.WebApp.initData
+        };
+        
+        // Envoyer les données au backend via l'API Telegram WebApp
+        (window as any).Telegram.WebApp.sendData(JSON.stringify(data));
+        
+        console.log('Successfully sent data to Telegram WebApp');
+      } catch (err) {
+        console.error('Error sending data to Telegram WebApp:', err);
+        setError('Failed to notify Telegram');
+      }
+    }
+  }, []);
+
   React.useEffect(() => {
     if (isConnected && address && typeof window !== 'undefined') {
+      // Sauvegarder les données de connexion
       localStorage.setItem(STORAGE_KEYS.LAST_CONNECT, new Date().toISOString());
+      
+      // Notifier le bot Telegram via WebApp
+      notifyTelegramWebApp(address);
+      
+      // Appeler le callback si fourni
       onUserConnected?.(address);
     }
-  }, [isConnected, address, onUserConnected]);
+  }, [isConnected, address, onUserConnected, notifyTelegramWebApp]);
 
   const handleConnect = async () => {
     try {
@@ -44,7 +71,7 @@ export function Connect({ onUserConnected }: ConnectProps) {
 
       await openConnectModal();
     } catch (err: any) {
-      setError(err?.message || 'Échec de la connexion au wallet');
+      setError(err?.message || 'Failed to connect wallet');
       if (typeof window !== 'undefined') {
         Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
       }
@@ -64,8 +91,8 @@ export function Connect({ onUserConnected }: ConnectProps) {
               className="connect-button"
             >
               {isConnecting
-                ? 'Connexion...'
-                : `Connecter ${platform === 'mobile' ? 'Mobile' : 'Desktop'} Wallet`}
+                ? 'Connecting...'
+                : `Connect ${platform === 'mobile' ? 'Mobile' : 'Desktop'} Wallet`}
             </button>
           )}
         </ConnectButton.Custom>
@@ -76,7 +103,7 @@ export function Connect({ onUserConnected }: ConnectProps) {
           <button
             onClick={() => setError(null)}
             className="error-dismiss"
-            aria-label="Fermer l'erreur"
+            aria-label="Close error"
           >
             ×
           </button>
@@ -85,3 +112,5 @@ export function Connect({ onUserConnected }: ConnectProps) {
     </div>
   );
 }
+
+export default Connect;
