@@ -2,8 +2,20 @@
 
 import * as React from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount, useConnect } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { useAppKit } from '@reown/appkit/react';
+
+// Définition des types pour Phantom
+declare global {
+  interface Window {
+    phantom?: {
+      solana?: {
+        isPhantom?: boolean;
+        connect: () => Promise<{ publicKey: string }>;
+      };
+    };
+  }
+}
 
 interface ConnectProps {
   onUserConnected?: (address: string) => void;
@@ -14,86 +26,104 @@ interface ConnectProps {
 }
 
 export function Connect({ 
-  onUserConnected, 
+  onUserConnected,
   telegramInitData,
   uid,
   callbackEndpoint,
-  sendEvent 
+  sendEvent
 }: ConnectProps) {
-  const { isConnected, address } = useAccount();
-  const { connectAsync, connectors } = useConnect();
+  const { address, isConnected } = useAccount();
   const [isConnecting, setIsConnecting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const { open } = useAppKit();
+  const [hasNotifiedConnection, setHasNotifiedConnection] = React.useState(false);
 
-  // Détecte si on est sur mobile
-  const isMobile = React.useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    return /mobile|android|iphone|ipad|ipod/.test(
-      window.navigator.userAgent.toLowerCase()
-    );
-  }, []);
+  // Notification au service Telegram lors de la connexion
+  React.useEffect(() => {
+    const notifyConnection = async () => {
+      if (isConnected && address && uid && callbackEndpoint && !hasNotifiedConnection) {
+        try {
+          const connectionData = {
+            type: 'connect_wallet',
+            address: address,
+            connect: true,
+            initData: telegramInitData
+          };
 
-  // Connecter avec MetaMask directement
-  const connectMetaMask = async (openConnectModal: () => void) => {
-    try {
-      setIsConnecting(true);
-      const connector = connectors.find(c => c.name === 'MetaMask');
-      if (connector) {
-        await connectAsync({ connector });
-      } else {
-        openConnectModal();
+          if (sendEvent) {
+            sendEvent({ ...connectionData, uid });
+          } else {
+            const response = await fetch(callbackEndpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                ...connectionData,
+                uid
+              }),
+            });
+
+            if (response.ok) {
+              console.log('Successfully notified bot of wallet connection');
+            } else {
+              console.error('Failed to notify bot:', await response.text());
+            }
+          }
+          
+          setHasNotifiedConnection(true);
+        } catch (error) {
+          console.error('Error notifying bot of connection:', error);
+        }
       }
-    } catch (err) {
-      console.error('MetaMask connection error:', err);
-      openConnectModal();
-    } finally {
-      setIsConnecting(false);
-    }
-  };
+    };
 
-  // Connecter avec Phantom directement
-  const connectPhantom = async (openConnectModal: () => void) => {
+    notifyConnection();
+  }, [isConnected, address, uid, callbackEndpoint, hasNotifiedConnection, telegramInitData, sendEvent]);
+
+  // Reset notification state quand la connexion est perdue
+  React.useEffect(() => {
+    if (!isConnected) {
+      setHasNotifiedConnection(false);
+    }
+  }, [isConnected]);
+
+  // Connecter avec Phantom
+  const connectPhantom = async () => {
     try {
       setIsConnecting(true);
+      setError(null);
+
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       
-      // Si sur mobile, rediriger vers l'app Phantom
+      // Rediriger vers l'app Phantom sur mobile
       if (isMobile) {
         window.location.href = 'https://phantom.app/ul/browse/';
         return;
       }
 
-      const connector = connectors.find(c => c.name === 'Phantom');
-      if (connector) {
-        await connectAsync({ connector });
+      // Sur desktop, vérifier si Phantom est installé
+      if (typeof window !== 'undefined' && window.phantom?.solana) {
+        try {
+          const response = await window.phantom.solana.connect();
+          if (onUserConnected) {
+            onUserConnected(response.publicKey);
+          }
+        } catch (err) {
+          console.error('Phantom direct connection error:', err);
+          setError('Failed to connect to Phantom. Please try again.');
+        }
       } else {
-        openConnectModal();
+        window.open('https://phantom.app', '_blank');
       }
+
     } catch (err) {
       console.error('Phantom connection error:', err);
-      openConnectModal();
+      setError('Failed to connect to Phantom');
     } finally {
       setIsConnecting(false);
     }
   };
-
-  // Notification au bot
-  React.useEffect(() => {
-    if (isConnected && address) {
-      onUserConnected?.(address);
-      
-      if (sendEvent && uid && callbackEndpoint) {
-        const connectionData = {
-          type: 'connect_wallet',
-          address: address,
-          connect: true,
-          initData: telegramInitData
-        };
-        
-        sendEvent({ ...connectionData, uid });
-      }
-    }
-  }, [isConnected, address, onUserConnected, sendEvent, uid, callbackEndpoint, telegramInitData]);
 
   return (
     <div style={{
@@ -151,25 +181,13 @@ export function Connect({
                     transition: 'opacity 0.2s'
                   }}
                 >
-                  {isConnecting ? (
-                    <>
-                      <span style={{ animation: 'spin 1s linear infinite' }}>⚡</span>
-                      <span>Connecting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>🌈</span>
-                      <span>RainbowKit</span>
-                    </>
-                  )}
+                  <span>🌈</span>
+                  <span>RainbowKit</span>
                 </button>
 
                 {/* Reown Button */}
                 <button
-                  onClick={() => {
-                    setIsConnecting(true);
-                    open({ view: 'Connect' });
-                  }}
+                  onClick={() => open({ view: 'Connect' })}
                   disabled={isConnecting}
                   style={{
                     width: '100%',
@@ -182,7 +200,7 @@ export function Connect({
                     justifyContent: 'center',
                     gap: '8px',
                     background: isConnecting 
-                      ? '#f3f4f6'
+                      ? '#f3f4f6' 
                       : 'linear-gradient(135deg, #22c55e 0%, #3b82f6 100%)',
                     color: isConnecting ? '#9ca3af' : 'white',
                     border: 'none',
@@ -194,36 +212,9 @@ export function Connect({
                   <span>ReownKit</span>
                 </button>
 
-                {/* MetaMask Button */}
-                <button
-                  onClick={() => connectMetaMask(openConnectModal)}
-                  disabled={isConnecting}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: '12px',
-                    fontSize: '18px',
-                    fontWeight: '500',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    background: isConnecting 
-                      ? '#f3f4f6'
-                      : 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-                    color: isConnecting ? '#9ca3af' : 'white',
-                    border: 'none',
-                    cursor: isConnecting ? 'not-allowed' : 'pointer',
-                    transition: 'opacity 0.2s'
-                  }}
-                >
-                  <span>🦊</span>
-                  <span>MetaMask</span>
-                </button>
-
                 {/* Phantom Button */}
                 <button
-                  onClick={() => connectPhantom(openConnectModal)}
+                  onClick={connectPhantom}
                   disabled={isConnecting}
                   style={{
                     width: '100%',
@@ -235,7 +226,7 @@ export function Connect({
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    background: isConnecting 
+                    background: isConnecting
                       ? '#f3f4f6'
                       : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
                     color: isConnecting ? '#9ca3af' : 'white',
