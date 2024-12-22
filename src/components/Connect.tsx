@@ -13,116 +13,183 @@ const STORAGE_KEYS = {
 interface ConnectProps {
   onUserConnected?: (address: string) => void;
   telegramInitData?: string;
-  uid?: string;
-  callbackEndpoint?: string;
+  uid?: string;                 // Re-ajouté car utilisé dans App.tsx
+  callbackEndpoint?: string;    // Re-ajouté car utilisé dans App.tsx
   sendEvent?: (event: any) => void;
 }
 
 interface ConnectionEvent {
-  type: 'connect_wallet';
+  event: 'wallet_connected';
   address: string;
-  initData?: string;
-  status?: 'success' | 'error';
-  error?: string;
+  data?: string;
+  timestamp: number;
+  source: 'web' | 'telegram';
 }
 
-export function Connect({ onUserConnected, telegramInitData, sendEvent }: ConnectProps) {
+interface ConnectionState {
+  isProcessing: boolean;
+  error: string | null;
+  lastAttempt: number | null;
+  retryCount: number;
+}
+
+const initialConnectionState: ConnectionState = {
+  isProcessing: false,
+  error: null,
+  lastAttempt: null,
+  retryCount: 0
+};
+
+export function Connect({ 
+  onUserConnected, 
+  telegramInitData, 
+  sendEvent 
+}: ConnectProps) {
   const { isConnected, address } = useAccount();
   const { openConnectModal, platform, isSessionActive } = useConnectModal();
-  const [error, setError] = React.useState<string | null>(null);
-  const [isConnecting, setIsConnecting] = React.useState(false);
-  const [connectionSent, setConnectionSent] = React.useState(false);
+  const [connectionState, setConnectionState] = React.useState<ConnectionState>(() => ({
+    isProcessing: false,
+    error: null,
+    lastAttempt: null,
+    retryCount: 0
+  }));
+  const [hasProcessedInitialConnection, setHasProcessedInitialConnection] = React.useState<boolean>(false);
+  const retryTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
-  const sendConnectionEvent = React.useCallback((event: ConnectionEvent) => {
-    if (sendEvent) {
-      sendEvent(event);
-    }
+  const resetConnectionState = React.useCallback(() => {
+    setConnectionState(initialConnectionState);
+  }, []);
 
-    if (telegramInitData && (window as any).Telegram?.WebApp?.sendData) {
-      try {
-        (window as any).Telegram.WebApp.sendData(JSON.stringify(event));
-        console.log('Connection event sent to Telegram:', event);
-        
-        // Only close if it's a successful connection
-        if (event.status === 'success') {
-          setTimeout(() => {
-            (window as any).Telegram.WebApp.close();
-          }, 2000);
-        }
-      } catch (err) {
-        console.error('Error sending data to Telegram:', err);
-        setError('Failed to communicate with Telegram');
-      }
-    }
-  }, [sendEvent, telegramInitData]);
+  const processConnection = React.useCallback(async (addr: string) => {
+    if (!addr || connectionState.isProcessing) return;
 
-  const handleConnection = React.useCallback((addr: string) => {
+    setConnectionState(prev => ({
+      ...prev,
+      isProcessing: true,
+      lastAttempt: Date.now()
+    }));
+
     try {
-      // Préparer les données de connexion
-      const connectionData = {
-        type: 'connect_wallet',
-        address: addr,
-        timestamp: Date.now()
-      };
-  
-      // Si on a telegramInitData, ajouter aux données
-      if (telegramInitData) {
-        Object.assign(connectionData, { initData: telegramInitData });
+      // Validate address format
+      if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+        throw new Error('Invalid address format');
       }
-  
-      // Envoyer via sendEvent si disponible
+
+      const connectionData: ConnectionEvent = {
+        event: 'wallet_connected',
+        address: addr,
+        data: telegramInitData || '',
+        timestamp: Date.now(),
+        source: telegramInitData ? 'telegram' : 'web'
+      };
+
+      console.log('Processing connection:', connectionData);
+
+      // Send to Cloud Function
+      const response = await fetch('https://witbbot-638008614172.us-central1.run.app/wallet-connect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+        body: JSON.stringify(connectionData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Server reported failure');
+      }
+
+      // Handle Telegram WebApp if available
+      if (telegramInitData && (window as any).Telegram?.WebApp?.sendData) {
+        try {
+          (window as any).Telegram.WebApp.sendData(JSON.stringify(connectionData));
+          console.log('Data sent to Telegram WebApp');
+          
+          // Schedule WebApp closure
+          setTimeout(() => {
+            if ((window as any).Telegram?.WebApp?.close) {
+              (window as any).Telegram.WebApp.close();
+            }
+          }, 2000);
+        } catch (err) {
+          console.warn('Error sending data to Telegram WebApp:', err);
+          // Don't throw here as the main connection was successful
+        }
+      }
+
+      // Update local storage and state
+      localStorage.setItem(STORAGE_KEYS.LAST_CONNECT, new Date().toISOString());
       if (sendEvent) {
         sendEvent(connectionData);
       }
-  
-      // Envoyer via Telegram WebApp si disponible
-      if ((window as any).Telegram?.WebApp?.sendData) {
-        (window as any).Telegram.WebApp.sendData(JSON.stringify(connectionData));
-        
-        // Attendre un peu avant de fermer
-        setTimeout(() => {
-          (window as any).Telegram.WebApp.close();
-        }, 2000);
-      }
-  
-      // Mettre à jour le localStorage et appeler onUserConnected
-      localStorage.setItem(STORAGE_KEYS.LAST_CONNECT, new Date().toISOString());
       onUserConnected?.(addr);
-  
+
+      setConnectionState(prev => ({
+        ...prev,
+        isProcessing: false,
+        error: null,
+        retryCount: 0
+      }));
+      setHasProcessedInitialConnection(true);
+
     } catch (err) {
-      console.error('Error in handleConnection:', err);
-      setError('Failed to process connection');
-    }
-  }, [telegramInitData, sendEvent, onUserConnected]);
-  
-  // Utiliser ce handler pour les connexions existantes et nouvelles
-  React.useEffect(() => {
-    if (isConnected && address) {
-      handleConnection(address);
-    }
-  }, [isConnected, address, handleConnection]);
+      console.error('Connection error:', err);
+      
+      const errorMessage = err instanceof Error ? err.message : 'Connection failed';
+      
+      setConnectionState(prev => {
+        const newRetryCount = prev.retryCount + 1;
+        
+        if (newRetryCount < 3) {
+          // Schedule retry
+          retryTimeoutRef.current = setTimeout(() => {
+            processConnection(addr);
+          }, Math.min(1000 * Math.pow(2, newRetryCount), 5000));
+        }
 
-  // Handle existing connection on mount
-  React.useEffect(() => {
-    if (isConnected && address && !connectionSent) {
-      console.log("Handling existing connection:", { address });
-      handleConnection(address);
+        return {
+          isProcessing: false,
+          error: errorMessage,
+          lastAttempt: Date.now(),
+          retryCount: newRetryCount
+        };
+      });
     }
-  }, [isConnected, address, handleConnection, connectionSent]);
+  }, [telegramInitData, onUserConnected, sendEvent, connectionState.isProcessing]);
 
-  // Handle new connections
+  // Handle initial and new connections
   React.useEffect(() => {
-    if (isConnected && address && !connectionSent) {
-      console.log("New connection detected:", { address });
-      handleConnection(address);
+    if (isConnected && address && !hasProcessedInitialConnection) {
+      processConnection(address);
     }
-  }, [isConnected, address, handleConnection, connectionSent]);
+  }, [isConnected, address, hasProcessedInitialConnection, processConnection]);
+
+  // Clean up retry timeout
+  React.useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Reset connection state when telegramInitData changes
+  React.useEffect(() => {
+    resetConnectionState();
+    setHasProcessedInitialConnection(false);
+  }, [telegramInitData, resetConnectionState]);
 
   const handleConnect = async () => {
     try {
-      setIsConnecting(true);
-      setError(null);
+      setConnectionState(prev => ({ ...prev, isProcessing: true, error: null }));
 
+      // Update session data
       if (!isSessionActive && typeof window !== 'undefined') {
         localStorage.setItem(
           STORAGE_KEYS.SESSION,
@@ -134,30 +201,25 @@ export function Connect({ onUserConnected, telegramInitData, sendEvent }: Connec
       }
 
       await openConnectModal();
-    } catch (err: any) {
-      const errorMessage = err?.message || 'Failed to connect wallet';
-      setError(errorMessage);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to connect wallet';
       
-      const errorEvent: ConnectionEvent = {
-        type: 'connect_wallet',
-        address: '',
-        status: 'error',
-        error: errorMessage
-      };
-      sendConnectionEvent(errorEvent);
+      setConnectionState({
+        isProcessing: false,
+        error: errorMessage,
+        lastAttempt: Date.now(),
+        retryCount: 0
+      });
 
-      if (typeof window !== 'undefined') {
-        Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
-      }
-    } finally {
-      setIsConnecting(false);
+      Object.values(STORAGE_KEYS).forEach(key => {
+        try {
+          localStorage.removeItem(key);
+        } catch (e) {
+          console.warn('Failed to remove item from localStorage:', e);
+        }
+      });
     }
   };
-
-  // Reset connection status when telegramInitData changes
-  React.useEffect(() => {
-    setConnectionSent(false);
-  }, [telegramInitData]);
 
   return (
     <div className="connect-container">
@@ -166,21 +228,21 @@ export function Connect({ onUserConnected, telegramInitData, sendEvent }: Connec
           {() => (
             <button
               onClick={handleConnect}
-              disabled={isConnecting}
+              disabled={connectionState.isProcessing}
               className="connect-button"
             >
-              {isConnecting
+              {connectionState.isProcessing
                 ? 'Connecting...'
                 : `Connect ${platform === 'mobile' ? 'Mobile' : 'Desktop'} Wallet`}
             </button>
           )}
         </ConnectButton.Custom>
       </div>
-      {error && (
+      {connectionState.error && (
         <div className="error-message">
-          <div className="error-text">{error}</div>
+          <div className="error-text">{connectionState.error}</div>
           <button
-            onClick={() => setError(null)}
+            onClick={() => setConnectionState(prev => ({ ...prev, error: null }))}
             className="error-dismiss"
             aria-label="Close error"
           >
