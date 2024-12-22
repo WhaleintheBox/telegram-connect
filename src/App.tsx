@@ -1314,12 +1314,22 @@ export default function App() {
 
   useEffect(() => {
     if ((window as any).Telegram?.WebApp) {
+      console.log("Initializing Telegram WebApp");
       const webApp = (window as any).Telegram.WebApp;
-      setTelegramInitData(webApp.initData || '');
       
-      // Activer le bouton de retour
-      webApp.BackButton.show();
+      // Activer le mode d'expansion et le bouton de retour
+      webApp.expand();
+      webApp.enableClosingConfirmation();
+      
+      // Récupérer l'initData
+      const initData = webApp.initData;
+      console.log("Telegram initData:", initData);
+      setTelegramInitData(initData || '');
+      
+      // Indiquer que l'app est prête
       webApp.ready();
+    } else {
+      console.warn("Telegram WebApp not available");
     }
   }, []);
 
