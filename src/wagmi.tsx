@@ -4,10 +4,15 @@ import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { cookieStorage, createStorage, http, fallback } from 'wagmi'; 
 import { base } from 'wagmi/chains';
 import { createAppKit } from '@reown/appkit/react';
-import { metaMaskWallet, phantomWallet, coinbaseWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
 import { connectorsForWallets } from '@rainbow-me/rainbowkit';
+import {
+  injectedWallet,
+  metaMaskWallet,
+  phantomWallet,
+  rainbowWallet,
+} from '@rainbow-me/rainbowkit/wallets';
 
-export const chains = [base]; // Exportez ce tableau
+export const chains = [base];
 
 export const APP_CONFIG = {
   projectIds: {
@@ -19,21 +24,22 @@ export const APP_CONFIG = {
     description: 'Our Decentralized Betting Platform',
     url: 'https://whaleinthebox.github.io/telegram-connect/dist/',
     iconUrl: 'https://imagedelivery.net/_aTEfDRm7z3tKgu9JhfeKA/e64de848-991b-4de3-787a-5e6008473800/sm',
-    version: '1.0.0',
     icons: []
-  },
-  rpc: {
-    base: [
-      'https://mainnet.base.org',
-      'https://1rpc.io/base', 
-      'https://base.blockpi.network/v1/rpc/public',
-      'https://base.meowrpc.com'
-    ]
   }
 } as const;
 
+// RPC URLs
+const RPC_URLS = {
+  base: [
+    'https://mainnet.base.org',
+    'https://1rpc.io/base', 
+    'https://base.blockpi.network/v1/rpc/public',
+    'https://base.meowrpc.com'
+  ]
+};
+
 const baseTransport = fallback(
-  APP_CONFIG.rpc.base.map(url => http(url, {
+  RPC_URLS.base.map(url => http(url, {
     timeout: 10000,
     retryDelay: 1000,
     retryCount: 3
@@ -47,23 +53,22 @@ const storage = createStorage({
 
 const projectId = APP_CONFIG.projectIds.walletConnect;
 
-const walletConnectors = connectorsForWallets(
-  [
-    {
-      groupName: 'Recommended',
-      wallets: [
-        metaMaskWallet,
-        phantomWallet,
-        coinbaseWallet,
-        walletConnectWallet
-      ],
-    },
-  ],
+const walletsList = [
   {
-    appName: APP_CONFIG.metadata.name,
-    projectId
+    groupName: 'Popular',
+    wallets: [
+      metaMaskWallet,
+      injectedWallet,
+      phantomWallet,
+      rainbowWallet
+    ].map(wallet => wallet)
   }
-);
+];
+
+const connectors = connectorsForWallets(walletsList, {
+  appName: APP_CONFIG.metadata.name,
+  projectId
+});
 
 export const wagmiAdapter = new WagmiAdapter({
   projectId: APP_CONFIG.projectIds.reown,
@@ -72,7 +77,7 @@ export const wagmiAdapter = new WagmiAdapter({
   transports: {
     [base.id]: baseTransport
   },
-  connectors: walletConnectors
+  connectors
 });
 
 export const appKit = createAppKit({
@@ -80,7 +85,7 @@ export const appKit = createAppKit({
   networks: [base],
   metadata: {
     ...APP_CONFIG.metadata,
-    icons: [APP_CONFIG.metadata.iconUrl]
+    icons: []
   },
   projectId: APP_CONFIG.projectIds.reown,
   features: {
