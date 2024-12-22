@@ -20,10 +20,15 @@ declare global {
 }
 
 interface ConnectProps {
+  /** Callback après connexion (adresse récupérée) */
   onUserConnected?: (address: string) => void;
+  /** Données Telegram (optionnel) */
   telegramInitData?: string;
+  /** Identifiant utilisateur (optionnel) */
   uid?: string;
+  /** Endpoint callback (pour notifier un serveur) */
   callbackEndpoint?: string;
+  /** Fonction pour envoyer un event (ex: Telegram) */
   sendEvent?: (data: any) => void;
 }
 
@@ -40,33 +45,39 @@ export function Connect({
   const { open } = useAppKit();
   const [hasNotified, setHasNotified] = React.useState(false);
 
-  // Clé publique générée pour le chiffrement Phantom
+  // Génère la paire de clés pour le chiffrement Phantom (si besoin)
   const [dappKeyPair] = React.useState(nacl.box.keyPair());
 
-  // Notifie Telegram de la connexion (optionnel selon votre cas d'usage)
+  /**
+   * Lorsque l'utilisateur est connecté (via wagmi), on notifie éventuellement 
+   * Telegram ou un serveur via callbackEndpoint/sendEvent.
+   */
   React.useEffect(() => {
     const notifyConnection = async () => {
+      // Si une adresse est détectée et qu'on n'a pas encore notifié
       if (address && uid && !hasNotified && (sendEvent || callbackEndpoint)) {
         try {
           const connectionData = {
             type: 'connect_wallet',
             address,
             connect: true,
-            initData: telegramInitData
+            initData: telegramInitData,
           };
 
+          // Soit on envoie via la fonction sendEvent (ex: Telegram),
+          // soit on fait un POST sur callbackEndpoint
           if (sendEvent) {
             sendEvent({ ...connectionData, uid });
           } else if (callbackEndpoint) {
             await fetch(callbackEndpoint, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...connectionData, uid })
+              body: JSON.stringify({ ...connectionData, uid }),
             });
           }
           setHasNotified(true);
         } catch (err) {
-          console.error('Failed to notify Telegram:', err);
+          console.error('Failed to notify Telegram or callback:', err);
         }
       }
     };
@@ -84,50 +95,43 @@ export function Connect({
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
       if (isMobile) {
-        /**
-         * ---------------------------
-         * PHANTOM DEEPLINK SUR MOBILE
-         * ---------------------------
-         * Documentation Phantom : https://docs.phantom.com/phantom-deeplinks/provider-methods/connect
-         * 
-         * On crée un lien universel de type https://phantom.app/ul/v1/connect?...
-         * ou https://link.phantom.app/ul/... 
-         * (La doc Phantom varie selon la version, adaptez si nécessaire.)
-         */
-        
+        // ---------------------------
+        // PHANTOM DEEPLINK SUR MOBILE
+        // ---------------------------
+        // Documentation Phantom : 
+        // https://docs.phantom.com/phantom-deeplinks/provider-methods/connect
         const params = new URLSearchParams({
           // URL de redirection après validation dans Phantom
           redirect_link: window.location.href,
           // Cluster Solana (mainnet, devnet, etc.)
           cluster: 'mainnet',
-          // Clé publique de chiffrement (optionnelle, selon vos besoins)
+          // Clé publique de chiffrement (optionnelle)
           dapp_encryption_public_key: bs58.encode(dappKeyPair.publicKey),
-          // URL de votre appli (optionnel)
+          // URL de votre appli (optionnel, affiché dans Phantom)
           app_url: window.location.origin,
         });
 
-        // Exemple : https://phantom.app/ul/v1/connect
-        // Selon la doc, vous pouvez utiliser https://link.phantom.app/ul/ à la place
+        // Exemple de lien universel : https://phantom.app/ul/v1/connect
+        // (Selon la doc/plateforme, vous pouvez avoir https://link.phantom.app/ul/v1/connect)
         const url = `https://phantom.app/ul/v1/connect?${params.toString()}`;
 
-        // Redirige l'utilisateur mobile vers Phantom
+        // Redirige l'utilisateur mobile vers l'app Phantom
         window.location.href = url;
       } else {
-        /**
-         * ---------------------------
-         * PHANTOM CONNECT SUR DESKTOP
-         * ---------------------------
-         */
+        // ---------------------------
+        // PHANTOM CONNECT SUR DESKTOP
+        // ---------------------------
         if (window.phantom?.solana) {
           try {
             const response = await window.phantom.solana.connect();
+            // Récupère la publicKey Phantom et exécute un callback si besoin
             onUserConnected?.(response.publicKey);
           } catch (err) {
             console.error('Phantom connect error:', err);
             setError('Failed to connect to Phantom. Please try again.');
           }
         } else {
-          // Si Phantom n'est pas détecté, on propose de télécharger Phantom
+          // Si l'extension Phantom n'est pas détectée
           window.open('https://phantom.app', '_blank');
         }
       }
@@ -147,33 +151,24 @@ export function Connect({
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     if (isMobile) {
-      /**
-       * --------------------------
-       * METAMASK DEEPLINK SUR MOBILE
-       * --------------------------
-       * Documentation MetaMask : 
-       * https://docs.metamask.io/wallet/connect/3rd-party-libraries/wagmi/
-       * 
-       * On redirige l'utilisateur vers metamask.app.link/dapp/<votre_domaine> 
-       * ou n'importe quel format custom (wc:// ...) suivant l’implémentation désirée.
-       */
+      // --------------------------
+      // METAMASK DEEPLINK SUR MOBILE
+      // --------------------------
+      // Documentation : https://docs.metamask.io/wallet/connect/3rd-party-libraries/wagmi/
       const currentUrl = encodeURIComponent(window.location.href);
       window.location.href = `https://metamask.app.link/dapp/${currentUrl}`;
     } else {
-      /**
-       * ---------------------------
-       * METAMASK CONNECT SUR DESKTOP
-       * ---------------------------
-       */
+      // ---------------------------
+      // METAMASK CONNECT SUR DESKTOP
+      // ---------------------------
       if (typeof window.ethereum !== 'undefined') {
-        // Si MetaMask est injecté
         window.ethereum.request({ method: 'eth_requestAccounts' })
           .catch((err: any) => {
             console.error('MetaMask connection error:', err);
             setError('Failed to connect to MetaMask. Please try again.');
           });
       } else {
-        // Inviter l'utilisateur à installer MetaMask
+        // L'utilisateur n'a pas MetaMask → on propose l'installation
         window.open('https://metamask.io/download/', '_blank');
       }
     }
@@ -185,6 +180,10 @@ export function Connect({
       maxWidth: '420px',
       margin: '0 auto'
     }}>
+      {/* 
+        On personnalise le ConnectButton de RainbowKit pour ajouter
+        nos propres boutons Phantom / MetaMask / ReownKit en plus 
+      */}
       <ConnectButton.Custom>
         {({
           account,
@@ -193,7 +192,9 @@ export function Connect({
           authenticationStatus,
           mounted,
         }) => {
+          // Vérifie que wagmi / RainbowKit est prêt
           const ready = mounted && authenticationStatus !== 'loading';
+          // Vérifie si on est déjà connecté
           const connected = 
             ready && 
             account && 
@@ -325,7 +326,7 @@ export function Connect({
                 </button>
               </div>
 
-              {/* Affichage des erreurs */}
+              {/* Affichage d'une éventuelle erreur de connexion */}
               {error && (
                 <div style={{
                   marginTop: '16px',
@@ -351,7 +352,7 @@ export function Connect({
                 </div>
               )}
               
-              {/* Si déjà connecté */}
+              {/* Indique à l'utilisateur qu'il est connecté s'il l'est déjà */}
               {connected && (
                 <div style={{
                   marginTop: '16px',
