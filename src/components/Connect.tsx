@@ -18,13 +18,7 @@ interface ConnectProps {
   sendEvent?: (event: any) => void;
 }
 
-interface ConnectionEvent {
-  event: 'wallet_connected';
-  address: string;
-  data?: string;
-  timestamp: number;
-  source: 'web' | 'telegram';
-}
+
 
 interface ConnectionState {
   isProcessing: boolean;
@@ -62,97 +56,62 @@ export function Connect({
 
   const processConnection = React.useCallback(async (addr: string) => {
     if (!addr || connectionState.isProcessing) return;
-
-    setConnectionState(prev => ({
-      ...prev,
-      isProcessing: true,
-      lastAttempt: Date.now()
-    }));
-
+  
     try {
-      // Validate address format
-      if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
-        throw new Error('Invalid address format');
-      }
-
-      const connectionData: ConnectionEvent = {
-        event: 'wallet_connected',
+      const connectionData = {
+        type: 'connect_wallet',  // Changer 'event' en 'type' pour matcher le bot
         address: addr,
-        data: telegramInitData || '',
-        timestamp: Date.now(),
-        source: telegramInitData ? 'telegram' : 'web'
+        initData: telegramInitData  // Renommer data en initData pour matcher le bot
       };
-
-      console.log('Processing connection:', connectionData);
-
-      // Send to Cloud Function
-      const response = await fetch('https://witbbot-638008614172.us-central1.run.app/wallet-connect', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-        },
-        body: JSON.stringify(connectionData)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Server reported failure');
-      }
-
-      // Handle Telegram WebApp if available
-      if (telegramInitData && (window as any).Telegram?.WebApp?.sendData) {
+  
+      console.log('Sending connection data:', connectionData);
+  
+      // Envoyer via Telegram WebApp
+      if ((window as any).Telegram?.WebApp) {
+        console.log('Sending via Telegram WebApp:', connectionData);
         try {
           (window as any).Telegram.WebApp.sendData(JSON.stringify(connectionData));
-          console.log('Data sent to Telegram WebApp');
+          console.log('Data sent to Telegram WebApp successfully');
           
-          // Schedule WebApp closure
+          // Ne fermer qu'après confirmation
           setTimeout(() => {
-            if ((window as any).Telegram?.WebApp?.close) {
-              (window as any).Telegram.WebApp.close();
-            }
-          }, 2000);
+            (window as any).Telegram.WebApp?.close();
+          }, 3000);
         } catch (err) {
-          console.warn('Error sending data to Telegram WebApp:', err);
-          // Don't throw here as the main connection was successful
+          console.error('Error sending to Telegram WebApp:', err);
+          throw err;
         }
       }
-
-      // Update local storage and state
-      localStorage.setItem(STORAGE_KEYS.LAST_CONNECT, new Date().toISOString());
+  
+      // On n'a plus besoin d'appeler l'endpoint /wallet-connect car le bot reçoit les données via WebApp
+      
       if (sendEvent) {
         sendEvent(connectionData);
       }
+  
       onUserConnected?.(addr);
-
+      setHasProcessedInitialConnection(true);
+  
+      // Mettre à jour les états
       setConnectionState(prev => ({
         ...prev,
         isProcessing: false,
         error: null,
         retryCount: 0
       }));
-      setHasProcessedInitialConnection(true);
-
+  
     } catch (err) {
       console.error('Connection error:', err);
-      
       const errorMessage = err instanceof Error ? err.message : 'Connection failed';
       
       setConnectionState(prev => {
         const newRetryCount = prev.retryCount + 1;
-        
         if (newRetryCount < 3) {
-          // Schedule retry
           retryTimeoutRef.current = setTimeout(() => {
             processConnection(addr);
           }, Math.min(1000 * Math.pow(2, newRetryCount), 5000));
         }
-
+  
         return {
           isProcessing: false,
           error: errorMessage,
