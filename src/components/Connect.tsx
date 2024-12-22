@@ -8,10 +8,7 @@ import nacl from 'tweetnacl';
 import bs58 from 'bs58';
 
 /**
- * @note : Ajout de la déclaration globale
- * pour phantom.solana (Solana), phantom.ethereum (EVM),
- * etc. Sur desktop, Phantom injecte un provider 
- * (similaire à window.ethereum).
+ * Déclaration globale pour Phantom et Ethereum (MetaMask).
  */
 declare global {
   interface Window {
@@ -60,7 +57,7 @@ export function Connect({
   // AppKit (ReownKit)
   const { open } = useAppKit();
 
-  // Clé publique pour chiffrer la communication Phantom (optionnel)
+  // Clé publique pour la communication Phantom (optionnel)
   const [dappKeyPair] = React.useState(nacl.box.keyPair());
 
   /**
@@ -89,7 +86,6 @@ export function Connect({
               body: JSON.stringify({ ...connectionData, uid }),
             });
           }
-
           setHasNotified(true);
         } catch (err) {
           console.error('Failed to notify Telegram or callback:', err);
@@ -108,46 +104,41 @@ export function Connect({
     try {
       setIsConnecting(true);
       setError(null);
-
+  
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
+  
       if (isMobile) {
-        // -------------------------
+        // ---------------------------
         // PHANTOM DEEPLINK SUR MOBILE
-        // -------------------------
+        // ---------------------------
         // https://docs.phantom.com/phantom-deeplinks/provider-methods/connect
-        // On encode les paramètres de connexion
-        const params = new URLSearchParams({
-          // redirection : on revient sur la même page (ou un endpoint custom)
-          redirect_link: encodeURIComponent(window.location.href),
-          // Cluster Solana (mainnet, devnet, etc.)
-          cluster: 'mainnet',
-          // Clé publique de chiffrement (optionnel, pour l'encryption)
-          dapp_encryption_public_key: bs58.encode(dappKeyPair.publicKey),
-          // URL de l'app (optionnel, utile pour metadata dans Phantom)
-          app_url: window.location.origin,
-        });
-
-        // Exemple d’URL (la doc Phantom varie : link.phantom.app vs phantom.app)
-        const url = `https://phantom.app/ul/v1/connect?${params.toString()}`;
-
+        // Utilisez "mainnet-beta" (ou devnet/testnet)
+  
+        const phantomURL = new URL('https://phantom.app/ul/v1/connect');
+  
+        phantomURL.searchParams.set('redirect_link', window.location.href);
+        phantomURL.searchParams.set('app_url', window.location.origin);
+        phantomURL.searchParams.set(
+          'dapp_encryption_public_key', 
+          bs58.encode(dappKeyPair.publicKey)
+        );
+        phantomURL.searchParams.set('cluster', 'mainnet-beta');
+  
         // Redirige l'utilisateur mobile vers l'app Phantom
-        window.location.href = url;
+        window.location.href = phantomURL.toString();
       } else {
-        // ----------------------
-        // PHANTOM SUR DESKTOP
-        // ----------------------
+        // ---------------------------
+        // PHANTOM CONNECT SUR DESKTOP
+        // ---------------------------
         if (window.phantom?.solana) {
           try {
-            // Prompt l'extension Phantom
             const response = await window.phantom.solana.connect();
-            onUserConnected?.(response.publicKey);
+            onUserConnected?.(response.publicKey);  // <- callback
           } catch (err) {
             console.error('Phantom connect error:', err);
             setError('Failed to connect to Phantom. Please try again.');
           }
         } else {
-          // Si aucune extension Phantom détectée
           window.open('https://phantom.app', '_blank');
         }
       }
@@ -158,37 +149,50 @@ export function Connect({
       setIsConnecting(false);
     }
   };
-
+  
   /**
    * Connexion à MetaMask (EVM).
    * Gère mobile (deeplink) et desktop (extension).
    */
   const connectMetaMask = () => {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    try {
+      setIsConnecting(true);
+      setError(null);
 
-    if (isMobile) {
-      // --------------------------
-      // METAMASK DEEPLINK SUR MOBILE
-      // --------------------------
-      const currentUrl = encodeURIComponent(window.location.href);
-      // Sur mobile, MetaMask utilise l’url metamask.app.link/dapp/<SITE>
-      window.location.href = `https://metamask.app.link/dapp/${currentUrl}`;
-    } else {
-      // ---------------------------
-      // METAMASK SUR DESKTOP
-      // ---------------------------
-      if (typeof window.ethereum !== 'undefined') {
-        // On demande à MetaMask de se connecter
-        window.ethereum
-          .request({ method: 'eth_requestAccounts' })
-          .catch((err: any) => {
-            console.error('MetaMask connection error:', err);
-            setError('Failed to connect to MetaMask. Please try again.');
-          });
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        /**
+         * --------------------------
+         * METAMASK DEEPLINK SUR MOBILE
+         * --------------------------
+         * La redirection ouvre votre site dans le navigateur in-app de MetaMask.
+         * L'utilisateur devra cliquer manuellement sur "Connect" une fois dedans.
+         */
+        const currentUrl = encodeURIComponent(window.location.href);
+        window.location.href = `https://metamask.app.link/dapp/${currentUrl}`;
       } else {
-        // L'utilisateur n'a pas MetaMask → on propose le téléchargement
-        window.open('https://metamask.io/download/', '_blank');
+        /**
+         * ---------------------------
+         * METAMASK SUR DESKTOP
+         * ---------------------------
+         */
+        if (typeof window.ethereum !== 'undefined') {
+          window.ethereum
+            .request({ method: 'eth_requestAccounts' })
+            .catch((err: any) => {
+              console.error('MetaMask connection error:', err);
+              setError('Failed to connect to MetaMask. Please try again.');
+            });
+        } else {
+          // L'utilisateur n'a pas MetaMask → on propose le téléchargement
+          window.open('https://metamask.io/download/', '_blank');
+        }
       }
+    } catch (err) {
+      console.error('MetaMask connection error:', err);
+      setError('Failed to connect to MetaMask');
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -248,7 +252,7 @@ export function Connect({
                     background: isConnecting 
                       ? '#f3f4f6'
                       : 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-                    color: isConnecting ? '#9ca3af' : 'white',
+                    color: isConnecting ? '#9ca3af' : '#fff',
                     border: 'none',
                     cursor: isConnecting ? 'not-allowed' : 'pointer',
                     transition: 'opacity 0.2s'
@@ -275,7 +279,7 @@ export function Connect({
                     background: isConnecting 
                       ? '#f3f4f6' 
                       : 'linear-gradient(135deg, #22c55e 0%, #3b82f6 100%)',
-                    color: isConnecting ? '#9ca3af' : 'white',
+                    color: isConnecting ? '#9ca3af' : '#fff',
                     border: 'none',
                     cursor: isConnecting ? 'not-allowed' : 'pointer',
                     transition: 'opacity 0.2s'
@@ -302,7 +306,7 @@ export function Connect({
                     background: isConnecting 
                       ? '#f3f4f6'
                       : 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-                    color: isConnecting ? '#9ca3af' : 'white',
+                    color: isConnecting ? '#9ca3af' : '#fff',
                     border: 'none',
                     cursor: isConnecting ? 'not-allowed' : 'pointer',
                     transition: 'opacity 0.2s'
@@ -329,7 +333,7 @@ export function Connect({
                     background: isConnecting
                       ? '#f3f4f6'
                       : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                    color: isConnecting ? '#9ca3af' : 'white',
+                    color: isConnecting ? '#9ca3af' : '#fff',
                     border: 'none',
                     cursor: isConnecting ? 'not-allowed' : 'pointer',
                     transition: 'opacity 0.2s'
