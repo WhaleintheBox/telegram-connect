@@ -1356,7 +1356,7 @@ export default function App() {
   return (
     <>
       <Banner />
-      {isConnected && !schemaError && (
+      {isConnected && !schemaError ? (
         <Account 
           myGames={filters.myGames} 
           onToggleMyGames={() => setFilters(prev => ({
@@ -1364,8 +1364,18 @@ export default function App() {
             myGames: !prev.myGames
           }))} 
         />
+      ) : (
+        <Connect 
+          telegramInitData={telegramInitData} 
+          uid={uid || ''} // Fournir une valeur par défaut
+          callbackEndpoint={callbackEndpoint || ''} // Fournir une valeur par défaut
+          sendEvent={(data: any) => {
+            if (uid && callbackEndpoint) { // Vérifier que les valeurs sont définies
+              sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, connect: true });
+            }
+          }}
+        />
       )}
-      {!isConnected && !schemaError && <Connect telegramInitData={telegramInitData} />}  {/* <-- ICI */}
 
       {(!transactionData && !signMessageData) && (
         <>
