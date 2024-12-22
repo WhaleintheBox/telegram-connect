@@ -1,7 +1,7 @@
 'use client';
 
 import { useAccount, useDisconnect, useEnsAvatar, useEnsName } from 'wagmi';
-import { useCallback, useState, useMemo } from 'react';
+import { useCallback, useState, useMemo, useEffect } from 'react';
 import KrillClaimButton from './KrillClaimButton';
 
 interface AccountProps {
@@ -18,6 +18,9 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
   const { address, connector, isConnecting, isReconnecting, status } = useAccount();
   const { disconnect } = useDisconnect();
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [uid, setUid] = useState<string>("");
+  const [callbackEndpoint, setCallbackEndpoint] = useState<string>("");
+  const [hasNotifiedConnection, setHasNotifiedConnection] = useState(false);
 
   const { data: ensName, isLoading: isEnsNameLoading } = useEnsName({
     address,
@@ -31,6 +34,50 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
 
   const formattedAddress = useMemo(() => formatAddress(address), [address]);
 
+  // Get URL parameters
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setUid(params.get("uid") || "");
+    setCallbackEndpoint(params.get("callback") || "");
+  }, []);
+
+  // Handle wallet connection notification
+  useEffect(() => {
+    const notifyConnection = async () => {
+      if (address && uid && callbackEndpoint && !hasNotifiedConnection) {
+        try {
+          const connectionData = {
+            type: 'connect_wallet',
+            address: address,
+            connect: true
+          };
+
+          const response = await fetch(callbackEndpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              ...connectionData,
+              uid
+            }),
+          });
+
+          if (response.ok) {
+            setHasNotifiedConnection(true);
+            console.log('Successfully notified bot of wallet connection');
+          } else {
+            console.error('Failed to notify bot:', await response.text());
+          }
+        } catch (error) {
+          console.error('Error notifying bot of connection:', error);
+        }
+      }
+    };
+
+    notifyConnection();
+  }, [address, uid, callbackEndpoint, hasNotifiedConnection]);
+
   const handleDisconnect = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
     if (isDisconnecting) return;
@@ -38,6 +85,7 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
     setIsDisconnecting(true);
     try {
       await disconnect();
+      setHasNotifiedConnection(false); // Reset notification state on disconnect
     } catch (error) {
       console.error('Disconnect error:', error);
     } finally {

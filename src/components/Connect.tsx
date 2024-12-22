@@ -13,281 +13,201 @@ const STORAGE_KEYS = {
 interface ConnectProps {
   onUserConnected?: (address: string) => void;
   telegramInitData?: string;
-  uid?: string;                 // Re-ajouté car utilisé dans App.tsx
-  callbackEndpoint?: string;    // Re-ajouté car utilisé dans App.tsx
-  sendEvent?: (event: any) => void;
+  uid?: string;
+  callbackEndpoint?: string;
+  sendEvent?: (data: any) => void;
 }
 
 interface ConnectionState {
   isProcessing: boolean;
   error: string | null;
-  lastAttempt: number | null;
-  retryCount: number;
+  activeConnector: string | null;
 }
 
 const initialConnectionState: ConnectionState = {
   isProcessing: false,
   error: null,
-  lastAttempt: null,
-  retryCount: 0
+  activeConnector: null
 };
 
 export function Connect({ 
   onUserConnected, 
-  telegramInitData, 
+  uid,
+  callbackEndpoint,
   sendEvent 
 }: ConnectProps) {
   const { isConnected, address } = useAccount();
   const { openConnectModal, platform, isSessionActive } = useConnectModal();
-
-  // Récupération de status et error que l'on renomme en wagmiError
   const {
     connect,
     connectors,
     status,
-    error: wagmiError, // <-- Renommage
+    error: wagmiError,
   } = useConnect();
 
-  // Détermine si wagmi est en cours de connexion
   const isWagmiConnecting = status === 'pending';
-  
-  const [connectionState, setConnectionState] = React.useState<ConnectionState>(
-    () => initialConnectionState
-  );
-  const [hasProcessedInitialConnection, setHasProcessedInitialConnection] =
-    React.useState<boolean>(false);
+  const [connectionState, setConnectionState] = React.useState<ConnectionState>(initialConnectionState);
 
-  const retryTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-
-  const resetConnectionState = React.useCallback(() => {
-    setConnectionState(initialConnectionState);
-  }, []);
-
-  const processConnection = React.useCallback(
-    async (addr: string) => {
-      if (!addr || connectionState.isProcessing) return;
-  
-      try {
-        // Get user ID from Telegram WebApp if available
-        const userId = (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  // Monitor connection and notify bot
+  React.useEffect(() => {
+    const notifyConnection = async () => {
+      if (isConnected && address) {
+        onUserConnected?.(address);
         
-        const connectionData = {
-          type: 'connect_wallet',
-          address: addr,
-          initData: telegramInitData,
-          uid: userId ? String(userId) : undefined // Add the uid field
-        };
-  
-        console.log('Sending connection data:', connectionData);
-  
-        // Send via Telegram WebApp
-        if ((window as any).Telegram?.WebApp) {
-          console.log('Sending via Telegram WebApp:', connectionData);
-          try {
-            (window as any).Telegram.WebApp.sendData(JSON.stringify(connectionData));
-            console.log('Data sent to Telegram WebApp successfully');
-            
-            // Give some time for the data to be processed before closing
-            setTimeout(() => {
-              if (connectionData.uid) { // Only close if we had a valid user ID
-                (window as any).Telegram.WebApp?.close();
-              }
-            }, 3000);
-          } catch (err) {
-            console.error('Error sending to Telegram WebApp:', err);
-            throw err;
-          }
+        // Notify bot if we have all required data
+        if (sendEvent && uid && callbackEndpoint) {
+          const connectionData = {
+            type: 'connect_wallet',
+            address: address,
+            connect: true
+          };
+          
+          sendEvent({ ...connectionData, uid });
         }
-  
-        if (sendEvent) {
-          sendEvent(connectionData);
-        }
-  
-        onUserConnected?.(addr);
-        setHasProcessedInitialConnection(true);
-  
-        setConnectionState((prev) => ({
-          ...prev,
-          isProcessing: false,
-          error: null,
-          retryCount: 0
-        }));
-      } catch (err) {
-        console.error('Connection error:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Connection failed';
-  
-        setConnectionState((prev) => ({
-          ...prev,
-          isProcessing: false,
-          error: errorMessage,
-          lastAttempt: Date.now(),
-          retryCount: 0
-        }));
-      }
-    },
-    [telegramInitData, onUserConnected, sendEvent, connectionState.isProcessing]
-  );
-  
-
-  // Gérer la connexion initiale
-  React.useEffect(() => {
-    if (isConnected && address && !hasProcessedInitialConnection) {
-      processConnection(address);
-    }
-  }, [isConnected, address, hasProcessedInitialConnection, processConnection]);
-
-  // Nettoyage du setTimeout
-  React.useEffect(() => {
-    return () => {
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
+        
+        setConnectionState(initialConnectionState);
       }
     };
-  }, []);
 
-  // Reset quand telegramInitData change
-  React.useEffect(() => {
-    resetConnectionState();
-    setHasProcessedInitialConnection(false);
-  }, [telegramInitData, resetConnectionState]);
+    notifyConnection();
+  }, [isConnected, address, onUserConnected, sendEvent, uid, callbackEndpoint]);
 
-  const handleConnect = async () => {
-    try {
-      setConnectionState((prev) => ({ ...prev, isProcessing: true, error: null }));
-
-      // Update session data
-      if (!isSessionActive && typeof window !== 'undefined') {
-        localStorage.setItem(
-          STORAGE_KEYS.SESSION,
-          JSON.stringify({
-            timestamp: Date.now(),
-            lastConnect: new Date().toISOString(),
-          })
-        );
-      }
-
-      await openConnectModal();
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to connect wallet';
-
-      setConnectionState({
-        isProcessing: false,
-        error: errorMessage,
-        lastAttempt: Date.now(),
-        retryCount: 0
-      });
-
-      Object.values(STORAGE_KEYS).forEach((key) => {
-        try {
-          localStorage.removeItem(key);
-        } catch (e) {
-          console.warn('Failed to remove item from localStorage:', e);
-        }
-      });
+  const updateSessionData = () => {
+    if (!isSessionActive && typeof window !== 'undefined') {
+      localStorage.setItem(
+        STORAGE_KEYS.SESSION,
+        JSON.stringify({
+          timestamp: Date.now(),
+          lastConnect: new Date().toISOString(),
+        })
+      );
     }
   };
 
-  // Connexion directe à Phantom
-  const handleConnectPhantom = React.useCallback(async () => {
+  const clearSessionData = () => {
+    Object.values(STORAGE_KEYS).forEach((key) => {
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {
+        console.warn('Failed to remove item from localStorage:', e);
+      }
+    });
+  };
+
+  // Rainbow Kit Modal handler
+  const handleRainbowConnect = async () => {
     try {
-      setConnectionState((prev) => ({
-        ...prev,
-        isProcessing: true,
-        error: null
-      }));
-
-      const phantomConnector = connectors.find((c) => c.id === 'phantom');
-      if (!phantomConnector) {
-        throw new Error('Phantom connector is not available');
-      }
-
-      // Session si besoin
-      if (!isSessionActive && typeof window !== 'undefined') {
-        localStorage.setItem(
-          STORAGE_KEYS.SESSION,
-          JSON.stringify({
-            timestamp: Date.now(),
-            lastConnect: new Date().toISOString(),
-          })
-        );
-      }
-
-      await connect({ connector: phantomConnector });
+      setConnectionState({ ...initialConnectionState, isProcessing: true, activeConnector: 'rainbow' });
+      updateSessionData();
+      await openConnectModal();
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to connect Phantom';
-      setConnectionState((prev) => ({
-        ...prev,
+      setConnectionState({
         isProcessing: false,
-        error: errorMessage,
-        lastAttempt: Date.now(),
-        retryCount: 0
-      }));
-
-      Object.values(STORAGE_KEYS).forEach((key) => {
-        try {
-          localStorage.removeItem(key);
-        } catch (e) {
-          console.warn('Failed to remove item from localStorage:', e);
-        }
+        error: err instanceof Error ? err.message : 'Failed to connect wallet',
+        activeConnector: null
       });
+      clearSessionData();
     }
-  }, [connect, connectors, isSessionActive]);
+  };
+
+  // Direct connector handlers
+  const handleDirectConnect = React.useCallback(async (connectorId: string) => {
+    try {
+      setConnectionState({ ...initialConnectionState, isProcessing: true, activeConnector: connectorId });
+      
+      const selectedConnector = connectors.find((c) => c.id === connectorId);
+      if (!selectedConnector) {
+        throw new Error(`${connectorId} connector is not available`);
+      }
+
+      updateSessionData();
+      await connect({ connector: selectedConnector });
+    } catch (err) {
+      setConnectionState({
+        isProcessing: false,
+        error: err instanceof Error ? err.message : `Failed to connect ${connectorId}`,
+        activeConnector: null
+      });
+      clearSessionData();
+    }
+  }, [connect, connectors]);
+
+  const getConnectorButton = (
+    connectorId: string, 
+    icon: string, 
+    label: string
+  ) => (
+    <button
+      onClick={() => handleDirectConnect(connectorId)}
+      disabled={connectionState.isProcessing || isWagmiConnecting}
+      className={`connect-button flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl transition-all duration-200 ${
+        connectionState.activeConnector === connectorId
+          ? 'bg-purple-600 text-white'
+          : 'bg-purple-100 text-purple-900 hover:bg-purple-200'
+      }`}
+    >
+      <span className="text-xl">{icon}</span>
+      <span className="font-medium">
+        {connectionState.isProcessing && connectionState.activeConnector === connectorId
+          ? 'Connecting...'
+          : label}
+      </span>
+    </button>
+  );
 
   return (
-    <div className="connect-container">
-      <div className="connect-button-container">
-        {/* Bouton principal (ouvre le modal RainbowKit) */}
+    <div className="connect-container p-4 max-w-md mx-auto">
+      <div className="space-y-3">
+        {/* Rainbow Kit Modal Button */}
         <ConnectButton.Custom>
           {() => (
             <button
-              onClick={handleConnect}
-              // Désactivé si déjà en train de connecter manuellement ou si wagmi est en connecting
+              onClick={handleRainbowConnect}
               disabled={connectionState.isProcessing || isWagmiConnecting}
-              className="connect-button"
+              className={`connect-button flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl transition-all duration-200 ${
+                connectionState.activeConnector === 'rainbow'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-purple-100 text-purple-900 hover:bg-purple-200'
+              }`}
             >
-              {connectionState.isProcessing || isWagmiConnecting
-                ? 'Connecting...'
-                : `Connect ${platform === 'mobile' ? 'Mobile' : 'Desktop'} Wallet`}
+              <span className="text-xl">🌈</span>
+              <span className="font-medium">
+                {connectionState.isProcessing && connectionState.activeConnector === 'rainbow'
+                  ? 'Connecting...'
+                  : `Connect with Rainbow Kit${platform === 'mobile' ? ' (Mobile)' : ''}`}
+              </span>
             </button>
           )}
         </ConnectButton.Custom>
 
-        {/* Bouton secondaire (connexion directe Phantom) */}
-        <button
-          onClick={handleConnectPhantom}
-          disabled={connectionState.isProcessing || isWagmiConnecting}
-          className="connect-button"
-          style={{ marginLeft: '1rem' }} // juste pour espacer
-        >
-          {connectionState.isProcessing && isWagmiConnecting
-            ? 'Connecting Phantom...'
-            : 'Connect Phantom'}
-        </button>
+        {/* Direct Connection Buttons */}
+        <div className="grid grid-cols-1 gap-3">
+          {getConnectorButton('rainbow', '🌈', 'Connect Rainbow')}
+          {getConnectorButton('metaMask', '🦊', 'Connect MetaMask')}
+          {getConnectorButton('phantom', '👻', 'Connect Phantom')}
+        </div>
       </div>
 
-      {/* Erreur interne */}
+      {/* Error Messages */}
       {connectionState.error && (
-        <div className="error-message">
-          <div className="error-text">{connectionState.error}</div>
-          <button
-            onClick={() =>
-              setConnectionState((prev) => ({ ...prev, error: null }))
-            }
-            className="error-dismiss"
-            aria-label="Close error"
-          >
-            ×
-          </button>
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <div className="flex items-center justify-between">
+            <div className="text-red-700">{connectionState.error}</div>
+            <button
+              onClick={() => setConnectionState(prev => ({ ...prev, error: null }))}
+              className="text-red-500 hover:text-red-700"
+              aria-label="Close error"
+            >
+              ×
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Erreur wagmi si vous souhaitez l'afficher */}
       {wagmiError && (
-        <div className="error-message">
-          <div className="error-text">
-            Wagmi Error: {wagmiError?.message ?? 'Unknown error'}
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <div className="text-red-700">
+            Connection Error: {wagmiError?.message ?? 'Unknown error'}
           </div>
         </div>
       )}
