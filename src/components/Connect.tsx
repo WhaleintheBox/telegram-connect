@@ -7,6 +7,12 @@ import { useAppKit } from '@reown/appkit/react';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
 
+/**
+ * @note : Ajout de la déclaration globale
+ * pour phantom.solana (Solana), phantom.ethereum (EVM),
+ * etc. Sur desktop, Phantom injecte un provider 
+ * (similaire à window.ethereum).
+ */
 declare global {
   interface Window {
     phantom?: {
@@ -14,13 +20,17 @@ declare global {
         isPhantom?: boolean;
         connect: () => Promise<{ publicKey: string }>;
       };
+      ethereum?: {
+        isPhantom?: boolean;
+        request: (args: { method: string; params?: any[] }) => Promise<any>;
+      };
     };
     ethereum?: any;
   }
 }
 
 interface ConnectProps {
-  /** Callback après connexion (adresse récupérée) */
+  /** Callback pour récupérer l'adresse connectée (facultatif) */
   onUserConnected?: (address: string) => void;
   /** Données Telegram (optionnel) */
   telegramInitData?: string;
@@ -39,22 +49,26 @@ export function Connect({
   callbackEndpoint,
   sendEvent
 }: ConnectProps) {
+  // Récupération de l'adresse via Wagmi (RainbowKit)
   const { address } = useAccount();
+
+  // État local
   const [isConnecting, setIsConnecting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const { open } = useAppKit();
   const [hasNotified, setHasNotified] = React.useState(false);
 
-  // Génère la paire de clés pour le chiffrement Phantom (si besoin)
+  // AppKit (ReownKit)
+  const { open } = useAppKit();
+
+  // Clé publique pour chiffrer la communication Phantom (optionnel)
   const [dappKeyPair] = React.useState(nacl.box.keyPair());
 
   /**
-   * Lorsque l'utilisateur est connecté (via wagmi), on notifie éventuellement 
-   * Telegram ou un serveur via callbackEndpoint/sendEvent.
+   * Notifie Telegram ou un callback endpoint 
+   * après que l'utilisateur se soit connecté (via wagmi).
    */
   React.useEffect(() => {
     const notifyConnection = async () => {
-      // Si une adresse est détectée et qu'on n'a pas encore notifié
       if (address && uid && !hasNotified && (sendEvent || callbackEndpoint)) {
         try {
           const connectionData = {
@@ -64,8 +78,8 @@ export function Connect({
             initData: telegramInitData,
           };
 
-          // Soit on envoie via la fonction sendEvent (ex: Telegram),
-          // soit on fait un POST sur callbackEndpoint
+          // Soit on utilise une fonction "sendEvent" (ex: pour Telegram),
+          // soit on POST sur un callbackEndpoint
           if (sendEvent) {
             sendEvent({ ...connectionData, uid });
           } else if (callbackEndpoint) {
@@ -75,17 +89,20 @@ export function Connect({
               body: JSON.stringify({ ...connectionData, uid }),
             });
           }
+
           setHasNotified(true);
         } catch (err) {
           console.error('Failed to notify Telegram or callback:', err);
         }
       }
     };
+
     notifyConnection();
-  }, [address, uid, callbackEndpoint, sendEvent, hasNotified, telegramInitData]);
+  }, [address, uid, hasNotified, telegramInitData, sendEvent, callbackEndpoint]);
 
   /**
-   * Connexion à Phantom
+   * Connexion à Phantom (SOLANA).
+   * Gère mobile (deeplink) et desktop (extension).
    */
   const connectPhantom = async () => {
     try {
@@ -95,47 +112,45 @@ export function Connect({
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
       if (isMobile) {
-        // ---------------------------
+        // -------------------------
         // PHANTOM DEEPLINK SUR MOBILE
-        // ---------------------------
-        // Documentation Phantom : 
+        // -------------------------
         // https://docs.phantom.com/phantom-deeplinks/provider-methods/connect
+        // On encode les paramètres de connexion
         const params = new URLSearchParams({
-          // URL de redirection après validation dans Phantom
-          redirect_link: window.location.href,
+          // redirection : on revient sur la même page (ou un endpoint custom)
+          redirect_link: encodeURIComponent(window.location.href),
           // Cluster Solana (mainnet, devnet, etc.)
           cluster: 'mainnet',
-          // Clé publique de chiffrement (optionnelle)
+          // Clé publique de chiffrement (optionnel, pour l'encryption)
           dapp_encryption_public_key: bs58.encode(dappKeyPair.publicKey),
-          // URL de votre appli (optionnel, affiché dans Phantom)
+          // URL de l'app (optionnel, utile pour metadata dans Phantom)
           app_url: window.location.origin,
         });
 
-        // Exemple de lien universel : https://phantom.app/ul/v1/connect
-        // (Selon la doc/plateforme, vous pouvez avoir https://link.phantom.app/ul/v1/connect)
+        // Exemple d’URL (la doc Phantom varie : link.phantom.app vs phantom.app)
         const url = `https://phantom.app/ul/v1/connect?${params.toString()}`;
 
         // Redirige l'utilisateur mobile vers l'app Phantom
         window.location.href = url;
       } else {
-        // ---------------------------
-        // PHANTOM CONNECT SUR DESKTOP
-        // ---------------------------
+        // ----------------------
+        // PHANTOM SUR DESKTOP
+        // ----------------------
         if (window.phantom?.solana) {
           try {
+            // Prompt l'extension Phantom
             const response = await window.phantom.solana.connect();
-            // Récupère la publicKey Phantom et exécute un callback si besoin
             onUserConnected?.(response.publicKey);
           } catch (err) {
             console.error('Phantom connect error:', err);
             setError('Failed to connect to Phantom. Please try again.');
           }
         } else {
-          // Si l'extension Phantom n'est pas détectée
+          // Si aucune extension Phantom détectée
           window.open('https://phantom.app', '_blank');
         }
       }
-
     } catch (err) {
       console.error('Phantom connection error:', err);
       setError('Failed to connect to Phantom');
@@ -145,7 +160,8 @@ export function Connect({
   };
 
   /**
-   * Connexion à MetaMask
+   * Connexion à MetaMask (EVM).
+   * Gère mobile (deeplink) et desktop (extension).
    */
   const connectMetaMask = () => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -154,36 +170,34 @@ export function Connect({
       // --------------------------
       // METAMASK DEEPLINK SUR MOBILE
       // --------------------------
-      // Documentation : https://docs.metamask.io/wallet/connect/3rd-party-libraries/wagmi/
       const currentUrl = encodeURIComponent(window.location.href);
+      // Sur mobile, MetaMask utilise l’url metamask.app.link/dapp/<SITE>
       window.location.href = `https://metamask.app.link/dapp/${currentUrl}`;
     } else {
       // ---------------------------
-      // METAMASK CONNECT SUR DESKTOP
+      // METAMASK SUR DESKTOP
       // ---------------------------
       if (typeof window.ethereum !== 'undefined') {
-        window.ethereum.request({ method: 'eth_requestAccounts' })
+        // On demande à MetaMask de se connecter
+        window.ethereum
+          .request({ method: 'eth_requestAccounts' })
           .catch((err: any) => {
             console.error('MetaMask connection error:', err);
             setError('Failed to connect to MetaMask. Please try again.');
           });
       } else {
-        // L'utilisateur n'a pas MetaMask → on propose l'installation
+        // L'utilisateur n'a pas MetaMask → on propose le téléchargement
         window.open('https://metamask.io/download/', '_blank');
       }
     }
   };
 
+  /**
+   * Affichage du composant 
+   * avec le custom RainbowKit + ReownKit + boutons Phantom/MetaMask
+   */
   return (
-    <div style={{
-      padding: '16px',
-      maxWidth: '420px',
-      margin: '0 auto'
-    }}>
-      {/* 
-        On personnalise le ConnectButton de RainbowKit pour ajouter
-        nos propres boutons Phantom / MetaMask / ReownKit en plus 
-      */}
+    <div style={{ padding: '16px', maxWidth: '420px', margin: '0 auto' }}>
       <ConnectButton.Custom>
         {({
           account,
@@ -192,9 +206,9 @@ export function Connect({
           authenticationStatus,
           mounted,
         }) => {
-          // Vérifie que wagmi / RainbowKit est prêt
+          // Contrôle que RainbowKit est prêt
           const ready = mounted && authenticationStatus !== 'loading';
-          // Vérifie si on est déjà connecté
+          // Vérifie si l'utilisateur est déjà connecté via Wagmi
           const connected = 
             ready && 
             account && 
@@ -217,7 +231,7 @@ export function Connect({
                 flexDirection: 'column',
                 gap: '12px'
               }}>
-                {/* Bouton RainbowKit (Wagmi) */}
+                {/* 1) Bouton RainbowKit (Wagmi) */}
                 <button
                   onClick={openConnectModal}
                   disabled={isConnecting}
@@ -244,7 +258,7 @@ export function Connect({
                   <span>RainbowKit</span>
                 </button>
 
-                {/* Bouton ReownKit */}
+                {/* 2) Bouton ReownKit (AppKit) */}
                 <button
                   onClick={() => open({ view: 'Connect' })}
                   disabled={isConnecting}
@@ -271,7 +285,7 @@ export function Connect({
                   <span>ReownKit</span>
                 </button>
 
-                {/* Bouton MetaMask */}
+                {/* 3) Bouton MetaMask */}
                 <button
                   onClick={connectMetaMask}
                   disabled={isConnecting}
@@ -298,7 +312,7 @@ export function Connect({
                   <span>MetaMask</span>
                 </button>
 
-                {/* Bouton Phantom */}
+                {/* 4) Bouton Phantom (Solana) */}
                 <button
                   onClick={connectPhantom}
                   disabled={isConnecting}
@@ -326,7 +340,7 @@ export function Connect({
                 </button>
               </div>
 
-              {/* Affichage d'une éventuelle erreur de connexion */}
+              {/* Affichage d'erreur si la connexion échoue */}
               {error && (
                 <div style={{
                   marginTop: '16px',
@@ -351,8 +365,8 @@ export function Connect({
                   </button>
                 </div>
               )}
-              
-              {/* Indique à l'utilisateur qu'il est connecté s'il l'est déjà */}
+
+              {/* Message si déjà connecté (via Wagmi) */}
               {connected && (
                 <div style={{
                   marginTop: '16px',
