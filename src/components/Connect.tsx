@@ -26,6 +26,14 @@ export function Connect({
   const [error, setError] = React.useState<string | null>(null);
   const { open } = useAppKit();
 
+  // Détecte si on est sur mobile
+  const isMobile = React.useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return /mobile|android|iphone|ipad|ipod/.test(
+      window.navigator.userAgent.toLowerCase()
+    );
+  }, []);
+
   // Connecter avec MetaMask directement
   const connectMetaMask = async (openConnectModal: () => void) => {
     try {
@@ -48,6 +56,13 @@ export function Connect({
   const connectPhantom = async (openConnectModal: () => void) => {
     try {
       setIsConnecting(true);
+      
+      // Si sur mobile, rediriger vers l'app Phantom
+      if (isMobile) {
+        window.location.href = 'https://phantom.app/ul/browse/';
+        return;
+      }
+
       const connector = connectors.find(c => c.name === 'Phantom');
       if (connector) {
         await connectAsync({ connector });
@@ -81,7 +96,11 @@ export function Connect({
   }, [isConnected, address, onUserConnected, sendEvent, uid, callbackEndpoint, telegramInitData]);
 
   return (
-    <div className="connect-container p-4 max-w-md mx-auto">
+    <div style={{
+      padding: '16px',
+      maxWidth: '420px',
+      margin: '0 auto'
+    }}>
       <ConnectButton.Custom>
         {({
           account,
@@ -104,23 +123,37 @@ export function Connect({
                 },
               })}
             >
-              <div className="flex flex-col space-y-3">
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}>
                 {/* RainbowKit Button */}
                 <button
                   onClick={openConnectModal}
                   disabled={isConnecting}
-                  className={`
-                    w-full px-4 py-3 rounded-xl text-lg font-medium
-                    flex items-center justify-center gap-2
-                    transition-all duration-200
-                    ${isConnecting 
-                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:opacity-90'}
-                  `}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    fontSize: '18px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    background: isConnecting 
+                      ? '#f3f4f6'
+                      : 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                    color: isConnecting ? '#9ca3af' : 'white',
+                    border: 'none',
+                    cursor: isConnecting ? 'not-allowed' : 'pointer',
+                    transition: 'opacity 0.2s'
+                  }}
                 >
                   {isConnecting ? (
                     <>
-                      <span className="animate-spin">⚡</span>
+                      <span style={{ animation: 'spin 1s linear infinite' }}>⚡</span>
                       <span>Connecting...</span>
                     </>
                   ) : (
@@ -138,14 +171,24 @@ export function Connect({
                     open({ view: 'Connect' });
                   }}
                   disabled={isConnecting}
-                  className={`
-                    w-full px-4 py-3 rounded-xl text-lg font-medium
-                    flex items-center justify-center gap-2
-                    transition-all duration-200
-                    ${isConnecting 
-                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:opacity-90'}
-                  `}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    fontSize: '18px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    background: isConnecting 
+                      ? '#f3f4f6'
+                      : 'linear-gradient(135deg, #22c55e 0%, #3b82f6 100%)',
+                    color: isConnecting ? '#9ca3af' : 'white',
+                    border: 'none',
+                    cursor: isConnecting ? 'not-allowed' : 'pointer',
+                    transition: 'opacity 0.2s'
+                  }}
                 >
                   <span>✨</span>
                   <span>ReownKit</span>
@@ -155,14 +198,24 @@ export function Connect({
                 <button
                   onClick={() => connectMetaMask(openConnectModal)}
                   disabled={isConnecting}
-                  className={`
-                    w-full px-4 py-3 rounded-xl text-lg font-medium
-                    flex items-center justify-center gap-2
-                    transition-all duration-200
-                    ${isConnecting 
-                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:opacity-90'}
-                  `}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    fontSize: '18px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    background: isConnecting 
+                      ? '#f3f4f6'
+                      : 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                    color: isConnecting ? '#9ca3af' : 'white',
+                    border: 'none',
+                    cursor: isConnecting ? 'not-allowed' : 'pointer',
+                    transition: 'opacity 0.2s'
+                  }}
                 >
                   <span>🦊</span>
                   <span>MetaMask</span>
@@ -172,14 +225,24 @@ export function Connect({
                 <button
                   onClick={() => connectPhantom(openConnectModal)}
                   disabled={isConnecting}
-                  className={`
-                    w-full px-4 py-3 rounded-xl text-lg font-medium
-                    flex items-center justify-center gap-2
-                    transition-all duration-200
-                    ${isConnecting 
-                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:opacity-90'}
-                  `}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    fontSize: '18px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    background: isConnecting 
+                      ? '#f3f4f6'
+                      : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                    color: isConnecting ? '#9ca3af' : 'white',
+                    border: 'none',
+                    cursor: isConnecting ? 'not-allowed' : 'pointer',
+                    transition: 'opacity 0.2s'
+                  }}
                 >
                   <span>👻</span>
                   <span>Phantom</span>
@@ -187,11 +250,24 @@ export function Connect({
               </div>
 
               {error && (
-                <div className="mt-4 p-3 rounded-lg bg-red-50 text-red-600 text-sm">
+                <div style={{
+                  marginTop: '16px',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: '#fef2f2',
+                  color: '#dc2626',
+                  fontSize: '14px'
+                }}>
                   {error}
                   <button 
                     onClick={() => setError(null)}
-                    className="float-right text-red-500 hover:text-red-700"
+                    style={{
+                      float: 'right',
+                      border: 'none',
+                      background: 'none',
+                      color: '#dc2626',
+                      cursor: 'pointer'
+                    }}
                   >
                     ×
                   </button>
@@ -199,7 +275,14 @@ export function Connect({
               )}
               
               {connected && (
-                <div className="mt-4 p-3 rounded-lg bg-green-50 text-green-600 text-sm">
+                <div style={{
+                  marginTop: '16px',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: '#f0fdf4',
+                  color: '#16a34a',
+                  fontSize: '14px'
+                }}>
                   Connected as {account.displayName}
                 </div>
               )}
