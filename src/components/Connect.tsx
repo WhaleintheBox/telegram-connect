@@ -40,9 +40,10 @@ export function Connect({
   const { open } = useAppKit();
   const [hasNotified, setHasNotified] = React.useState(false);
 
+  // Clé publique générée pour le chiffrement Phantom
   const [dappKeyPair] = React.useState(nacl.box.keyPair());
 
-  // Notification Telegram lors de la connexion
+  // Notifie Telegram de la connexion (optionnel selon votre cas d'usage)
   React.useEffect(() => {
     const notifyConnection = async () => {
       if (address && uid && !hasNotified && (sendEvent || callbackEndpoint)) {
@@ -72,32 +73,63 @@ export function Connect({
     notifyConnection();
   }, [address, uid, callbackEndpoint, sendEvent, hasNotified, telegramInitData]);
 
+  /**
+   * Connexion à Phantom
+   */
   const connectPhantom = async () => {
     try {
       setIsConnecting(true);
       setError(null);
 
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      
+
       if (isMobile) {
+        /**
+         * ---------------------------
+         * PHANTOM DEEPLINK SUR MOBILE
+         * ---------------------------
+         * Documentation Phantom : https://docs.phantom.com/phantom-deeplinks/provider-methods/connect
+         * 
+         * On crée un lien universel de type https://phantom.app/ul/v1/connect?...
+         * ou https://link.phantom.app/ul/... 
+         * (La doc Phantom varie selon la version, adaptez si nécessaire.)
+         */
+        
         const params = new URLSearchParams({
-          app_url: window.location.origin,
+          // URL de redirection après validation dans Phantom
+          redirect_link: window.location.href,
+          // Cluster Solana (mainnet, devnet, etc.)
+          cluster: 'mainnet',
+          // Clé publique de chiffrement (optionnelle, selon vos besoins)
           dapp_encryption_public_key: bs58.encode(dappKeyPair.publicKey),
-          redirect_link: window.location.origin,
-          cluster: 'mainnet'
+          // URL de votre appli (optionnel)
+          app_url: window.location.origin,
         });
 
+        // Exemple : https://phantom.app/ul/v1/connect
+        // Selon la doc, vous pouvez utiliser https://link.phantom.app/ul/ à la place
         const url = `https://phantom.app/ul/v1/connect?${params.toString()}`;
+
+        // Redirige l'utilisateur mobile vers Phantom
         window.location.href = url;
-      } else if (window.phantom?.solana) {
-        try {
-          const response = await window.phantom.solana.connect();
-          onUserConnected?.(response.publicKey);
-        } catch (err) {
-          setError('Failed to connect to Phantom. Please try again.');
-        }
       } else {
-        window.open('https://phantom.app', '_blank');
+        /**
+         * ---------------------------
+         * PHANTOM CONNECT SUR DESKTOP
+         * ---------------------------
+         */
+        if (window.phantom?.solana) {
+          try {
+            const response = await window.phantom.solana.connect();
+            onUserConnected?.(response.publicKey);
+          } catch (err) {
+            console.error('Phantom connect error:', err);
+            setError('Failed to connect to Phantom. Please try again.');
+          }
+        } else {
+          // Si Phantom n'est pas détecté, on propose de télécharger Phantom
+          window.open('https://phantom.app', '_blank');
+        }
       }
 
     } catch (err) {
@@ -108,18 +140,40 @@ export function Connect({
     }
   };
 
+  /**
+   * Connexion à MetaMask
+   */
   const connectMetaMask = () => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
+
     if (isMobile) {
-      // Deep link vers MetaMask mobile
+      /**
+       * --------------------------
+       * METAMASK DEEPLINK SUR MOBILE
+       * --------------------------
+       * Documentation MetaMask : 
+       * https://docs.metamask.io/wallet/connect/3rd-party-libraries/wagmi/
+       * 
+       * On redirige l'utilisateur vers metamask.app.link/dapp/<votre_domaine> 
+       * ou n'importe quel format custom (wc:// ...) suivant l’implémentation désirée.
+       */
       const currentUrl = encodeURIComponent(window.location.href);
       window.location.href = `https://metamask.app.link/dapp/${currentUrl}`;
     } else {
-      // Injection sur desktop
+      /**
+       * ---------------------------
+       * METAMASK CONNECT SUR DESKTOP
+       * ---------------------------
+       */
       if (typeof window.ethereum !== 'undefined') {
-        window.ethereum.request({ method: 'eth_requestAccounts' });
+        // Si MetaMask est injecté
+        window.ethereum.request({ method: 'eth_requestAccounts' })
+          .catch((err: any) => {
+            console.error('MetaMask connection error:', err);
+            setError('Failed to connect to MetaMask. Please try again.');
+          });
       } else {
+        // Inviter l'utilisateur à installer MetaMask
         window.open('https://metamask.io/download/', '_blank');
       }
     }
@@ -140,22 +194,29 @@ export function Connect({
           mounted,
         }) => {
           const ready = mounted && authenticationStatus !== 'loading';
-          const connected = ready && account && chain && (!authenticationStatus || authenticationStatus === 'authenticated');
+          const connected = 
+            ready && 
+            account && 
+            chain && 
+            (!authenticationStatus || authenticationStatus === 'authenticated');
 
           return (
-            <div {...(!ready && {
-              'aria-hidden': true,
-              'style': {
-                opacity: 0,
-                pointerEvents: 'none',
-                userSelect: 'none',
-              },
-            })}>
+            <div
+              {...(!ready && {
+                'aria-hidden': true,
+                style: {
+                  opacity: 0,
+                  pointerEvents: 'none',
+                  userSelect: 'none',
+                },
+              })}
+            >
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '12px'
               }}>
+                {/* Bouton RainbowKit (Wagmi) */}
                 <button
                   onClick={openConnectModal}
                   disabled={isConnecting}
@@ -182,6 +243,7 @@ export function Connect({
                   <span>RainbowKit</span>
                 </button>
 
+                {/* Bouton ReownKit */}
                 <button
                   onClick={() => open({ view: 'Connect' })}
                   disabled={isConnecting}
@@ -208,6 +270,7 @@ export function Connect({
                   <span>ReownKit</span>
                 </button>
 
+                {/* Bouton MetaMask */}
                 <button
                   onClick={connectMetaMask}
                   disabled={isConnecting}
@@ -234,6 +297,7 @@ export function Connect({
                   <span>MetaMask</span>
                 </button>
 
+                {/* Bouton Phantom */}
                 <button
                   onClick={connectPhantom}
                   disabled={isConnecting}
@@ -261,6 +325,7 @@ export function Connect({
                 </button>
               </div>
 
+              {/* Affichage des erreurs */}
               {error && (
                 <div style={{
                   marginTop: '16px',
@@ -286,6 +351,7 @@ export function Connect({
                 </div>
               )}
               
+              {/* Si déjà connecté */}
               {connected && (
                 <div style={{
                   marginTop: '16px',
