@@ -6,10 +6,18 @@ import { useAccount } from 'wagmi';
 import { useAppKit } from '@reown/appkit/react';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
+import { z } from 'zod';
 
-/**
- * Déclaration globale pour Phantom et Ethereum (MetaMask).
- */
+// Schema validation
+export const ADDRESS_REGEX = /(0x[a-fA-F0-9]{40})/g;
+
+const connectionDataSchema = z.object({
+  type: z.literal('connect_wallet'),
+  address: z.string(),
+  connect: z.boolean(),
+  initData: z.string().optional()
+});
+
 declare global {
   interface Window {
     phantom?: {
@@ -27,17 +35,50 @@ declare global {
 }
 
 interface ConnectProps {
-  /** Callback pour récupérer l'adresse connectée (facultatif) */
   onUserConnected?: (address: string) => void;
-  /** Données Telegram (optionnel) */
   telegramInitData?: string;
-  /** Identifiant utilisateur (optionnel) */
   uid?: string;
-  /** Endpoint callback (pour notifier un serveur) */
   callbackEndpoint?: string;
-  /** Fonction pour envoyer un event (ex: Telegram) */
   sendEvent?: (data: any) => void;
 }
+
+const sendTelegramEvent = async (
+  data: any,
+  uid: string,
+  endpoint: string,
+  onError: (error: any) => void
+) => {
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", endpoint, true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  
+  xhr.onload = () => {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 200) {
+        console.log('Successfully notified bot:', xhr.responseText);
+      } else {
+        console.error('Failed to notify bot:', xhr.statusText);
+        onError({
+          status: xhr.status,
+          text: xhr.statusText
+        });
+      }
+    }
+  };
+  
+  xhr.onerror = () => {
+    console.error('Error notifying bot:', xhr.statusText);
+    onError({
+      status: xhr.status,
+      text: xhr.statusText
+    });
+  };
+
+  xhr.send(JSON.stringify({
+    ...data,
+    uid
+  }));
+};
 
 export function Connect({ 
   onUserConnected,
@@ -46,60 +87,60 @@ export function Connect({
   callbackEndpoint,
   sendEvent
 }: ConnectProps) {
-  // Récupération de l'adresse via Wagmi (RainbowKit)
   const { address } = useAccount();
-
-  // État local
   const [isConnecting, setIsConnecting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [hasNotified, setHasNotified] = React.useState(false);
-
-  // AppKit (ReownKit)
   const { open } = useAppKit();
-
-  // Clé publique pour la communication Phantom (optionnel)
   const [dappKeyPair] = React.useState(nacl.box.keyPair());
 
-  /**
-   * Notifie Telegram ou un callback endpoint 
-   * après que l'utilisateur se soit connecté (via wagmi).
-   */
-  React.useEffect(() => {
-    const notifyConnection = async () => {
-      if (address && uid && !hasNotified && (sendEvent || callbackEndpoint)) {
-        try {
-          const connectionData = {
-            type: 'connect_wallet',
-            address,
-            connect: true,
-            initData: telegramInitData,
-          };
+  const handleError = React.useCallback((error: any) => {
+    console.error('Connection error:', error);
+    setError('Failed to notify Telegram bot. Please try again.');
+  }, []);
 
-          // Soit on utilise une fonction "sendEvent" (ex: pour Telegram),
-          // soit on POST sur un callbackEndpoint
-          if (sendEvent) {
-            sendEvent({ ...connectionData, uid });
-          } else if (callbackEndpoint) {
-            await fetch(callbackEndpoint, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...connectionData, uid }),
-            });
-          }
-          setHasNotified(true);
-        } catch (err) {
-          console.error('Failed to notify Telegram or callback:', err);
-        }
+  const notifyConnection = React.useCallback(async (walletAddress: string) => {
+    if (!walletAddress || !uid || hasNotified) return;
+
+    try {
+      const connectionData = {
+        type: 'connect_wallet' as const,
+        address: walletAddress,
+        connect: true,
+        initData: telegramInitData
+      };
+
+      // Validate the connection data
+      const validationResult = connectionDataSchema.safeParse(connectionData);
+      if (!validationResult.success) {
+        console.error('Invalid connection data:', validationResult.error);
+        return;
       }
-    };
 
-    notifyConnection();
-  }, [address, uid, hasNotified, telegramInitData, sendEvent, callbackEndpoint]);
+      if (sendEvent) {
+        sendEvent({ ...connectionData, uid });
+        setHasNotified(true);
+      } else if (callbackEndpoint) {
+        await sendTelegramEvent(
+          connectionData,
+          uid,
+          callbackEndpoint,
+          handleError
+        );
+        setHasNotified(true);
+      }
+    } catch (err) {
+      console.error('Failed to notify connection:', err);
+      setError('Failed to notify connection. Please try again.');
+    }
+  }, [uid, hasNotified, telegramInitData, sendEvent, callbackEndpoint, handleError]);
 
-  /**
-   * Connexion à Phantom (SOLANA).
-   * Gère mobile (deeplink) et desktop (extension).
-   */
+  React.useEffect(() => {
+    if (address) {
+      notifyConnection(address);
+    }
+  }, [address, notifyConnection]);
+
   const connectPhantom = async () => {
     try {
       setIsConnecting(true);
@@ -108,14 +149,7 @@ export function Connect({
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   
       if (isMobile) {
-        // ---------------------------
-        // PHANTOM DEEPLINK SUR MOBILE
-        // ---------------------------
-        // https://docs.phantom.com/phantom-deeplinks/provider-methods/connect
-        // Utilisez "mainnet-beta" (ou devnet/testnet)
-  
         const phantomURL = new URL('https://phantom.app/ul/v1/connect');
-  
         phantomURL.searchParams.set('redirect_link', window.location.href);
         phantomURL.searchParams.set('app_url', window.location.origin);
         phantomURL.searchParams.set(
@@ -123,17 +157,14 @@ export function Connect({
           bs58.encode(dappKeyPair.publicKey)
         );
         phantomURL.searchParams.set('cluster', 'mainnet-beta');
-  
-        // Redirige l'utilisateur mobile vers l'app Phantom
         window.location.href = phantomURL.toString();
       } else {
-        // ---------------------------
-        // PHANTOM CONNECT SUR DESKTOP
-        // ---------------------------
         if (window.phantom?.solana) {
           try {
             const response = await window.phantom.solana.connect();
-            onUserConnected?.(response.publicKey);  // <- callback
+            const publicKey = response.publicKey;
+            onUserConnected?.(publicKey);
+            await notifyConnection(publicKey);
           } catch (err) {
             console.error('Phantom connect error:', err);
             setError('Failed to connect to Phantom. Please try again.');
@@ -149,42 +180,31 @@ export function Connect({
       setIsConnecting(false);
     }
   };
-  
-  /**
-   * Connexion à MetaMask (EVM).
-   * Gère mobile (deeplink) et desktop (extension).
-   */
-  const connectMetaMask = () => {
+
+  const connectMetaMask = async () => {
     try {
       setIsConnecting(true);
       setError(null);
 
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       if (isMobile) {
-        /**
-         * --------------------------
-         * METAMASK DEEPLINK SUR MOBILE
-         * --------------------------
-         * La redirection ouvre votre site dans le navigateur in-app de MetaMask.
-         * L'utilisateur devra cliquer manuellement sur "Connect" une fois dedans.
-         */
         const currentUrl = encodeURIComponent(window.location.href);
         window.location.href = `https://metamask.app.link/dapp/${currentUrl}`;
       } else {
-        /**
-         * ---------------------------
-         * METAMASK SUR DESKTOP
-         * ---------------------------
-         */
         if (typeof window.ethereum !== 'undefined') {
-          window.ethereum
-            .request({ method: 'eth_requestAccounts' })
-            .catch((err: any) => {
-              console.error('MetaMask connection error:', err);
-              setError('Failed to connect to MetaMask. Please try again.');
+          try {
+            const accounts = await window.ethereum.request({ 
+              method: 'eth_requestAccounts' 
             });
+            if (accounts[0]) {
+              onUserConnected?.(accounts[0]);
+              await notifyConnection(accounts[0]);
+            }
+          } catch (err: any) {
+            console.error('MetaMask connection error:', err);
+            setError('Failed to connect to MetaMask. Please try again.');
+          }
         } else {
-          // L'utilisateur n'a pas MetaMask → on propose le téléchargement
           window.open('https://metamask.io/download/', '_blank');
         }
       }
@@ -196,10 +216,6 @@ export function Connect({
     }
   };
 
-  /**
-   * Affichage du composant 
-   * avec le custom RainbowKit + ReownKit + boutons Phantom/MetaMask
-   */
   return (
     <div style={{ padding: '16px', maxWidth: '420px', margin: '0 auto' }}>
       <ConnectButton.Custom>
@@ -210,9 +226,7 @@ export function Connect({
           authenticationStatus,
           mounted,
         }) => {
-          // Contrôle que RainbowKit est prêt
           const ready = mounted && authenticationStatus !== 'loading';
-          // Vérifie si l'utilisateur est déjà connecté via Wagmi
           const connected = 
             ready && 
             account && 
@@ -235,7 +249,7 @@ export function Connect({
                 flexDirection: 'column',
                 gap: '12px'
               }}>
-                {/* 1) Bouton RainbowKit (Wagmi) */}
+                {/* RainbowKit Button */}
                 <button
                   onClick={openConnectModal}
                   disabled={isConnecting}
@@ -262,7 +276,7 @@ export function Connect({
                   <span>RainbowKit</span>
                 </button>
 
-                {/* 2) Bouton ReownKit (AppKit) */}
+                {/* ReownKit Button */}
                 <button
                   onClick={() => open({ view: 'Connect' })}
                   disabled={isConnecting}
@@ -289,7 +303,7 @@ export function Connect({
                   <span>ReownKit</span>
                 </button>
 
-                {/* 3) Bouton MetaMask */}
+                {/* MetaMask Button */}
                 <button
                   onClick={connectMetaMask}
                   disabled={isConnecting}
@@ -316,7 +330,7 @@ export function Connect({
                   <span>MetaMask</span>
                 </button>
 
-                {/* 4) Bouton Phantom (Solana) */}
+                {/* Phantom Button */}
                 <button
                   onClick={connectPhantom}
                   disabled={isConnecting}
@@ -344,7 +358,7 @@ export function Connect({
                 </button>
               </div>
 
-              {/* Affichage d'erreur si la connexion échoue */}
+              {/* Error Display */}
               {error && (
                 <div style={{
                   marginTop: '16px',
@@ -370,7 +384,7 @@ export function Connect({
                 </div>
               )}
 
-              {/* Message si déjà connecté (via Wagmi) */}
+              {/* Connected Status */}
               {connected && (
                 <div style={{
                   marginTop: '16px',

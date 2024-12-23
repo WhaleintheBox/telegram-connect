@@ -13,6 +13,7 @@ import { useState, useEffect, useCallback } from 'react';  // Ajout de useCallba
 import { useConnectModal } from './Context'; 
 import {  Banner } from './components/banner';
 import DisqusChatPanel from './components/DisqusChatPanel';
+import { z } from 'zod';
 
 type SportsType = {
   [key in 'SOCCER' | 'F1' | 'MMA' | 'NFL' | 'BASKETBALL']: boolean;
@@ -121,6 +122,16 @@ const STATUS_MAP = {
     'POSTPONED': { long: 'Postponed', short: 'PST' }
   }
 } as const;
+
+
+export const ADDRESS_REGEX = /(0x[a-fA-F0-9]{40})/g;
+
+const connectionDataSchema = z.object({
+  type: z.literal('connect_wallet'),
+  address: z.string().regex(ADDRESS_REGEX),
+  connect: z.boolean(),
+  initData: z.string().optional()
+});
 
 // Fonction utilitaire pour normaliser le status
 export const normalizeStatus = (status: any, sport: keyof typeof STATUS_MAP = 'SOCCER'): Status => {
@@ -1334,24 +1345,41 @@ export default function App() {
     }
   }, []);
 
-    const handleSendData = useCallback(() => {
-      // Vérifier qu’on est bien dans Telegram
-      if ((window as any).Telegram?.WebApp) {
-        const dataToSend = {
-          type: 'connect_wallet',
-          address: address || '0x1234abcd...', // ou l'adresse si wagmi est connectée
-          initData: telegramInitData, 
-          uid: '123456789', // Remplacez par l’ID Telegram si besoin
-          randomValue: Math.floor(Math.random() * 1000),
+  const handleSendData = useCallback(() => {
+    if ((window as any).Telegram?.WebApp) {
+      try {
+        const connectionData = {
+          type: 'connect_wallet' as const,
+          address: address || '',
+          connect: true,
+          initData: telegramInitData
         };
-        console.log("Sending data to bot:", dataToSend);
-
-        // Envoi JSON au bot → le bot recevra update.message.web_app_data.data
-        (window as any).Telegram.WebApp.sendData(JSON.stringify(dataToSend));
-      } else {
-        alert("Telegram.WebApp n'est pas disponible. Ouvrez cette page depuis Telegram.");
+  
+        // Use the same schema as in Connect
+        const connectionDataSchema = z.object({
+          type: z.literal('connect_wallet'),
+          address: z.string().regex(ADDRESS_REGEX),
+          connect: z.boolean(),
+          initData: z.string().optional()
+        });
+  
+        // Validate before sending
+        const validationResult = connectionDataSchema.safeParse(connectionData);
+        if (!validationResult.success) {
+          console.error('Invalid connection data:', validationResult.error);
+          return;
+        }
+  
+        console.log("Sending data to bot:", connectionData);
+        (window as any).Telegram.WebApp.sendData(JSON.stringify(connectionData));
+  
+      } catch (err) {
+        console.error('Error sending data to Telegram:', err);
       }
-    }, [address, telegramInitData]);
+    } else {
+      console.warn("Telegram WebApp not available");
+    }
+  }, [address, telegramInitData]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1387,11 +1415,16 @@ export default function App() {
       ) : (
         <Connect 
           telegramInitData={telegramInitData} 
-          uid={uid || ''} // Fournir une valeur par défaut
-          callbackEndpoint={callbackEndpoint || ''} // Fournir une valeur par défaut
-          sendEvent={(data: any) => {
-            if (uid && callbackEndpoint) { // Vérifier que les valeurs sont définies
-              sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, connect: true });
+          uid={uid || ''} 
+          callbackEndpoint={callbackEndpoint || ''} 
+          sendEvent={(data) => {
+            if (uid && callbackEndpoint) {
+              const validationResult = connectionDataSchema.safeParse(data);
+              if (validationResult.success) {
+                sendEvent(uid, callbackEndpoint, onCallbackError, data);
+              } else {
+                console.error('Invalid connection data:', validationResult.error);
+              }
             }
           }}
         />
