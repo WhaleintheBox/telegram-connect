@@ -1323,28 +1323,45 @@ export default function App() {
       return;
     }
   
-    console.log('Handling connect to bot...'); // Pour déboguer
+    console.log('Starting connection process...', { address, uid, callbackEndpoint });
   
     try {
-      const connectionData = {
-        type: 'connect_wallet' as const,
+      const connectionData: ConnectionData = {
+        type: 'connect_wallet',
         address: address,
         connect: true
       };
   
+      // Vérification du schéma
       const parseResult = connectionDataSchema.safeParse(connectionData);
       if (!parseResult.success) {
         console.error('Validation error:', parseResult.error);
         return;
       }
   
-      if (uid && callbackEndpoint) {
-        console.log('Sending connection data:', parseResult.data); // Pour déboguer
-        await sendEvent(uid, 'https://witbbot-638008614172.us-central1.run.app/wallet-connect', onCallbackError, parseResult.data);
-        console.log('Connection data sent successfully'); // Pour déboguer
+      if (!uid || !callbackEndpoint) {
+        console.error('Missing uid or callback endpoint');
+        return;
       }
+  
+      // URL directe vers le wallet-connect endpoint
+      const endpoint = 'https://witbbot-638008614172.us-central1.run.app/wallet-connect';
+      console.log('Sending to endpoint:', endpoint);
+  
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...parseResult.data,
+          uid
+        })
+      });
+  
+      console.log('Connection request sent successfully');
     } catch (error) {
-      console.error('Error sending connection data:', error);
+      console.error('Connection error:', error);
     }
   }, [address, uid, callbackEndpoint]);
 

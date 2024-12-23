@@ -5,7 +5,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
 import { useAppKit } from '@reown/appkit/react';
 import type { ConnectionData } from '../utils';
-import { getSchemaError, sendEvent } from '../utils';
+import { sendEvent } from '../utils';
 
 interface ConnectProps {
   onUserConnected?: (address: string) => void;
@@ -17,7 +17,6 @@ interface ConnectProps {
 export function Connect({ 
   onUserConnected,
   uid,
-  callbackEndpoint,
   sendEvent: propsSendEvent
 }: ConnectProps) {
   const { address } = useAccount();
@@ -33,33 +32,31 @@ export function Connect({
 
   const notifyConnection = React.useCallback(async (walletAddress: string) => {
     if (!walletAddress || !uid || hasNotified) return;
-
+  
     try {
       const connectionData = {
         type: 'connect_wallet' as const,
         address: walletAddress,
         connect: true
       };
-
-      const validationError = getSchemaError('connect_wallet', connectionData);
-      if (validationError) {
-        console.error('Schema validation error:', validationError);
-        setError('Invalid connection data format');
-        return;
-      }
-
+  
+      console.log('Notifying connection with:', connectionData); // Debug log
+  
+      // Endpoint spécifique pour wallet-connect
+      const endpoint = 'https://witbbot-638008614172.us-central1.run.app/wallet-connect';
+  
       if (propsSendEvent) {
         propsSendEvent(connectionData);
         setHasNotified(true);
-      } else if (uid && callbackEndpoint) {
-        await sendEvent(uid, callbackEndpoint, handleError, connectionData);
+      } else if (uid) {
+        await sendEvent(uid, endpoint, handleError, connectionData);
         setHasNotified(true);
       }
     } catch (err) {
       console.error('Failed to notify connection:', err);
       setError('Failed to notify connection. Please try again.');
     }
-  }, [uid, hasNotified, propsSendEvent, callbackEndpoint, handleError]);
+  }, [uid, hasNotified, propsSendEvent, handleError]);
 
   React.useEffect(() => {
     if (address) {

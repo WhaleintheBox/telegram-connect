@@ -42,7 +42,8 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setUid(params.get("uid") || "");
-    setCallbackEndpoint(params.get("callback") || "");
+    // Définir explicitement l'URL du wallet-connect
+    setCallbackEndpoint("https://witbbot-638008614172.us-central1.run.app/wallet-connect");
   }, []);
 
   const onCallbackError = useCallback((error: any) => {
@@ -53,29 +54,32 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
   useEffect(() => {
     const notifyConnection = async () => {
       if (!address || !uid || !callbackEndpoint || hasNotifiedConnection) return;
-
+  
       try {
         const connectionData: ConnectionData = {
           type: 'connect_wallet',
           address: address,
           connect: true
         };
-
+  
+        console.log('Trying to connect with:', { connectionData, uid, callbackEndpoint });
+  
         const parseResult = connectionDataSchema.safeParse(connectionData);
         if (!parseResult.success) {
           console.error('Validation error:', parseResult.error);
           setError('Invalid connection data format');
           return;
         }
-
+  
         await sendEvent(uid, callbackEndpoint, onCallbackError, parseResult.data);
+        console.log('Connection notification sent successfully');
         setHasNotifiedConnection(true);
       } catch (error) {
         console.error('Error notifying connection:', error);
         setError('Failed to notify connection status');
       }
     };
-
+  
     notifyConnection();
   }, [address, uid, callbackEndpoint, hasNotifiedConnection, onCallbackError]);
 
