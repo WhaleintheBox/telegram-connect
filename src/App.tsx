@@ -13,6 +13,7 @@ import { useState, useEffect, useCallback } from 'react';  // Ajout de useCallba
 import { useConnectModal } from './Context'; 
 import {  Banner } from './components/banner';
 import DisqusChatPanel from './components/DisqusChatPanel';
+import { ConnectionData, connectionDataSchema } from './utils';
 
 type SportsType = {
   [key in 'SOCCER' | 'F1' | 'MMA' | 'NFL' | 'BASKETBALL']: boolean;
@@ -342,7 +343,6 @@ interface ApiResponse {
 
 export default function App() {
   const { isConnected, address } = useAccount();
-  const [telegramInitData, setTelegramInitData] = useState<string>('');
   const [sortOption, setSortOption] = useState<SortOption>('latest');
   const { cacheData, updateCache, updatedBoxes, setUpdatedBoxes, isLoading: cacheLoading } = useCache();
 
@@ -1316,26 +1316,6 @@ export default function App() {
   };
 
 
-  useEffect(() => {
-    if ((window as any).Telegram?.WebApp) {
-      console.log("Initializing Telegram WebApp");
-      const webApp = (window as any).Telegram.WebApp;
-      
-      // Autorise l’expansion en plein écran et le bouton "Close"
-      webApp.expand();
-      webApp.enableClosingConfirmation();
-      
-      // Récupère les données d'initialisation
-      const initData = webApp.initData;
-      console.log("Telegram initData:", initData);
-      setTelegramInitData(initData || '');
-      
-      // Indique à Telegram que l’app est prête
-      webApp.ready();
-    } else {
-      console.warn("Telegram WebApp not available");
-    }
-  }, []);
 
   const handleSendData = useCallback(() => {
     if (!address) {
@@ -1343,23 +1323,22 @@ export default function App() {
       return;
     }
   
-    const connectionData = {
+    const connectionData: ConnectionData = {
       type: 'connect_wallet',
       address: address,
-      connect: true,
-      initData: telegramInitData
+      connect: true
     };
   
-    const error = getSchemaError('connect_wallet', connectionData);
-    if (error) {
-      console.error('Schema validation error:', error);
+    const parseResult = connectionDataSchema.safeParse(connectionData);
+    if (!parseResult.success) {
+      console.error('Validation error:', parseResult.error);
       return;
     }
   
     if (uid && callbackEndpoint) {
-      sendEvent(uid, callbackEndpoint, onCallbackError, connectionData);
+      sendEvent(uid, callbackEndpoint, onCallbackError, parseResult.data);
     }
-  }, [address, telegramInitData, uid, callbackEndpoint]);
+  }, [address, uid, callbackEndpoint]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1394,17 +1373,21 @@ export default function App() {
         />
       ) : (
         <Connect 
-          telegramInitData={telegramInitData} 
           uid={uid || ''} 
           callbackEndpoint={callbackEndpoint || ''} 
-          sendEvent={(data) => {
+          sendEvent={(data: ConnectionData) => {
             if (uid && callbackEndpoint) {
-              const error = getSchemaError('connect_wallet', data);
-              if (error) {
-                console.error('Schema validation error:', error);
+              const parseResult = connectionDataSchema.safeParse(data);
+              if (!parseResult.success) {
+                console.error('Validation error:', parseResult.error);
+                onCallbackError({
+                  status: 400,
+                  text: 'Invalid connection data',
+                  errors: parseResult.error.errors
+                });
                 return;
               }
-              sendEvent(uid, callbackEndpoint, onCallbackError, data);
+              sendEvent(uid, callbackEndpoint, onCallbackError, parseResult.data);
             }
           }}
         />

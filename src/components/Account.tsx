@@ -3,7 +3,8 @@
 import { useAccount, useDisconnect, useEnsAvatar, useEnsName } from 'wagmi';
 import { useCallback, useState, useMemo, useEffect } from 'react';
 import KrillClaimButton from './KrillClaimButton';
-import { getSchemaError, sendEvent } from '../utils';
+import { connectionDataSchema, sendEvent } from '../utils';
+import type { z } from 'zod';
 
 interface AccountProps {
   myGames: boolean;
@@ -14,6 +15,8 @@ function formatAddress(address?: string): string {
   if (!address) return '';
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
+
+type ConnectionData = z.infer<typeof connectionDataSchema>;
 
 export function Account({ myGames, onToggleMyGames }: AccountProps) {
   const { address, connector, isConnecting, isReconnecting, status } = useAccount();
@@ -36,7 +39,6 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
 
   const formattedAddress = useMemo(() => formatAddress(address), [address]);
 
-  // Get URL parameters
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setUid(params.get("uid") || "");
@@ -48,29 +50,29 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
     setError('Failed to notify status change');
   }, []);
 
-  // Handle wallet connection notification
   useEffect(() => {
     const notifyConnection = async () => {
-      if (address && uid && callbackEndpoint && !hasNotifiedConnection) {
-        try {
-          const connectionData = {
-            type: 'connect_wallet',
-            address: address,
-            connect: true
-          };
+      if (!address || !uid || !callbackEndpoint || hasNotifiedConnection) return;
 
-          const error = getSchemaError('connect_wallet', connectionData);
-          if (error) {
-            console.error('Schema validation error:', error);
-            return;
-          }
+      try {
+        const connectionData: ConnectionData = {
+          type: 'connect_wallet',
+          address: address,
+          connect: true
+        };
 
-          sendEvent(uid, callbackEndpoint, onCallbackError, connectionData);
-          setHasNotifiedConnection(true);
-        } catch (error) {
-          console.error('Error notifying bot of connection:', error);
-          setError('Failed to notify connection status');
+        const parseResult = connectionDataSchema.safeParse(connectionData);
+        if (!parseResult.success) {
+          console.error('Validation error:', parseResult.error);
+          setError('Invalid connection data format');
+          return;
         }
+
+        await sendEvent(uid, callbackEndpoint, onCallbackError, parseResult.data);
+        setHasNotifiedConnection(true);
+      } catch (error) {
+        console.error('Error notifying connection:', error);
+        setError('Failed to notify connection status');
       }
     };
 
@@ -84,21 +86,21 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
     setIsDisconnecting(true);
     try {
       await disconnect();
-      // Notify disconnect
+      
       if (uid && callbackEndpoint && address) {
-        const disconnectData = {
+        const disconnectData: ConnectionData = {
           type: 'connect_wallet',
           address: address,
           connect: false
         };
 
-        const error = getSchemaError('connect_wallet', disconnectData);
-        if (error) {
-          console.error('Schema validation error:', error);
+        const parseResult = connectionDataSchema.safeParse(disconnectData);
+        if (!parseResult.success) {
+          console.error('Validation error:', parseResult.error);
           return;
         }
 
-        sendEvent(uid, callbackEndpoint, onCallbackError, disconnectData);
+        await sendEvent(uid, callbackEndpoint, onCallbackError, parseResult.data);
         setHasNotifiedConnection(false);
       }
     } catch (error) {
@@ -114,7 +116,6 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
     onToggleMyGames();
   }, [onToggleMyGames]);
 
-  // Loading state
   if (isConnecting || isReconnecting) {
     return (
       <div className="account-container animate-pulse">
@@ -128,7 +129,6 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
     );
   }
 
-  // No address or not connected
   if (!address || status !== 'connected') return null;
 
   return (

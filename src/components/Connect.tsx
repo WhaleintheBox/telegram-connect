@@ -4,37 +4,18 @@ import * as React from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
 import { useAppKit } from '@reown/appkit/react';
-import nacl from 'tweetnacl';
-import bs58 from 'bs58';
+import type { ConnectionData } from '../utils';
 import { getSchemaError, sendEvent } from '../utils';
-
-declare global {
-  interface Window {
-    phantom?: {
-      solana?: {
-        isPhantom?: boolean;
-        connect: () => Promise<{ publicKey: string }>;
-      };
-      ethereum?: {
-        isPhantom?: boolean;
-        request: (args: { method: string; params?: any[] }) => Promise<any>;
-      };
-    };
-    ethereum?: any;
-  }
-}
 
 interface ConnectProps {
   onUserConnected?: (address: string) => void;
-  telegramInitData?: string;
   uid?: string;
   callbackEndpoint?: string;
-  sendEvent?: (data: any) => void;
+  sendEvent?: (data: ConnectionData) => void;
 }
 
 export function Connect({ 
   onUserConnected,
-  telegramInitData,
   uid,
   callbackEndpoint,
   sendEvent: propsSendEvent
@@ -44,11 +25,10 @@ export function Connect({
   const [error, setError] = React.useState<string | null>(null);
   const [hasNotified, setHasNotified] = React.useState(false);
   const { open } = useAppKit();
-  const [dappKeyPair] = React.useState(nacl.box.keyPair());
 
   const handleError = React.useCallback((error: any) => {
     console.error('Connection error:', error);
-    setError('Failed to notify Telegram bot. Please try again.');
+    setError('Failed to notify connection. Please try again.');
   }, []);
 
   const notifyConnection = React.useCallback(async (walletAddress: string) => {
@@ -56,76 +36,36 @@ export function Connect({
 
     try {
       const connectionData = {
-        type: 'connect_wallet',
+        type: 'connect_wallet' as const,
         address: walletAddress,
-        connect: true,
-        initData: telegramInitData
+        connect: true
       };
 
       const validationError = getSchemaError('connect_wallet', connectionData);
       if (validationError) {
         console.error('Schema validation error:', validationError);
+        setError('Invalid connection data format');
         return;
       }
 
       if (propsSendEvent) {
-        propsSendEvent({ ...connectionData, uid });
+        propsSendEvent(connectionData);
         setHasNotified(true);
       } else if (uid && callbackEndpoint) {
-        sendEvent(uid, callbackEndpoint, handleError, connectionData);
+        await sendEvent(uid, callbackEndpoint, handleError, connectionData);
         setHasNotified(true);
       }
     } catch (err) {
       console.error('Failed to notify connection:', err);
       setError('Failed to notify connection. Please try again.');
     }
-  }, [uid, hasNotified, telegramInitData, propsSendEvent, callbackEndpoint, handleError]);
+  }, [uid, hasNotified, propsSendEvent, callbackEndpoint, handleError]);
 
   React.useEffect(() => {
     if (address) {
       notifyConnection(address);
     }
   }, [address, notifyConnection]);
-
-  const connectPhantom = async () => {
-    try {
-      setIsConnecting(true);
-      setError(null);
-  
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  
-      if (isMobile) {
-        const phantomURL = new URL('https://phantom.app/ul/v1/connect');
-        phantomURL.searchParams.set('redirect_link', window.location.href);
-        phantomURL.searchParams.set('app_url', window.location.origin);
-        phantomURL.searchParams.set(
-          'dapp_encryption_public_key', 
-          bs58.encode(dappKeyPair.publicKey)
-        );
-        phantomURL.searchParams.set('cluster', 'mainnet-beta');
-        window.location.href = phantomURL.toString();
-      } else {
-        if (window.phantom?.solana) {
-          try {
-            const response = await window.phantom.solana.connect();
-            const publicKey = response.publicKey;
-            onUserConnected?.(publicKey);
-            await notifyConnection(publicKey);
-          } catch (err) {
-            console.error('Phantom connect error:', err);
-            setError('Failed to connect to Phantom. Please try again.');
-          }
-        } else {
-          window.open('https://phantom.app', '_blank');
-        }
-      }
-    } catch (err) {
-      console.error('Phantom connection error:', err);
-      setError('Failed to connect to Phantom');
-    } finally {
-      setIsConnecting(false);
-    }
-  };
 
   const connectMetaMask = async () => {
     try {
@@ -271,32 +211,6 @@ export function Connect({
                 >
                   <span>🦊</span>
                   <span>MetaMask</span>
-                </button>
-
-                <button
-                  onClick={connectPhantom}
-                  disabled={isConnecting}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: '12px',
-                    fontSize: '18px',
-                    fontWeight: '500',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    background: isConnecting
-                      ? '#f3f4f6'
-                      : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                    color: isConnecting ? '#9ca3af' : '#fff',
-                    border: 'none',
-                    cursor: isConnecting ? 'not-allowed' : 'pointer',
-                    transition: 'opacity 0.2s'
-                  }}
-                >
-                  <span>👻</span>
-                  <span>Phantom</span>
                 </button>
               </div>
 
