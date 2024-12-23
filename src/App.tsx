@@ -1317,26 +1317,34 @@ export default function App() {
 
 
 
-  const handleSendData = useCallback(() => {
+  const handleSendData = useCallback(async () => {
     if (!address) {
       console.error('No wallet address available');
       return;
     }
   
-    const connectionData: ConnectionData = {
-      type: 'connect_wallet',
-      address: address,
-      connect: true
-    };
+    console.log('Handling connect to bot...'); // Pour déboguer
   
-    const parseResult = connectionDataSchema.safeParse(connectionData);
-    if (!parseResult.success) {
-      console.error('Validation error:', parseResult.error);
-      return;
-    }
+    try {
+      const connectionData = {
+        type: 'connect_wallet' as const,
+        address: address,
+        connect: true
+      };
   
-    if (uid && callbackEndpoint) {
-      sendEvent(uid, callbackEndpoint, onCallbackError, parseResult.data);
+      const parseResult = connectionDataSchema.safeParse(connectionData);
+      if (!parseResult.success) {
+        console.error('Validation error:', parseResult.error);
+        return;
+      }
+  
+      if (uid && callbackEndpoint) {
+        console.log('Sending connection data:', parseResult.data); // Pour déboguer
+        await sendEvent(uid, 'https://witbbot-638008614172.us-central1.run.app/wallet-connect', onCallbackError, parseResult.data);
+        console.log('Connection data sent successfully'); // Pour déboguer
+      }
+    } catch (error) {
+      console.error('Error sending connection data:', error);
     }
   }, [address, uid, callbackEndpoint]);
 
