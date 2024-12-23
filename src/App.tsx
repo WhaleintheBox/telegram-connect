@@ -13,7 +13,6 @@ import { useState, useEffect, useCallback } from 'react';  // Ajout de useCallba
 import { useConnectModal } from './Context'; 
 import {  Banner } from './components/banner';
 import DisqusChatPanel from './components/DisqusChatPanel';
-import { z } from 'zod';
 
 type SportsType = {
   [key in 'SOCCER' | 'F1' | 'MMA' | 'NFL' | 'BASKETBALL']: boolean;
@@ -125,13 +124,6 @@ const STATUS_MAP = {
 
 
 export const ADDRESS_REGEX = /(0x[a-fA-F0-9]{40})/g;
-
-const connectionDataSchema = z.object({
-  type: z.literal('connect_wallet'),
-  address: z.string().regex(ADDRESS_REGEX),
-  connect: z.boolean(),
-  initData: z.string().optional()
-});
 
 // Fonction utilitaire pour normaliser le status
 export const normalizeStatus = (status: any, sport: keyof typeof STATUS_MAP = 'SOCCER'): Status => {
@@ -1346,40 +1338,28 @@ export default function App() {
   }, []);
 
   const handleSendData = useCallback(() => {
-    if ((window as any).Telegram?.WebApp) {
-      try {
-        const connectionData = {
-          type: 'connect_wallet' as const,
-          address: address || '',
-          connect: true,
-          initData: telegramInitData
-        };
-  
-        // Use the same schema as in Connect
-        const connectionDataSchema = z.object({
-          type: z.literal('connect_wallet'),
-          address: z.string().regex(ADDRESS_REGEX),
-          connect: z.boolean(),
-          initData: z.string().optional()
-        });
-  
-        // Validate before sending
-        const validationResult = connectionDataSchema.safeParse(connectionData);
-        if (!validationResult.success) {
-          console.error('Invalid connection data:', validationResult.error);
-          return;
-        }
-  
-        console.log("Sending data to bot:", connectionData);
-        (window as any).Telegram.WebApp.sendData(JSON.stringify(connectionData));
-  
-      } catch (err) {
-        console.error('Error sending data to Telegram:', err);
-      }
-    } else {
-      console.warn("Telegram WebApp not available");
+    if (!address) {
+      console.error('No wallet address available');
+      return;
     }
-  }, [address, telegramInitData]);
+  
+    const connectionData = {
+      type: 'connect_wallet',
+      address: address,
+      connect: true,
+      initData: telegramInitData
+    };
+  
+    const error = getSchemaError('connect_wallet', connectionData);
+    if (error) {
+      console.error('Schema validation error:', error);
+      return;
+    }
+  
+    if (uid && callbackEndpoint) {
+      sendEvent(uid, callbackEndpoint, onCallbackError, connectionData);
+    }
+  }, [address, telegramInitData, uid, callbackEndpoint]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1419,12 +1399,12 @@ export default function App() {
           callbackEndpoint={callbackEndpoint || ''} 
           sendEvent={(data) => {
             if (uid && callbackEndpoint) {
-              const validationResult = connectionDataSchema.safeParse(data);
-              if (validationResult.success) {
-                sendEvent(uid, callbackEndpoint, onCallbackError, data);
-              } else {
-                console.error('Invalid connection data:', validationResult.error);
+              const error = getSchemaError('connect_wallet', data);
+              if (error) {
+                console.error('Schema validation error:', error);
+                return;
               }
+              sendEvent(uid, callbackEndpoint, onCallbackError, data);
             }
           }}
         />

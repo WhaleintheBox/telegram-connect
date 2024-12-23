@@ -6,17 +6,7 @@ import { useAccount } from 'wagmi';
 import { useAppKit } from '@reown/appkit/react';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
-import { z } from 'zod';
-
-// Schema validation
-export const ADDRESS_REGEX = /(0x[a-fA-F0-9]{40})/g;
-
-const connectionDataSchema = z.object({
-  type: z.literal('connect_wallet'),
-  address: z.string(),
-  connect: z.boolean(),
-  initData: z.string().optional()
-});
+import { getSchemaError, sendEvent } from '../utils';
 
 declare global {
   interface Window {
@@ -42,50 +32,12 @@ interface ConnectProps {
   sendEvent?: (data: any) => void;
 }
 
-const sendTelegramEvent = async (
-  data: any,
-  uid: string,
-  endpoint: string,
-  onError: (error: any) => void
-) => {
-  const xhr = new XMLHttpRequest();
-  xhr.open("POST", endpoint, true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  
-  xhr.onload = () => {
-    if (xhr.readyState === 4) {
-      if (xhr.status === 200) {
-        console.log('Successfully notified bot:', xhr.responseText);
-      } else {
-        console.error('Failed to notify bot:', xhr.statusText);
-        onError({
-          status: xhr.status,
-          text: xhr.statusText
-        });
-      }
-    }
-  };
-  
-  xhr.onerror = () => {
-    console.error('Error notifying bot:', xhr.statusText);
-    onError({
-      status: xhr.status,
-      text: xhr.statusText
-    });
-  };
-
-  xhr.send(JSON.stringify({
-    ...data,
-    uid
-  }));
-};
-
 export function Connect({ 
   onUserConnected,
   telegramInitData,
   uid,
   callbackEndpoint,
-  sendEvent
+  sendEvent: propsSendEvent
 }: ConnectProps) {
   const { address } = useAccount();
   const [isConnecting, setIsConnecting] = React.useState(false);
@@ -104,36 +56,30 @@ export function Connect({
 
     try {
       const connectionData = {
-        type: 'connect_wallet' as const,
+        type: 'connect_wallet',
         address: walletAddress,
         connect: true,
         initData: telegramInitData
       };
 
-      // Validate the connection data
-      const validationResult = connectionDataSchema.safeParse(connectionData);
-      if (!validationResult.success) {
-        console.error('Invalid connection data:', validationResult.error);
+      const validationError = getSchemaError('connect_wallet', connectionData);
+      if (validationError) {
+        console.error('Schema validation error:', validationError);
         return;
       }
 
-      if (sendEvent) {
-        sendEvent({ ...connectionData, uid });
+      if (propsSendEvent) {
+        propsSendEvent({ ...connectionData, uid });
         setHasNotified(true);
-      } else if (callbackEndpoint) {
-        await sendTelegramEvent(
-          connectionData,
-          uid,
-          callbackEndpoint,
-          handleError
-        );
+      } else if (uid && callbackEndpoint) {
+        sendEvent(uid, callbackEndpoint, handleError, connectionData);
         setHasNotified(true);
       }
     } catch (err) {
       console.error('Failed to notify connection:', err);
       setError('Failed to notify connection. Please try again.');
     }
-  }, [uid, hasNotified, telegramInitData, sendEvent, callbackEndpoint, handleError]);
+  }, [uid, hasNotified, telegramInitData, propsSendEvent, callbackEndpoint, handleError]);
 
   React.useEffect(() => {
     if (address) {
@@ -249,7 +195,6 @@ export function Connect({
                 flexDirection: 'column',
                 gap: '12px'
               }}>
-                {/* RainbowKit Button */}
                 <button
                   onClick={openConnectModal}
                   disabled={isConnecting}
@@ -276,7 +221,6 @@ export function Connect({
                   <span>RainbowKit</span>
                 </button>
 
-                {/* ReownKit Button */}
                 <button
                   onClick={() => open({ view: 'Connect' })}
                   disabled={isConnecting}
@@ -303,7 +247,6 @@ export function Connect({
                   <span>ReownKit</span>
                 </button>
 
-                {/* MetaMask Button */}
                 <button
                   onClick={connectMetaMask}
                   disabled={isConnecting}
@@ -330,7 +273,6 @@ export function Connect({
                   <span>MetaMask</span>
                 </button>
 
-                {/* Phantom Button */}
                 <button
                   onClick={connectPhantom}
                   disabled={isConnecting}
@@ -358,7 +300,6 @@ export function Connect({
                 </button>
               </div>
 
-              {/* Error Display */}
               {error && (
                 <div style={{
                   marginTop: '16px',
@@ -384,7 +325,6 @@ export function Connect({
                 </div>
               )}
 
-              {/* Connected Status */}
               {connected && (
                 <div style={{
                   marginTop: '16px',

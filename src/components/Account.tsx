@@ -2,17 +2,8 @@
 
 import { useAccount, useDisconnect, useEnsAvatar, useEnsName } from 'wagmi';
 import { useCallback, useState, useMemo, useEffect } from 'react';
-import { z } from 'zod';
 import KrillClaimButton from './KrillClaimButton';
-
-// Schema validation
-export const ADDRESS_REGEX = /(0x[a-fA-F0-9]{40})/g;
-
-const connectionDataSchema = z.object({
-  type: z.literal('connect_wallet'),
-  address: z.string().regex(ADDRESS_REGEX),
-  connect: z.boolean()
-});
+import { getSchemaError, sendEvent } from '../utils';
 
 interface AccountProps {
   myGames: boolean;
@@ -23,46 +14,6 @@ function formatAddress(address?: string): string {
   if (!address) return '';
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
-
-const sendTelegramEvent = (
-  data: any,
-  uid: string,
-  endpoint: string,
-  onSuccess: () => void,
-  onError: (error: any) => void
-) => {
-  const xhr = new XMLHttpRequest();
-  xhr.open("POST", endpoint, true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  
-  xhr.onload = () => {
-    if (xhr.readyState === 4) {
-      if (xhr.status === 200) {
-        console.log('Successfully notified bot:', xhr.responseText);
-        onSuccess();
-      } else {
-        console.error('Failed to notify bot:', xhr.statusText);
-        onError({
-          status: xhr.status,
-          text: xhr.statusText
-        });
-      }
-    }
-  };
-  
-  xhr.onerror = () => {
-    console.error('Error notifying bot:', xhr.statusText);
-    onError({
-      status: xhr.status,
-      text: xhr.statusText
-    });
-  };
-
-  xhr.send(JSON.stringify({
-    ...data,
-    uid
-  }));
-};
 
 export function Account({ myGames, onToggleMyGames }: AccountProps) {
   const { address, connector, isConnecting, isReconnecting, status } = useAccount();
@@ -92,34 +43,30 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
     setCallbackEndpoint(params.get("callback") || "");
   }, []);
 
+  const onCallbackError = useCallback((error: any) => {
+    console.error('Callback error:', error);
+    setError('Failed to notify status change');
+  }, []);
+
   // Handle wallet connection notification
   useEffect(() => {
     const notifyConnection = async () => {
       if (address && uid && callbackEndpoint && !hasNotifiedConnection) {
         try {
           const connectionData = {
-            type: 'connect_wallet' as const,
+            type: 'connect_wallet',
             address: address,
             connect: true
           };
 
-          // Validate the connection data
-          const validationResult = connectionDataSchema.safeParse(connectionData);
-          if (!validationResult.success) {
-            console.error('Invalid connection data:', validationResult.error);
+          const error = getSchemaError('connect_wallet', connectionData);
+          if (error) {
+            console.error('Schema validation error:', error);
             return;
           }
 
-          sendTelegramEvent(
-            connectionData,
-            uid,
-            callbackEndpoint,
-            () => setHasNotifiedConnection(true),
-            (error) => {
-              console.error('Notification error:', error);
-              setError('Failed to notify connection status');
-            }
-          );
+          sendEvent(uid, callbackEndpoint, onCallbackError, connectionData);
+          setHasNotifiedConnection(true);
         } catch (error) {
           console.error('Error notifying bot of connection:', error);
           setError('Failed to notify connection status');
@@ -128,7 +75,7 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
     };
 
     notifyConnection();
-  }, [address, uid, callbackEndpoint, hasNotifiedConnection]);
+  }, [address, uid, callbackEndpoint, hasNotifiedConnection, onCallbackError]);
 
   const handleDisconnect = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -138,23 +85,21 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
     try {
       await disconnect();
       // Notify disconnect
-      if (uid && callbackEndpoint) {
+      if (uid && callbackEndpoint && address) {
         const disconnectData = {
-          type: 'connect_wallet' as const,
+          type: 'connect_wallet',
           address: address,
           connect: false
         };
 
-        sendTelegramEvent(
-          disconnectData,
-          uid,
-          callbackEndpoint,
-          () => setHasNotifiedConnection(false),
-          (error) => {
-            console.error('Disconnect notification error:', error);
-            setError('Failed to notify disconnect status');
-          }
-        );
+        const error = getSchemaError('connect_wallet', disconnectData);
+        if (error) {
+          console.error('Schema validation error:', error);
+          return;
+        }
+
+        sendEvent(uid, callbackEndpoint, onCallbackError, disconnectData);
+        setHasNotifiedConnection(false);
       }
     } catch (error) {
       console.error('Disconnect error:', error);
@@ -162,7 +107,7 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
     } finally {
       setIsDisconnecting(false);
     }
-  }, [disconnect, isDisconnecting, address, uid, callbackEndpoint]);
+  }, [disconnect, isDisconnecting, address, uid, callbackEndpoint, onCallbackError]);
 
   const handleMyGamesClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -232,6 +177,7 @@ export function Account({ myGames, onToggleMyGames }: AccountProps) {
             </div>
           </div>
         </div>
+
         <div className="account-actions flex items-center gap-2">
           <button
             onClick={handleMyGamesClick}

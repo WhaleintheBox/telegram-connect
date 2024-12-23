@@ -24,16 +24,38 @@ const signMessageDataSchema = z.object({
   message: z.object({})
 })
 
+// Dans utils.ts
+export const connectionDataSchema = z.object({
+  type: z.literal('connect_wallet'),
+  address: z.string().regex(ADDRESS_REGEX),
+  connect: z.boolean(),
+  initData: z.string().optional()
+});
 
 export const getSchemaError = (operationType: string, data: any) => {
-  const schema = operationType === "signature" ? signMessageDataSchema : transactionDataSchema;
+  let schema;
+  switch (operationType) {
+    case 'connect_wallet':
+      schema = connectionDataSchema;
+      break;
+    case 'signature':
+      schema = signMessageDataSchema;
+      break;
+    case 'transaction':
+    default:
+      schema = transactionDataSchema;
+  }
+
   const response = schema.safeParse(JSON.parse(JSON.stringify(data)));
   if (!response.success) {
     return response.error;
   }
 
-  return null
-}
+  return null;
+};
+
+
+
 
 export const sendEvent = (uid: string, endpoint: string, onCallbackError: (error: any) => void, result: any) => {
   const xhr = new XMLHttpRequest();
