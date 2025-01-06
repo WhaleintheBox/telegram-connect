@@ -1320,53 +1320,53 @@ export default function App() {
 
 
 
-  const handleSendData = useCallback(async () => {
-    if (!address) {
-      console.error('No wallet address available');
-      return;
-    }
+  // const handleSendData = useCallback(async () => {
+  //   if (!address) {
+  //     console.error('No wallet address available');
+  //     return;
+  //   }
   
-    console.log('Starting connection process...', { address, uid, callbackEndpoint });
+  //   console.log('Starting connection process...', { address, uid, callbackEndpoint });
   
-    try {
-      const connectionData: ConnectionData = {
-        type: 'connect_wallet',
-        address: address,
-        connect: true
-      };
+  //   try {
+  //     const connectionData: ConnectionData = {
+  //       type: 'connect_wallet',
+  //       address: address,
+  //       connect: true
+  //     };
   
-      // Vérification du schéma
-      const parseResult = connectionDataSchema.safeParse(connectionData);
-      if (!parseResult.success) {
-        console.error('Validation error:', parseResult.error);
-        return;
-      }
+  //     // Vérification du schéma
+  //     const parseResult = connectionDataSchema.safeParse(connectionData);
+  //     if (!parseResult.success) {
+  //       console.error('Validation error:', parseResult.error);
+  //       return;
+  //     }
   
-      if (!uid || !callbackEndpoint) {
-        console.error('Missing uid or callback endpoint');
-        return;
-      }
+  //     if (!uid || !callbackEndpoint) {
+  //       console.error('Missing uid or callback endpoint');
+  //       return;
+  //     }
   
-      // URL directe vers le wallet-connect endpoint
-      const endpoint = 'https://witbbot-638008614172.us-central1.run.app/wallet-connect';
-      console.log('Sending to endpoint:', endpoint);
+  //     // URL directe vers le wallet-connect endpoint
+  //     const endpoint = 'https://witbbot-638008614172.us-central1.run.app/wallet-connect';
+  //     console.log('Sending to endpoint:', endpoint);
   
-      await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...parseResult.data,
-          uid
-        })
-      });
+  //     await fetch(endpoint, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         ...parseResult.data,
+  //         uid
+  //       })
+  //     });
   
-      console.log('Connection request sent successfully');
-    } catch (error) {
-      console.error('Connection error:', error);
-    }
-  }, [address, uid, callbackEndpoint]);
+  //     console.log('Connection request sent successfully');
+  //   } catch (error) {
+  //     console.error('Connection error:', error);
+  //   }
+  // }, [address, uid, callbackEndpoint]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1420,23 +1420,7 @@ export default function App() {
           }}
         />
       )}
-  
-      <div style={{ margin: '16px 0', textAlign: 'center' }}>
-        <button 
-          onClick={handleSendData}
-          style={{
-            background: '#0088cc',
-            color: '#fff',
-            padding: '12px 20px',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer'
-          }}
-        >
-          Connect to bot
-        </button>
-      </div>
-  
+    
       <div className="tabs-container">
         <div className="tabs-header">
           <button
