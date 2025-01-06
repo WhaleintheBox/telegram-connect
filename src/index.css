@@ -2598,27 +2598,72 @@ button:disabled {
 
 /* GameBoard.css */
 
-.game-container {
-  background: #ffffff;
+/* Container des onglets - style cohérent avec stats-container */
+.tabs-container {
+  background-color: #ffffff;
   border-radius: 12px;
   border: 1px solid #e4e4e7;
   padding: 24px;
-  margin: 16px auto;
+  margin: 16px;
   width: auto;
   max-width: 1200px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+/* En-tête des onglets */
+.tabs-header {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 16px;
+}
+
+/* Style des boutons d'onglets */
+.tab-button {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+  text-align: center;
+}
+
+.tab-button:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.tab-button.active {
+  background: #EEF2FF;
+  border-color: #818CF8;
+  color: #4F46E5;
+}
+
+/* Contenu du jeu */
+.game-container {
+  width: 100%;
+  margin-top: 24px;
 }
 
 .game-board {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-  width: 100%;
+  gap: 12px;
+  margin-bottom: 24px;
   padding: 16px;
   background: #f8fafc;
   border-radius: 12px;
 }
 
+/* Cases du plateau */
 .board-cell {
   aspect-ratio: 1;
   padding: 12px;
@@ -2629,65 +2674,26 @@ button:disabled {
   font-size: 12px;
   font-weight: 500;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
-  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.board-cell:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.cell-white { 
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  color: #1f2937;
-}
-
-.cell-purple { 
-  background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
-  color: #7e22ce;
-}
-
-.cell-blue { 
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-  color: #1d4ed8;
-}
-
-.cell-yellow { 
-  background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%);
-  color: #ca8a04;
-}
-
-.cell-green { 
-  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-  color: #16a34a;
-}
-
-.cell-red { 
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  color: #dc2626;
-}
-
-.cell-orange { 
-  background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
-  color: #ea580c;
-}
-
+/* Section centrale */
 .board-center {
   grid-column: span 7;
   display: grid;
   grid-template-columns: 1fr 5fr 1fr;
-  gap: 8px;
+  gap: 12px;
+  margin: 12px 0;
 }
 
 .center-zone {
   background: white;
   padding: 24px;
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .center-text {
@@ -2698,13 +2704,13 @@ button:disabled {
 .center-title {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
   margin-bottom: 16px;
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  background-clip: text;              /* Ajout de la propriété standard */
+  background-clip: text;
   -webkit-background-clip: text;
+  color: transparent;
   -webkit-text-fill-color: transparent;
-  text-fill-color: transparent;       /* Ajout de la propriété standard */
+  text-fill-color: transparent;
 }
 
 .cards-grid {
@@ -2714,81 +2720,104 @@ button:disabled {
   margin-bottom: 16px;
 }
 
-.bonus-card {
-  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-  border: 1px solid rgba(22, 163, 74, 0.2);
+/* Cartes bonus/malus */
+.bonus-card, .malus-card {
   padding: 12px;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 500;
-  color: #15803d;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
+}
+
+.bonus-card {
+  background: #dcfce7;
+  border: 1px solid rgba(22, 163, 74, 0.2);
+  color: #15803d;
 }
 
 .malus-card {
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  background: #fee2e2;
   border: 1px solid rgba(220, 38, 38, 0.2);
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
   color: #b91c1c;
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
 }
 
-.bonus-card:hover,
-.malus-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+/* Responsive Design */
+@media screen and (max-width: 1024px) {
+  .board-center {
+    grid-template-columns: 1fr 3fr 1fr;
+  }
+  
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .center-title {
+    font-size: 20px;
+  }
 }
 
-.side-cells {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+@media screen and (max-width: 768px) {
+  .tabs-container {
+    padding: 16px;
+    margin: 12px;
+  }
+  
+  .tabs-header {
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  
+  .tab-button {
+    padding: 6px 12px;
+    min-width: 100px;
+    font-size: 13px;
+  }
+  
+  .game-board {
+    gap: 8px;
+    padding: 12px;
+  }
+  
+  .board-cell {
+    padding: 8px;
+    font-size: 10px;
+  }
+  
+  .center-zone {
+    padding: 16px;
+  }
+  
+  .cards-grid {
+    gap: 6px;
+  }
+  
+  .bonus-card, .malus-card {
+    padding: 8px;
+    font-size: 10px;
+  }
 }
 
-/* Navigation Tabs */
-.tabs-container {
-  margin-bottom: 24px;
-}
-
-.tabs-header {
-  display: flex;
-  gap: 8px;
-  padding: 16px 24px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.tab-button {
-  padding: 8px 16px;
-  font-weight: 500;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  border: none;
-  font-size: 14px;
-}
-
-.tab-button.active {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
-}
-
-.tab-button:not(.active) {
-  background: #f3f4f6;
-  color: #4b5563;
-}
-
-.tab-button:not(.active):hover {
-  background: #e5e7eb;
-}
-
-.tab-content {
-  padding: 16px;
+@media screen and (max-width: 480px) {
+  .tabs-container {
+    padding: 12px;
+    margin: 8px;
+  }
+  
+  .board-center {
+    grid-template-columns: 1fr;
+  }
+  
+  .center-title {
+    font-size: 18px;
+  }
+  
+  .board-cell {
+    font-size: 9px;
+    padding: 6px;
+  }
+  
+  .side-cells {
+    display: none;
+  }
 }
