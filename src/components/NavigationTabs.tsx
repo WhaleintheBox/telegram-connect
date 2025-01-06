@@ -1,5 +1,4 @@
 import { ReactNode } from 'react';
-import { useState } from 'react';
 import { Plus, Swords, Coins } from 'lucide-react';
 
 interface NavigationTabsProps {
@@ -14,9 +13,7 @@ interface BoardCell {
   type: CellType;
 }
 
-const NavigationTabs: React.FC<NavigationTabsProps> = ({ children }) => {
-  const [activeTab, setActiveTab] = useState<'betting' | 'nft'>('betting');
-  
+const NavigationTabs: React.FC<NavigationTabsProps> = () => {
   const boardCells: BoardCell[] = [
     { id: 1, text: '🎁 Get 2 Free NFTs', type: 'white' },
     { id: 2, text: '🎯 Steal 1 NFT', type: 'purple' },
@@ -50,110 +47,85 @@ const NavigationTabs: React.FC<NavigationTabsProps> = ({ children }) => {
     { id: 30, text: '💫 Epic NFT Master', type: 'purple' }
   ];
 
-  const GameBoard = () => {
-    return (
-      <div className="board-wrapper">
-        <div className="board-container">
-          <div className="board-grid">
-            {/* Top row */}
-            {boardCells.slice(0, 7).map((cell) => (
-              <div key={cell.id} className={`board-cell cell-${cell.type}`}>
-                {cell.text}
-              </div>
-            ))}
-            
-            {/* Center section */}
-            <div className="center-section">
-              {/* Left side */}
-              <div className="side-cells">
-                {boardCells.slice(22, 30).reverse().map((cell) => (
-                  <div key={cell.id} className={`board-cell cell-${cell.type}`}>
-                    {cell.text}
-                  </div>
-                ))}
-              </div>
+  return (
+    <div className="board-wrapper">
+      <div className="board-container">
+        <div className="board-grid">
+          {/* Top row */}
+          {boardCells.slice(0, 7).map((cell) => (
+            <div key={cell.id} className={`board-cell cell-${cell.type}`}>
+              {cell.text}
+            </div>
+          ))}
+          
+          {/* Center section */}
+          <div className="center-section">
+            {/* Left side */}
+            <div className="side-cells">
+              {boardCells.slice(22, 30).reverse().map((cell) => (
+                <div key={cell.id} className={`board-cell cell-${cell.type}`}>
+                  {cell.text}
+                </div>
+              ))}
+            </div>
 
-              {/* Center area */}
-              <div className="center-area">
-                <div className="center-content">
-                  <h2 className="center-title">🎮 WHALE IN THE BOX ARENA</h2>
-                  
-                  <div className="nft-price">
-                    <Coins className="coin-icon" />
-                    <span>0.05 SOL for 3 NFTs</span>
-                  </div>
-                  
-                  <div className="players-section">
-                    <p className="section-label">🏃‍♂️ Select Your Team (5 Players)</p>
-                    <div className="player-slots">
-                      {[...Array(5)].map((_, i) => (
-                        <div key={i} className="player-slot">
-                          <Plus className="plus-icon" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="stadium-section">
-                    <p className="section-label">🏟️ Choose Your Stadium</p>
-                    <div className="stadium-slot">
-                      <Plus className="plus-icon" />
-                    </div>
-                  </div>
-
-                  <div className="action-buttons">
-                    <button className="mint-button">
-                      🪙 MINT NFT
-                    </button>
-                    <button className="fight-button">
-                      <Swords className="fight-icon" />
-                      FIGHT!
-                    </button>
+            {/* Center area */}
+            <div className="center-area">
+              <div className="center-content">
+                <h2 className="center-title">🐳 WHALE IN THE BOX ARENA</h2>
+                
+                <div className="nft-price">
+                  <Coins className="coin-icon" />
+                  <span>0.05 SOL for 3 NFTs</span>
+                </div>
+                
+                <div className="players-section">
+                  <p className="section-label">🏃‍♂️ Select Your Team (5 Players)</p>
+                  <div className="player-slots">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="player-slot">
+                        <Plus className="plus-icon" />
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
 
-              {/* Right side */}
-              <div className="side-cells">
-                {boardCells.slice(7, 15).map((cell) => (
-                  <div key={cell.id} className={`board-cell cell-${cell.type}`}>
-                    {cell.text}
+                <div className="stadium-section">
+                  <p className="section-label">🏟️ Choose Your Stadium</p>
+                  <div className="stadium-slot">
+                    <Plus className="plus-icon" />
                   </div>
-                ))}
+                </div>
+
+                <div className="action-buttons">
+                  <button className="mint-button">
+                    🪙 MINT NFT
+                  </button>
+                  <button className="fight-button">
+                    <Swords className="fight-icon" />
+                    FIGHT!
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Bottom row */}
-            {boardCells.slice(15, 22).reverse().map((cell) => (
-              <div key={cell.id} className={`board-cell cell-${cell.type}`}>
-                {cell.text}
-              </div>
-            ))}
+            {/* Right side */}
+            <div className="side-cells">
+              {boardCells.slice(7, 15).map((cell) => (
+                <div key={cell.id} className={`board-cell cell-${cell.type}`}>
+                  {cell.text}
+                </div>
+              ))}
+            </div>
           </div>
+
+          {/* Bottom row */}
+          {boardCells.slice(15, 22).reverse().map((cell) => (
+            <div key={cell.id} className={`board-cell cell-${cell.type}`}>
+              {cell.text}
+            </div>
+          ))}
         </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="tabs-container">
-      <div className="tabs-header">
-        <button
-          onClick={() => setActiveTab('betting')}
-          className={`tab-button ${activeTab === 'betting' ? 'active' : ''}`}
-        >
-          💰 Betting
-        </button>
-        <button
-          onClick={() => setActiveTab('nft')}
-          className={`tab-button ${activeTab === 'nft' ? 'active' : ''}`}
-        >
-          🎮 NFT Game
-        </button>
-      </div>
-
-      <div className="tab-content">
-        {activeTab === 'betting' ? children : <GameBoard />}
       </div>
     </div>
   );
