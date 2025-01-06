@@ -2597,7 +2597,8 @@ button:disabled {
 
 /* GameBoard.css */
 .tabs-container {
-  max-width: 800px;
+  width: auto;
+  max-width: 1200px;
   margin: 16px auto;
   padding: 16px;
   background: white;
@@ -3040,6 +3041,4 @@ button:disabled {
     min-width: 500px;
     gap: 8px;
   }
-
-  
  }

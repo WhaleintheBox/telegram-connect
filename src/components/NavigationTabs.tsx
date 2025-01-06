@@ -76,7 +76,7 @@ const NavigationTabs: React.FC<NavigationTabsProps> = ({ children }) => {
               {/* Center area */}
               <div className="center-area">
                 <div className="center-content">
-                  <h2 className="center-title">🎮 SPORTS NFT ARENA</h2>
+                  <h2 className="center-title">🎮 WHALE IN THE BOX ARENA</h2>
                   
                   <div className="nft-price">
                     <Coins className="coin-icon" />
@@ -95,7 +95,7 @@ const NavigationTabs: React.FC<NavigationTabsProps> = ({ children }) => {
                   </div>
 
                   <div className="stadium-section">
-                    <p className="section-label">🏟️ Choose Stadium</p>
+                    <p className="section-label">🏟️ Choose Your Stadium</p>
                     <div className="stadium-slot">
                       <Plus className="plus-icon" />
                     </div>
