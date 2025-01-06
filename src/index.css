@@ -2594,3 +2594,164 @@ button:disabled {
 .chat-slide-exit {
   animation: slideDown 0.3s ease-out forwards;
 }
+/* Styles pour le plateau de jeu */
+.game-board-container {
+  min-height: calc(100vh - 300px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  margin: 20px auto;
+  max-width: 1400px;
+}
+
+/* Style de la grille du plateau */
+.game-board {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  width: 100%;
+  aspect-ratio: 1/1;
+  background-color: #e5e7eb;
+  padding: 2px;
+  border-radius: 8px;
+}
+
+/* Style des cellules */
+.board-cell {
+  aspect-ratio: 1/1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.board-cell:hover {
+  transform: scale(1.02);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Couleurs des cellules */
+.cell-white { background-color: #ffffff; }
+.cell-purple { background-color: #f3e8ff; }
+.cell-blue { background-color: #e0f2fe; }
+.cell-yellow { background-color: #fef9c3; }
+.cell-green { background-color: #dcfce7; }
+.cell-red { background-color: #fee2e2; }
+.cell-orange { background-color: #ffedd5; }
+
+/* Zone centrale */
+.center-area {
+  grid-column: 2 / 7;
+  grid-row: 2 / 7;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Texte central */
+.center-text {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.center-text h2 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+
+.center-text p {
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Grilles de cartes bonus/malus */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.bonus-card {
+  background-color: #dcfce7;
+  border: 1px solid #86efac;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+  text-align: center;
+  color: #166534;
+}
+
+.malus-card {
+  background-color: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+  text-align: center;
+  color: #991b1b;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .game-board-container {
+    padding: 10px;
+    min-height: auto;
+  }
+
+  .board-cell {
+    font-size: 10px;
+    padding: 4px;
+  }
+
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .center-text h2 {
+    font-size: 20px;
+  }
+
+  .center-text p {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .game-board {
+    gap: 1px;
+  }
+
+  .board-cell {
+    font-size: 8px;
+    padding: 2px;
+  }
+
+  .center-area {
+    padding: 10px;
+  }
+
+  .cards-grid {
+    gap: 4px;
+  }
+
+  .bonus-card,
+  .malus-card {
+    font-size: 10px;
+    padding: 4px;
+  }
+}
