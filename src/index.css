@@ -2603,32 +2603,37 @@ button:disabled {
   padding: 24px;
   margin: 16px;
   width: auto;
-  max-width: 1400px;
+  max-width: 800px;
   margin-left: auto;
   margin-right: auto;
   box-shadow: 0 8px 16px rgb(0 0 0 / 0.1);
 }
 
+
 .tabs-header {
   display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   border-bottom: 1px solid #e5e7eb;
   padding-bottom: 16px;
+  width: 100%;
 }
 
 .tab-button {
+  flex: 1;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   color: #64748b;
-  padding: 12px 24px;
+  padding: 12px;
   font-size: 16px;
   font-weight: 600;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
-  min-width: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
+  min-height: 48px;
 }
 
 .tab-button:hover {
@@ -2644,26 +2649,30 @@ button:disabled {
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
 }
 
+/* Game Board Styles */
 .board-wrapper {
-  padding: 24px;
+  padding: 16px;
   background: linear-gradient(135deg, #f0f5ff 0%, #e6e9ff 100%);
-  border-radius: 24px;
+  border-radius: 16px;
+  margin-top: 20px;
+  overflow: hidden;
 }
 
 .board-container {
-  max-width: 1400px;
-  margin: 0 auto;
   background: white;
-  border-radius: 24px;
-  padding: 32px;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  padding: 16px;
+  width: 100%;
+  overflow-x: auto;
 }
 
 .board-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(7, minmax(100px, 1fr));
+  gap: 12px;
+  min-width: 700px; /* Ensures minimum width for scrolling */
 }
+
 
 .board-cell {
   aspect-ratio: 1;
@@ -2924,9 +2933,21 @@ button:disabled {
   .tabs-container {
     padding: 16px;
     margin: 12px;
+    width: auto;
+  }
+
+  .tab-button {
+    padding: 10px;
+    font-size: 14px;
+    min-height: 40px;
   }
   
   .board-wrapper {
+    padding: 12px;
+    margin-top: 16px;
+  }
+
+  .board-container {
     padding: 12px;
   }
   
@@ -2956,14 +2977,30 @@ button:disabled {
     font-size: 14px;
     padding: 8px 16px;
   }
- }
+
+  /* Enable horizontal scrolling on mobile */
+  .board-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .board-grid {
+    min-width: 600px;
+  }
+  }
+
  
  @media screen and (max-width: 480px) {
   .tabs-container {
     padding: 12px;
     margin: 8px;
   }
-  
+  .tab-button {
+    padding: 8px;
+    font-size: 13px;
+    min-height: 36px;
+  }
+
   .board-container {
     padding: 16px;
   }
@@ -3004,4 +3041,20 @@ button:disabled {
     font-size: 16px;
     min-width: unset;
   }
+
+  .board-wrapper {
+    padding: 8px;
+    margin-top: 12px;
+  }
+
+  .board-container {
+    padding: 8px;
+  }
+
+  .board-grid {
+    min-width: 500px;
+    gap: 8px;
+  }
+
+  
  }
