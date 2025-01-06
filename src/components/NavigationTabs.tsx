@@ -76,27 +76,21 @@ const NavigationTabs: React.FC<NavigationTabsProps> = ({ children }) => {
 
   const GameBoard = () => {
     return (
-      <div className="board-container">
-        <div className="board">
+      <div className="game-container">
+        <div className="game-board">
           {/* Première ligne */}
           {boardCells.slice(0, 7).map((cell) => (
-            <div
-              key={cell.id}
-              className={`board-cell cell-${cell.type}`}
-            >
+            <div key={cell.id} className={`board-cell cell-${cell.type}`}>
               {cell.text}
             </div>
           ))}
 
-          {/* Section centrale */}
+          {/* Section centrale avec side cells */}
           <div className="board-center">
             {/* Colonne gauche */}
             <div className="side-cells">
               {boardCells.slice(22, 30).reverse().map((cell) => (
-                <div
-                  key={cell.id}
-                  className={`board-cell cell-${cell.type}`}
-                >
+                <div key={cell.id} className={`board-cell cell-${cell.type}`}>
                   {cell.text}
                 </div>
               ))}
@@ -133,10 +127,7 @@ const NavigationTabs: React.FC<NavigationTabsProps> = ({ children }) => {
             {/* Colonne droite */}
             <div className="side-cells">
               {boardCells.slice(7, 15).map((cell) => (
-                <div
-                  key={cell.id}
-                  className={`board-cell cell-${cell.type}`}
-                >
+                <div key={cell.id} className={`board-cell cell-${cell.type}`}>
                   {cell.text}
                 </div>
               ))}
@@ -145,10 +136,7 @@ const NavigationTabs: React.FC<NavigationTabsProps> = ({ children }) => {
 
           {/* Dernière ligne */}
           {boardCells.slice(15, 22).reverse().map((cell) => (
-            <div
-              key={cell.id}
-              className={`board-cell cell-${cell.type}`}
-            >
+            <div key={cell.id} className={`board-cell cell-${cell.type}`}>
               {cell.text}
             </div>
           ))}
@@ -158,9 +146,8 @@ const NavigationTabs: React.FC<NavigationTabsProps> = ({ children }) => {
   };
 
   return (
-    <div className="navigation-container">
-      {/* Navigation */}
-      <div className="navigation-tabs">
+    <div className="tabs-container">
+      <div className="tabs-header">
         <button
           onClick={() => setActiveTab('betting')}
           className={`tab-button ${activeTab === 'betting' ? 'active' : ''}`}
@@ -175,7 +162,6 @@ const NavigationTabs: React.FC<NavigationTabsProps> = ({ children }) => {
         </button>
       </div>
 
-      {/* Contenu */}
       <div className="tab-content">
         {activeTab === 'betting' ? children : <GameBoard />}
       </div>
