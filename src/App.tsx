@@ -1732,8 +1732,8 @@ export default function App() {
                                     {box.isSettled ? '🤖 ✅' : box.isCancelled ? '🤖 ❌' : '🤖 ⏳'}
                                   </span>
                                   <span className="status-badge">
-                                  {box.isSettled ? '⚡ ✅' : box.isCancelled ? '⚡ ❌' : '⚡ ⏳'}
-                                </span>
+                                    {box.isSettled ? '⚡ ✅' : box.isCancelled ? '⚡ ❌' : '⚡ ⏳'}
+                                  </span>
                               </div>
                             </div>
                           </div>
@@ -1747,8 +1747,10 @@ export default function App() {
           </>
         ) : (
           <NavigationTabs>
-          <div>{/* Contenu optionnel pour l'onglet NFT */}</div>
-        </NavigationTabs>
+            <div className="nft-game-content">
+              {/* Contenu du jeu NFT */}
+            </div>
+          </NavigationTabs>
         )}
       </div>
     )}
