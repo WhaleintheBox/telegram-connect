@@ -2598,7 +2598,6 @@ button:disabled {
 
 /* GameBoard.css */
 
-/* Container des onglets - style cohérent avec stats-container */
 .tabs-container {
   background-color: #ffffff;
   border-radius: 12px;
@@ -2612,7 +2611,6 @@ button:disabled {
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 }
 
-/* En-tête des onglets */
 .tabs-header {
   display: flex;
   gap: 8px;
@@ -2621,7 +2619,6 @@ button:disabled {
   padding-bottom: 16px;
 }
 
-/* Style des boutons d'onglets */
 .tab-button {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
@@ -2647,23 +2644,26 @@ button:disabled {
   color: #4F46E5;
 }
 
-/* Contenu du jeu */
-.game-container {
-  width: 100%;
-  margin-top: 24px;
+.board-wrapper {
+  padding: 24px;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e6e9ff 100%);
 }
 
-.game-board {
+.board-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.board-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 12px;
+  gap: 16px;
 }
 
-/* Cases du plateau */
 .board-cell {
   aspect-ratio: 1;
   padding: 12px;
@@ -2671,89 +2671,177 @@ button:disabled {
   align-items: center;
   justify-content: center;
   text-align: center;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
-  border-radius: 8px;
+  border-radius: 12px;
   transition: all 0.2s ease;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
 }
 
-/* Section centrale */
-.board-center {
+.board-cell:hover {
+  transform: scale(1.05);
+}
+
+.cell-white {
+  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+}
+
+.cell-purple {
+  background: linear-gradient(135deg, #e9d5ff 0%, #d8b4fe 100%);
+  color: #6b21a8;
+}
+
+.cell-blue {
+  background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+  color: #1e40af;
+}
+
+.cell-yellow {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #92400e;
+}
+
+.cell-green {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+}
+
+.cell-red {
+  background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%);
+  color: #991b1b;
+}
+
+.cell-orange {
+  background: linear-gradient(135deg, #ffedd5 0%, #fdba74 100%);
+  color: #9a3412;
+}
+
+.center-section {
   grid-column: span 7;
   display: grid;
   grid-template-columns: 1fr 5fr 1fr;
-  gap: 12px;
-  margin: 12px 0;
+  gap: 16px;
+  margin: 24px 0;
 }
 
-.center-zone {
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+.side-cells {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.center-text {
-  margin-bottom: 24px;
-  text-align: center;
+.center-area {
+  background: linear-gradient(135deg, #f0f5ff 0%, #e6e9ff 100%);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.center-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
 }
 
 .center-title {
-  font-size: 24px;
+  font-size: 32px;
   font-weight: 700;
-  margin-bottom: 16px;
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  background-clip: text;
   -webkit-background-clip: text;
+  background-clip: text;
   color: transparent;
-  -webkit-text-fill-color: transparent;
-  text-fill-color: transparent;
-}
-
-.cards-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-/* Cartes bonus/malus */
-.bonus-card, .malus-card {
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
   text-align: center;
+}
+
+.players-section,
+.stadium-section {
+  width: 100%;
+}
+
+.section-label {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.player-slots {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+.player-slot,
+.stadium-slot {
+  aspect-ratio: 1;
+  border: 2px dashed #93c5fd;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(59, 130, 246, 0.05);
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
-.bonus-card {
-  background: #dcfce7;
-  border: 1px solid rgba(22, 163, 74, 0.2);
-  color: #15803d;
+.stadium-slot {
+  width: 50%;
+  margin: 0 auto;
+  aspect-ratio: 16/9;
 }
 
-.malus-card {
-  background: #fee2e2;
-  border: 1px solid rgba(220, 38, 38, 0.2);
-  color: #b91c1c;
+.player-slot:hover,
+.stadium-slot:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #60a5fa;
+  transform: translateY(-2px);
 }
 
-/* Responsive Design */
+.plus-icon {
+  width: 32px;
+  height: 32px;
+  color: #60a5fa;
+}
+
+.mint-button {
+  padding: 16px 48px;
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.mint-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+}
+
 @media screen and (max-width: 1024px) {
-  .board-center {
-    grid-template-columns: 1fr 3fr 1fr;
+  .board-container {
+    padding: 24px;
   }
   
-  .cards-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .board-cell {
+    font-size: 12px;
+    padding: 8px;
   }
   
   .center-title {
-    font-size: 20px;
+    font-size: 24px;
+  }
+  
+  .center-section {
+    grid-template-columns: 1fr 3fr 1fr;
   }
 }
 
@@ -2763,38 +2851,26 @@ button:disabled {
     margin: 12px;
   }
   
-  .tabs-header {
-    gap: 6px;
-    margin-bottom: 16px;
-  }
-  
-  .tab-button {
-    padding: 6px 12px;
-    min-width: 100px;
-    font-size: 13px;
-  }
-  
-  .game-board {
-    gap: 8px;
+  .board-wrapper {
     padding: 12px;
   }
   
+  .board-grid {
+    gap: 8px;
+  }
+  
   .board-cell {
-    padding: 8px;
     font-size: 10px;
+    padding: 6px;
   }
   
-  .center-zone {
-    padding: 16px;
+  .player-slots {
+    gap: 8px;
   }
   
-  .cards-grid {
-    gap: 6px;
-  }
-  
-  .bonus-card, .malus-card {
-    padding: 8px;
-    font-size: 10px;
+  .mint-button {
+    padding: 12px 32px;
+    font-size: 16px;
   }
 }
 
@@ -2804,20 +2880,28 @@ button:disabled {
     margin: 8px;
   }
   
-  .board-center {
+  .center-section {
     grid-template-columns: 1fr;
-  }
-  
-  .center-title {
-    font-size: 18px;
-  }
-  
-  .board-cell {
-    font-size: 9px;
-    padding: 6px;
   }
   
   .side-cells {
     display: none;
+  }
+  
+  .center-title {
+    font-size: 20px;
+  }
+  
+  .board-cell {
+    font-size: 9px;
+    padding: 4px;
+  }
+  
+  .player-slots {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .stadium-slot {
+    width: 80%;
   }
 }
