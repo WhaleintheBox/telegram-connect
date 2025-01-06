@@ -14,6 +14,7 @@ import { useConnectModal } from './Context';
 import {  Banner } from './components/banner';
 import DisqusChatPanel from './components/DisqusChatPanel';
 import { ConnectionData, connectionDataSchema } from './utils';
+import NavigationTabs from './components/NavigationTabs';
 
 type SportsType = {
   [key in 'SOCCER' | 'F1' | 'MMA' | 'NFL' | 'BASKETBALL']: boolean;
@@ -1433,6 +1434,7 @@ export default function App() {
         </button>
       </div>
       {(!transactionData && !signMessageData) && (
+        <NavigationTabs>
         <>
           {/* Stats Panel */}
           <div className="stats-container">
@@ -1742,6 +1744,7 @@ export default function App() {
             )}
           </div>
         </>
+        </NavigationTabs>
         )}
 
         {/* Transaction Components */}
