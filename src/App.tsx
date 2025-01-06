@@ -46,6 +46,7 @@ const SPORT_EMOJIS: Record<keyof SportsType, string> = {
   SOCCER: '⚽', F1: '🏎️', MMA: '🥊', NFL: '🏈', BASKETBALL: '🏀'
 };
 
+
 // Types communs
 export interface Status {
   long: string;
@@ -368,6 +369,7 @@ export default function App() {
   const [callbackError, setCallbackError] = useState<any>();
   const [uid, setUid] = useState<string | undefined>();
   const [operationType, setOperationType] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<'betting' | 'nft'>('betting');
 
   // Filter states
   const [filters, setFilters] = useState<Filters>({
@@ -1418,6 +1420,7 @@ export default function App() {
           }}
         />
       )}
+  
       <div style={{ margin: '16px 0', textAlign: 'center' }}>
         <button 
           onClick={handleSendData}
@@ -1433,378 +1436,396 @@ export default function App() {
           Connect to bot
         </button>
       </div>
+  
+      <div className="tabs-container">
+        <div className="tabs-header">
+          <button
+            onClick={() => setActiveTab('betting')}
+            className={`tab-button ${activeTab === 'betting' ? 'active' : ''}`}
+          >
+            💰 Betting
+          </button>
+          <button
+            onClick={() => setActiveTab('nft')}
+            className={`tab-button ${activeTab === 'nft' ? 'active' : ''}`}
+          >
+            🎮 NFT Game
+          </button>
+        </div>
+      </div>
+  
       {(!transactionData && !signMessageData) && (
-        <NavigationTabs>
-        <>
-          {/* Stats Panel */}
-          <div className="stats-container">
-            <div className="stats-grid">
-              <div className="stat-item">
-                <span className="stat-label">🐳 Whales</span>
-                <span className="stat-value">{stats.totalPlayers}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">📦 Active Boxes</span>
-                <span className="stat-value">{stats.activeBoxes}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">💎 ETH Volume</span>
-                <span className="stat-value">{Number(stats.ethVolume).toFixed(2)} ETH</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">🍤 KRILL Volume</span>
-                <span className="stat-value">{Number(stats.krillVolume).toFixed(2)} KRILL</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">🪙 Other Tokens</span>
-                <span className="stat-value">${Number(stats.otherTokensVolume).toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Filter Section */}
-          <div className="filter-container">
-            <div className="filter-bar">
-              <div className="filter-group">
-                <span className="filter-label">Sports</span>
-                <div className="filter-options">
-                  {(Object.entries(SPORT_EMOJIS) as [keyof SportsType, string][]).map(([sport, emoji]) => (
-                    <label key={sport} className="inline-flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={filters.sports[sport]}
-                        onChange={(e) => setFilters((prev: Filters) => ({
-                          ...prev,
-                          sports: {
-                            ...prev.sports,
-                            [sport]: e.target.checked
-                          }
-                        }))}
-                        className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
-                      />
-                      <span className="ml-2">{emoji} {sport}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="filter-group">
-                <span className="filter-label">Tokens</span>
-                <div className="filter-options">
-                  <label className="inline-flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.tokens.ETH}
-                      onChange={(e) => handleTokenChange('ETH', e.target.checked)}
-                      className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
-                    />
-                    <span className="ml-2">ETH</span>
-                  </label>
-                  <label className="inline-flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.tokens.KRILL}
-                      onChange={(e) => handleTokenChange('KRILL', e.target.checked)}
-                      className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
-                    />
-                    <span className="ml-2">KRILL</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Custom Token Address"
-                    value={filters.tokens.custom}
-                    onChange={(e) => handleCustomTokenChange(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
-                  />
-                </div>
-              </div>
-
-
-              <div className="filter-group">
-                <span className="filter-label">Status</span>
-                <div className="filter-options">
-                  <label className="inline-flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.status.open}
-                      onChange={(e) => setFilters((prev: Filters) => ({
-                        ...prev,
-                        status: { ...prev.status, open: e.target.checked }
-                      }))}
-                      className="form-checkbox h-4 w-4 text-emerald-600 rounded border-gray-300"
-                    />
-                    <span className="ml-2">🟢 Open</span>
-                  </label>
-                  <label className="inline-flex items-center ml-4">
-                    <input
-                      type="checkbox"
-                      checked={filters.status.closed}
-                      onChange={(e) => setFilters((prev: Filters) => ({
-                        ...prev,
-                        status: { ...prev.status, closed: e.target.checked }
-                      }))}
-                      className="form-checkbox h-4 w-4 text-red-600 rounded border-gray-300"
-                    />
-                    <span className="ml-2">🔴 Closed</span>
-                  </label>
-                </div>
-              </div>
-              {isConnected && (
-                <div className="filter-group">
-                  <span className="filter-label">View</span>
-                  <div className="filter-options">
-                    <label className="inline-flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={filters.myGames}
-                        onChange={(e) => setFilters((prev: Filters) => ({
-                          ...prev,
-                          myGames: e.target.checked
-                        }))}
-                        className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
-                      />
-                      <span className="ml-2">🎮 My Games</span>
-                    </label>
+        <div className="tab-content">
+          {activeTab === 'betting' ? (
+            <>
+              <div className="stats-container">
+                <div className="stats-grid">
+                  <div className="stat-item">
+                    <span className="stat-label">🐳 Whales</span>
+                    <span className="stat-value">{stats.totalPlayers}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">📦 Active Boxes</span>
+                    <span className="stat-value">{stats.activeBoxes}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">💎 ETH Volume</span>
+                    <span className="stat-value">{Number(stats.ethVolume).toFixed(2)} ETH</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">🍤 KRILL Volume</span>
+                    <span className="stat-value">{Number(stats.krillVolume).toFixed(2)} KRILL</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">🪙 Other Tokens</span>
+                    <span className="stat-value">${Number(stats.otherTokensVolume).toFixed(2)}</span>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-
-          <div className="boxes-container">
-            {(isLoading || cacheLoading) ? (
-              <div className="loading">Loading boxes...</div>
-            ) : (
-              <>
-                <div className="sort-buttons">
-                  <button
-                    onClick={() => setSortOption('latest')}
-                    className={`sort-button ${sortOption === 'latest' ? 'active' : ''}`}
-                  >
-                    Latest Updates ⏱️
-                  </button>
-                  <button
-                    onClick={() => setSortOption('trending')}
-                    className={`sort-button ${sortOption === 'trending' ? 'active' : ''}`}
-                  >
-                    Trending 🔥
-                  </button>
-                  <button
-                    onClick={() => setSortOption('new')}
-                    className={`sort-button ${sortOption === 'new' ? 'active' : ''}`}
-                  >
-                    Just Added 🎯
-                  </button>
+              </div>
+  
+              <div className="filter-container">
+                <div className="filter-bar">
+                  <div className="filter-group">
+                    <span className="filter-label">Sports</span>
+                    <div className="filter-options">
+                      {(Object.entries(SPORT_EMOJIS) as [keyof SportsType, string][]).map(([sport, emoji]) => (
+                        <label key={sport} className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={filters.sports[sport]}
+                            onChange={(e) => setFilters((prev: Filters) => ({
+                              ...prev,
+                              sports: {
+                                ...prev.sports,
+                                [sport]: e.target.checked
+                              }
+                            }))}
+                            className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
+                          />
+                          <span className="ml-2">{emoji} {sport}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+  
+                  <div className="filter-group">
+                    <span className="filter-label">Tokens</span>
+                    <div className="filter-options">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={filters.tokens.ETH}
+                          onChange={(e) => handleTokenChange('ETH', e.target.checked)}
+                          className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
+                        />
+                        <span className="ml-2">ETH</span>
+                      </label>
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={filters.tokens.KRILL}
+                          onChange={(e) => handleTokenChange('KRILL', e.target.checked)}
+                          className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
+                        />
+                        <span className="ml-2">KRILL</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Custom Token Address"
+                        value={filters.tokens.custom}
+                        onChange={(e) => handleCustomTokenChange(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
+                      />
+                    </div>
+                  </div>
+  
+                  <div className="filter-group">
+                    <span className="filter-label">Status</span>
+                    <div className="filter-options">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={filters.status.open}
+                          onChange={(e) => setFilters((prev: Filters) => ({
+                            ...prev,
+                            status: { ...prev.status, open: e.target.checked }
+                          }))}
+                          className="form-checkbox h-4 w-4 text-emerald-600 rounded border-gray-300"
+                        />
+                        <span className="ml-2">🟢 Open</span>
+                      </label>
+                      <label className="inline-flex items-center ml-4">
+                        <input
+                          type="checkbox"
+                          checked={filters.status.closed}
+                          onChange={(e) => setFilters((prev: Filters) => ({
+                            ...prev,
+                            status: { ...prev.status, closed: e.target.checked }
+                          }))}
+                          className="form-checkbox h-4 w-4 text-red-600 rounded border-gray-300"
+                        />
+                        <span className="ml-2">🔴 Closed</span>
+                      </label>
+                    </div>
+                  </div>
+                  {isConnected && (
+                    <div className="filter-group">
+                      <span className="filter-label">View</span>
+                      <div className="filter-options">
+                        <label className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={filters.myGames}
+                            onChange={(e) => setFilters((prev: Filters) => ({
+                              ...prev,
+                              myGames: e.target.checked
+                            }))}
+                            className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
+                          />
+                          <span className="ml-2">🎮 My Games</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="boxes-grid">
-                  {getFilteredBoxes(boxes).map((box) => {
-                    const hunterPercentage = calculateHunterPercentage(box.bets);
-                    const isUpdated = updatedBoxes.has(box.address);
-                    
-                    return (
-                      <div 
-                        key={box.address} 
-                        className={`box-card ${isUpdated ? 'box-updated' : ''}`}
+              </div>
+  
+              <div className="boxes-container">
+                {(isLoading || cacheLoading) ? (
+                  <div className="loading">Loading boxes...</div>
+                ) : (
+                  <>
+                    <div className="sort-buttons">
+                      <button
+                        onClick={() => setSortOption('latest')}
+                        className={`sort-button ${sortOption === 'latest' ? 'active' : ''}`}
                       >
-                        {box.imageData && (
-                          <div className="box-image-container group">
-                            <img 
-                              src={`data:image/png;base64,${box.imageData}`}
-                              alt={`${box.sportId} preview`}
-                              className="box-image"
-                            />
-                            <div className="event-details-popup">
-                              <EventDetailsPopup box={{
-                                sportId: box.sportId,
-                                sportData: {
-                                  ...box.sportData,
-                                  status: box.sportData?.status || { long: 'Unknown', short: 'UNK' },
-                                  formattedStatus: box.sportData?.formattedStatus || ''
-                                }
-                              }} />                       
-                            </div>
-                          </div>
-                        )}
-                        <div className="box-content">
-                          <div className="box-header">
-                            <span className="box-sport">
-                              {SPORT_EMOJIS[box.sportId as keyof SportsType]} {box.sportId}
-                            </span>
-                            <span className="box-time">
-                              {box.sportData?.scheduled && calculateTimeLeft(box.sportData.scheduled)}
-                            </span>
-                          </div>
-
-                          <div className="box-teams">
-                            {box.sportData?.home_team} vs {box.sportData?.away_team}
-                          </div>
-                          
-                          <div className="box-tournament">
-                            {box.sportData?.tournament}
-                          </div>
-
-                          <div className="total-amount-highlight">
-                            <div className="amount-label">Total Pool</div>
-                            <div className={`amount-value ${getTotalAmount(box) !== '0.0000' ? 'animate-pulse' : ''}`}>
-                              {getTotalAmount(box)}
-                            </div>
-                          </div>
-
-                          {isConnected ? (
-                            <BettingSection box={box} />
-                          ) : (
-                            <div className="connect-notice p-4 text-center bg-gray-50 rounded-lg">
-                              Connect wallet to place bets
-                            </div>
-                          )}
-                          
-                          {box.initialEvents && box.initialEvents.length > 0 && (
-                            <div className="predictions-section bg-gray-50 rounded-lg p-4 my-4">
-                              <div className="flex items-center gap-2 mb-4">
-                                <span className="text-lg">🔮 Predictions</span>
+                        Latest Updates ⏱️
+                      </button>
+                      <button
+                        onClick={() => setSortOption('trending')}
+                        className={`sort-button ${sortOption === 'trending' ? 'active' : ''}`}
+                      >
+                        Trending 🔥
+                      </button>
+                      <button
+                        onClick={() => setSortOption('new')}
+                        className={`sort-button ${sortOption === 'new' ? 'active' : ''}`}
+                      >
+                        Just Added 🎯
+                      </button>
+                    </div>
+                    <div className="boxes-grid">
+                      {getFilteredBoxes(boxes).map((box) => {
+                        const hunterPercentage = calculateHunterPercentage(box.bets);
+                        const isUpdated = updatedBoxes.has(box.address);
+                        
+                        return (
+                          <div 
+                            key={box.address} 
+                            className={`box-card ${isUpdated ? 'box-updated' : ''}`}
+                          >
+                            {box.imageData && (
+                              <div className="box-image-container group">
+                                <img 
+                                  src={`data:image/png;base64,${box.imageData}`}
+                                  alt={`${box.sportId} preview`}
+                                  className="box-image"
+                                />
+                                <div className="event-details-popup">
+                                  <EventDetailsPopup box={{
+                                    sportId: box.sportId,
+                                    sportData: {
+                                      ...box.sportData,
+                                      status: box.sportData?.status || { long: 'Unknown', short: 'UNK' },
+                                      formattedStatus: box.sportData?.formattedStatus || ''
+                                    }
+                                  }} />                       
+                                </div>
                               </div>
-                              <div className="space-y-3">
-                                {box.initialEvents.slice(0, 4).map((event, index) => (
-                                  <div 
-                                    key={index}
-                                    className="bg-white rounded-lg p-3 border border-gray-100 hover:shadow-md transition-shadow"
-                                  >
-                                    {/* Who section */}
-                                    <div className="flex items-center gap-2 mb-2 text-blue-600 font-medium">
-                                      <span className="text-sm">🧞‍♂️</span>
-                                      <span className="text-sm truncate" title={event.who}>
-                                        {event.who}
-                                      </span>
-                                    </div>
-                                    
-                                    {/* Prediction content */}
-                                    <div className="flex items-start gap-2 pl-4">
-                                      <span className="text-sm text-gray-800 font-medium flex-1">
-                                        {event.prediction}
-                                      </span>
-                                    </div>
+                            )}
+                            <div className="box-content">
+                              <div className="box-header">
+                                <span className="box-sport">
+                                  {SPORT_EMOJIS[box.sportId as keyof SportsType]} {box.sportId}
+                                </span>
+                                <span className="box-time">
+                                  {box.sportData?.scheduled && calculateTimeLeft(box.sportData.scheduled)}
+                                </span>
+                              </div>
+  
+                              <div className="box-teams">
+                                {box.sportData?.home_team} vs {box.sportData?.away_team}
+                              </div>
+                              
+                              <div className="box-tournament">
+                                {box.sportData?.tournament}
+                              </div>
+  
+                              <div className="total-amount-highlight">
+                                <div className="amount-label">Total Pool</div>
+                                <div className={`amount-value ${getTotalAmount(box) !== '0.0000' ? 'animate-pulse' : ''}`}>
+                                  {getTotalAmount(box)}
+                                </div>
+                              </div>
+  
+                              {isConnected ? (
+                                <BettingSection box={box} />
+                              ) : (
+                                <div className="connect-notice p-4 text-center bg-gray-50 rounded-lg">
+                                  Connect wallet to place bets
+                                </div>
+                              )}
+                              
+                              {box.initialEvents && box.initialEvents.length > 0 && (
+                                <div className="predictions-section bg-gray-50 rounded-lg p-4 my-4">
+                                  <div className="flex items-center gap-2 mb-4">
+                                    <span className="text-lg">🔮 Predictions</span>
                                   </div>
-                                ))}
+                                  <div className="space-y-3">
+                                    {box.initialEvents.slice(0, 4).map((event, index) => (
+                                      <div 
+                                        key={index}
+                                        className="bg-white rounded-lg p-3 border border-gray-100 hover:shadow-md transition-shadow"
+                                      >
+                                        <div className="flex items-center gap-2 mb-2 text-blue-600 font-medium">
+                                          <span className="text-sm">🧞‍♂️</span>
+                                          <span className="text-sm truncate" title={event.who}>
+                                            {event.who}
+                                          </span>
+                                        </div>
+                                        
+                                        <div className="flex items-start gap-2 pl-4">
+                                          <span className="text-sm text-gray-800 font-medium flex-1">
+                                            {event.prediction}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+  
+                              <div className={`prediction-bar ${isUpdated ? 'progress-updated' : ''}`}>
+                                <div className="bar-container">
+                                  <div 
+                                    className="hunters-bar"
+                                    style={{ width: `${hunterPercentage}%` }}
+                                  />
+                                  <div 
+                                    className="fishers-bar"
+                                    style={{ width: `${100 - hunterPercentage}%`, left: `${hunterPercentage}%` }}
+                                  />
+                                </div>
+                                <div className="bar-labels">
+                                  <span className="hunters-label">🎯 {hunterPercentage.toFixed(1)}%</span>
+                                  <span className="fishers-label">🎣 {(100 - hunterPercentage).toFixed(1)}%</span>
+                                </div>
                               </div>
-                            </div>
-                          )}
-
-                          <div className={`prediction-bar ${isUpdated ? 'progress-updated' : ''}`}>
-                            <div className="bar-container">
-                              <div 
-                                className="hunters-bar"
-                                style={{ width: `${hunterPercentage}%` }}
-                              />
-                              <div 
-                                className="fishers-bar"
-                                style={{ width: `${100 - hunterPercentage}%`, left: `${hunterPercentage}%` }}
-                              />
-                            </div>
-                            <div className="bar-labels">
-                              <span className="hunters-label">🎯 {hunterPercentage.toFixed(1)}%</span>
-                              <span className="fishers-label">🎣 {(100 - hunterPercentage).toFixed(1)}%</span>
-                            </div>
-                          </div>
-                          
-                          <div className="box-info">
-                            <span className="box-address">{formatAddress(box.address)}</span>
-                            <span className="box-participants">🐳 {box.bets.length}</span>
-                          </div>
-
-                          <div className="box-footer">
-                            <div className="status-container">
-                              <span className={`status-badge ${
-                                box.isCancelled 
-                                  ? 'cancelled'
-                                  : box.isSettled || !box.timeRemaining || box.timeRemaining <= 0
-                                    ? 'settled' 
-                                    : 'active'
-                              }`}>
-                                {box.isCancelled 
-                                  ? '⚠️ Cancelled'
-                                  : box.isSettled || !box.timeRemaining || box.timeRemaining <= 0
-                                    ? '🔴 Closed' 
-                                    : '🟢 Open'
-                                }
-                              </span>
-                              <span className="status-badge">
-                                {box.isSettled ? '🤖 ✅' : box.isCancelled ? '🤖 ❌' : '🤖 ⏳'}
-                              </span>
-                              <span className="status-badge">
-                                {box.isSettled ? '⚡ ✅' : box.isCancelled ? '⚡ ❌' : '⚡ ⏳'}
-                              </span>
+                              
+                              <div className="box-info">
+                                <span className="box-address">{formatAddress(box.address)}</span>
+                                <span className="box-participants">🐳 {box.bets.length}</span>
+                              </div>
+  
+                              <div className="box-footer">
+                                <div className="status-container">
+                                  <span className={`status-badge ${
+                                    box.isCancelled 
+                                      ? 'cancelled'
+                                      : box.isSettled || !box.timeRemaining || box.timeRemaining <= 0
+                                        ? 'settled' 
+                                        : 'active'
+                                  }`}>
+                                    {box.isCancelled 
+                                      ? '⚠️ Cancelled'
+                                      : box.isSettled || !box.timeRemaining || box.timeRemaining <= 0
+                                        ? '🔴 Closed' 
+                                        : '🟢 Open'
+                                    }
+                                  </span>
+                                  <span className="status-badge">
+                                    {box.isSettled ? '🤖 ✅' : box.isCancelled ? '🤖 ❌' : '🤖 ⏳'}
+                                  </span>
+                                  <span className="status-badge">
+                                  {box.isSettled ? '⚡ ✅' : box.isCancelled ? '⚡ ❌' : '⚡ ⏳'}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-        </>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        ) : (
+          <NavigationTabs>
+          <div>{/* Contenu optionnel pour l'onglet NFT */}</div>
         </NavigationTabs>
         )}
+      </div>
+    )}
 
-        {/* Transaction Components */}
-        {isConnected && !schemaError && (transactionData || signMessageData) && (
+    {/* Transaction Components */}
+    {isConnected && !schemaError && (transactionData || signMessageData) && (
+      <>
+        {operationType === "transaction" && transactionData && uid && (
           <>
-            {operationType === "transaction" && transactionData && uid && (
-              <>
-                <WriteContract
-                  uid={uid}
-                  chainId={transactionData.chainId}
-                  address={transactionData.address}
-                  abi={transactionData.abi}
-                  functionName={transactionData.functionName}
-                  args={transactionData.args}
-                  value={transactionData.value}
-                  sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, transaction: true })}
-                />
-              </>
-            )}
-
-            {operationType === "signature" && signMessageData && uid && (
-              <>
-                <div className="container">
-                  <pre>{JSON.stringify(signMessageData, null, 2)}</pre>
-                </div>
-                <SignMessage
-                  uid={uid}
-                  domain={signMessageData.domain}
-                  primaryType={signMessageData.primaryType}
-                  types={signMessageData.types}
-                  message={signMessageData.message}
-                  sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, signature: true })}
-                />
-              </>
-            )}
+            <WriteContract
+              uid={uid}
+              chainId={transactionData.chainId}
+              address={transactionData.address}
+              abi={transactionData.abi}
+              functionName={transactionData.functionName}
+              args={transactionData.args}
+              value={transactionData.value}
+              sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, transaction: true })}
+            />
           </>
         )}
 
-        {/* Error States */}
-        {schemaError && (
-          <div className="container parsingError">
-            <div>Source doesn't match schema</div>
-            <pre>{JSON.stringify(schemaError, null, 2)}</pre>
-          </div>
+        {operationType === "signature" && signMessageData && uid && (
+          <>
+            <div className="container">
+              <pre>{JSON.stringify(signMessageData, null, 2)}</pre>
+            </div>
+            <SignMessage
+              uid={uid}
+              domain={signMessageData.domain}
+              primaryType={signMessageData.primaryType}
+              types={signMessageData.types}
+              message={signMessageData.message}
+              sendEvent={(data: any) => sendEvent(uid, callbackEndpoint, onCallbackError, { ...data, signature: true })}
+            />
+          </>
         )}
+      </>
+    )}
 
-        {callbackError && (
-          <div className="container callbackError">
-            <div>Error during callback request to {callbackEndpoint}</div>
-            <pre>{JSON.stringify(callbackError, null, 2)}</pre>
-          </div>
-        )}
+    {/* Error States */}
+    {schemaError && (
+      <div className="container parsingError">
+        <div>Source doesn't match schema</div>
+        <pre>{JSON.stringify(schemaError, null, 2)}</pre>
+      </div>
+    )}
 
-        <DisqusChatPanel 
-          shortname="whaleinthebox"
-          url="https://whaleinthebox.github.io/telegram-connect/dist/"
-          identifier="Ocean"
-          title="Whales Chat"
-        />
-    </>
-  );
+    {callbackError && (
+      <div className="container callbackError">
+        <div>Error during callback request to {callbackEndpoint}</div>
+        <pre>{JSON.stringify(callbackError, null, 2)}</pre>
+      </div>
+    )}
+
+    <DisqusChatPanel 
+      shortname="whaleinthebox"
+      url="https://whaleinthebox.github.io/telegram-connect/dist/"
+      identifier="Ocean"
+      title="Whales Chat"
+    />
+  </>
+);
 }
-

@@ -2597,56 +2597,41 @@ button:disabled {
 
 /* GameBoard.css */
 .tabs-container {
-  background-color: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #e4e4e7;
-  padding: 24px;
-  margin: 16px;
-  width: auto;
-  max-width: auto;
-  margin-left: auto;
-  margin-right: auto;
-  box-shadow: 0 8px 16px rgb(0 0 0 / 0.1);
+  max-width: 800px;
+  margin: 16px auto;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
-
 
 .tabs-header {
   display: flex;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #e5e7eb;
-  padding-bottom: 16px;
+  gap: 16px;
   width: 100%;
 }
 
 .tab-button {
   flex: 1;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
   padding: 12px;
   font-size: 16px;
   font-weight: 600;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   text-align: center;
-  min-height: 48px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
 }
 
 .tab-button:hover {
   background: #f1f5f9;
-  border-color: #cbd5e1;
-  transform: translateY(-2px);
 }
 
 .tab-button.active {
   background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
   border-color: #6366f1;
   color: white;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
 }
 
 /* Game Board Styles */
