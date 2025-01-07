@@ -2827,7 +2827,7 @@
 /* Players Section */
 .players-section,
 .stadium-section {
-  width: 50%;
+  width: 100%;
 }
 
 .section-label {
@@ -2864,7 +2864,7 @@
 }
 
 .stadium-slot {
-  width: 50%;
+  width: 30%;
   margin: 0 auto;
   aspect-ratio: 16/9;
 }
@@ -2874,6 +2874,11 @@
   height: 32px;
   color: #60a5fa;
   transition: transform 0.3s ease;
+}
+
+.player-slot:hover .plus-icon,
+.stadium-slot:hover .plus-icon {
+ transform: rotate(180deg);
 }
 
 /* Sport Selection */
@@ -2899,8 +2904,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 1rem;
-  background: linear-gradient(145deg, #40d70039, #2ffd475c);
-  box-shadow: 2px 2px 10px #01d34b;
+  background: linear-gradient(145deg, #00000039, #0000005c);
+  box-shadow: 1px 1px 5px #000000;
   border: 1px solid rgba(0, 0, 0, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;

@@ -157,6 +157,7 @@ const NavigationTabs: React.FC<NavigationTabsProps> = () => {
   );
 
   return (
+
     <div className="board-wrapper">
       <div className="board-container">
         <div className="board-view">

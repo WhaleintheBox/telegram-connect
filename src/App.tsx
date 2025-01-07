@@ -1427,13 +1427,13 @@ export default function App() {
             onClick={() => setActiveTab('betting')}
             className={`tab-button ${activeTab === 'betting' ? 'active' : ''}`}
           >
-            💰 Betting
+            🎯 Sports House
           </button>
           <button
             onClick={() => setActiveTab('nft')}
             className={`tab-button ${activeTab === 'nft' ? 'active' : ''}`}
           >
-            🎮 NFT Game
+            🃏 NFT Arena
           </button>
         </div>
       </div>
