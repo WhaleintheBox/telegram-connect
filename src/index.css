@@ -3080,3 +3080,210 @@
     font-size: 16px;
   }
 }
+
+
+.text-shadow {
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+/* Styles pour le conteneur de l'image et de l'overlay */
+.sport-image-container {
+  position: relative;
+  min-height: 300px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.sport-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Styles pour l'overlay des commentaires */
+.commentary-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  color: white;
+  z-index: 100;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Styles pour le score et le timer */
+.commentary-header {
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  padding: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Styles pour les questions */
+.question-container {
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.question-text {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  color: white;
+}
+
+.options-container {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.option-button {
+  background-color: rgba(59, 130, 246, 0.8);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.option-button:hover {
+  background-color: rgba(59, 130, 246, 1);
+}
+
+/* Styles pour les commentaires */
+.commentary-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.commentary-item {
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 0.75rem;
+  border-radius: 6px;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Styles pour la scrollbar des commentaires */
+.commentary-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.commentary-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.commentary-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+/* Styles pour le responsive */
+@media (max-width: 768px) {
+  .commentary-header {
+    font-size: 1.25rem;
+    padding: 0.25rem;
+  }
+
+  .question-text {
+    font-size: 1rem;
+  }
+
+  .option-button {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .commentary-item {
+    font-size: 0.875rem;
+    padding: 0.5rem;
+  }
+}
+
+/* Countdown Timer */
+.countdown-timer {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-weight: bold;
+  font-size: 1.25rem;
+  min-width: 3rem;
+  text-align: center;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Answer Feedback */
+.answer-feedback {
+  margin: 1rem 0;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  font-weight: bold;
+  text-align: center;
+  animation: fadeIn 0.3s ease-out;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.answer-feedback.positive {
+  background: rgba(34, 197, 94, 0.9);
+  color: white;
+  border: 1px solid rgb(21, 128, 61);
+}
+
+.answer-feedback.negative {
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: 1px solid rgb(153, 27, 27);
+}
+
+.answer-feedback.neutral {
+  background: rgba(59, 130, 246, 0.9);
+  color: white;
+  border: 1px solid rgb(37, 99, 235);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
