@@ -1,23 +1,24 @@
-// Backend (index.ts)
-import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
-import { Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
-import express from 'express';
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import OpenAI from 'openai';
+
+interface GenerateRequestBody {
+  prompt: string;
+}
 
 const app = express();
 
-// Configure CORS with specific options
 app.use(cors({
   origin: [
-    'https://whaleinthebox.github.io',
     'http://localhost:5173',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'https://whaleinthebox.github.io'
   ],
-  methods: ['POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin'],
   credentials: true,
-  maxAge: 86400 // Cache preflight request for 24 hours
+  maxAge: 86400
 }));
 
 app.use(express.json());
@@ -25,21 +26,27 @@ app.use(express.json());
 const client = new SecretManagerServiceClient();
 let openai: OpenAI | null = null;
 
-async function initOpenAI() {
+async function getSecret(): Promise<string | undefined> {
+  const [version] = await client.accessSecretVersion({
+    name: 'projects/638008614172/secrets/LM/versions/latest',
+  });
+  return version.payload?.data?.toString();
+}
+
+async function initOpenAI(): Promise<OpenAI> {
   if (!openai) {
-    const [version] = await client.accessSecretVersion({
-      name: 'projects/638008614172/secrets/LM/versions/latest',
-    });
-    const apiKey = version.payload?.data?.toString();
+    const apiKey = await getSecret();
+    if (!apiKey) throw new Error('Failed to get API key');
     openai = new OpenAI({ apiKey });
   }
   return openai;
 }
 
-// Add OPTIONS handler for preflight requests
-app.options('/generate', cors());
+app.get('/', (_req: Request, res: Response) => {
+  res.json({ status: 'healthy' });
+});
 
-app.post('/generate', async (req: Request, res: Response) => {
+app.post('/generate', async (req: Request<{}, {}, GenerateRequestBody>, res: Response) => {
   try {
     const { prompt } = req.body;
     const openaiClient = await initOpenAI();
@@ -54,8 +61,16 @@ app.post('/generate', async (req: Request, res: Response) => {
     res.json({ choices: completion.choices });
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ error: 'Failed to generate response' });
+    res.status(500).json({
+      error: 'Failed to generate response',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 
-export const gptFunction = app;
+const port = process.env.PORT || 8080;
+app.listen(port, () => {
+  console.log(`Server listening on port ${port}`);
+});
+
+export { app as gptFunction };

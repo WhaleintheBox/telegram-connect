@@ -96,62 +96,99 @@ interface OpenAIResponse {
 
 const API_URL = "https://us-central1-witb-bot.cloudfunctions.net/function-1";
 
+const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): Promise<Response> => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...options.headers,
+          'Origin': window.location.origin
+        }
+      });
+      
+      if (response.ok) {
+        return response;
+      }
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+    }
+  }
+  throw new Error('Max retries reached');
+};
+
 const generateCommentary = async (sportId: string, gameState: string): Promise<string> => {
   try {
-    const response = await fetch(`${API_URL}/generate`, {
+    const response = await fetchWithRetry(`${API_URL}/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      mode: 'cors',
+      credentials: 'include',
       body: JSON.stringify({
         prompt: `Generate a brief, exciting commentary line for a ${sportId} match. Current state: ${gameState}`,
       })
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
     const data = await response.json();
     return data.choices[0].message.content;
   } catch (error) {
     console.error('Commentary generation failed:', error);
-    return 'The match continues...';
+    return generateFallbackCommentary(sportId);
   }
 };
 
 const generateQuestion = async (sportId: string): Promise<QuestionType> => {
   try {
-    const response = await fetch(`${API_URL}/generate`, {
+    const response = await fetchWithRetry(`${API_URL}/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      mode: 'cors',
+      credentials: 'include',
       body: JSON.stringify({
         prompt: `Generate a game decision question for ${sportId} with 3 options and potential outcomes. Format as JSON: {"text": "question", "options": ["option1", "option2", "option3"], "impacts": {"option1": ["positive outcome", "negative outcome", "neutral outcome"], ...}}`
       })
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
     const data = await response.json();
     return JSON.parse(data.choices[0].message.content);
   } catch (error) {
     console.error('Question generation failed:', error);
-    return {
-      text: "What's your next move?",
-      options: ["Play it safe", "Take a risk", "Hold position"],
-      impacts: {
-        "Play it safe": ["Maintained control", "Missed opportunity", "No significant change"],
-        "Take a risk": ["Brilliant success!", "Complete failure", "Mixed results"],
-        "Hold position": ["Solid defense", "Lost initiative", "Status quo maintained"]
-      }
-    };
+    return generateFallbackQuestion(sportId);
   }
+};
+
+const generateFallbackCommentary = (sportId: string): string => {
+  const commentaries = {
+    'football': [
+      "The tension is mounting!",
+      "What an incredible display of skill!",
+      "The crowd is on their feet!"
+    ],
+    'basketball': [
+      "Amazing ball movement!",
+      "The defense is locked in!",
+      "What a spectacular play!"
+    ],
+    // Add more sport-specific commentaries as needed
+  };
+
+  const sportCommentaries = commentaries[sportId as keyof typeof commentaries] || commentaries.football;
+  return sportCommentaries[Math.floor(Math.random() * sportCommentaries.length)];
+};
+
+const generateFallbackQuestion = (sportId: string): QuestionType => {
+  return {
+    text: "What's your next strategic move?",
+    options: ["Play it safe", "Take a risk", "Hold position"],
+    impacts: {
+      "Play it safe": ["Maintained control", "Missed opportunity", "No significant change"],
+      "Take a risk": ["Brilliant success!", "Complete failure", "Mixed results"],
+      "Hold position": ["Solid defense", "Lost initiative", "Status quo maintained"]
+    }
+  };
 };
 
 const sports = [

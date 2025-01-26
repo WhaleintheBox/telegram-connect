@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:function": "tsc --project tsconfig.json --outDir dist-function src/server/index.ts",
+    "deploy:function": "npm run build:function && gcloud functions deploy generate --runtime nodejs20 --trigger-http --allow-unauthenticated --source dist-function",
     "preview": "vite preview"
   },
   "dependencies": {
